@@ -198,6 +198,109 @@ A shared domain package MUST contain:
 * Tax form templates and field mappings (W-2, 1099-INT, 1099-DIV, 1099-R, 1099-B, 1099-MISC, 1099-NEC, K-1, etc.)
 * Tax filing checklist templates by filing status
 
+### 5.4.1 IRS Uniform Lifetime Table (Required)
+
+The engine MUST include the following RMD distribution periods (IRS Publication 590-B, 2024 revision). Stored in `data/rmd-tables/uniform-lifetime.json`:
+
+```json
+{
+  "source": "IRS Uniform Lifetime Table (2024)",
+  "entries": [
+    { "age": 72, "distributionPeriod": 27.4 },
+    { "age": 73, "distributionPeriod": 26.5 },
+    { "age": 74, "distributionPeriod": 25.5 },
+    { "age": 75, "distributionPeriod": 24.6 },
+    { "age": 76, "distributionPeriod": 23.7 },
+    { "age": 77, "distributionPeriod": 22.9 },
+    { "age": 78, "distributionPeriod": 22.0 },
+    { "age": 79, "distributionPeriod": 21.1 },
+    { "age": 80, "distributionPeriod": 20.2 },
+    { "age": 81, "distributionPeriod": 19.4 },
+    { "age": 82, "distributionPeriod": 18.5 },
+    { "age": 83, "distributionPeriod": 17.7 },
+    { "age": 84, "distributionPeriod": 16.8 },
+    { "age": 85, "distributionPeriod": 16.0 },
+    { "age": 86, "distributionPeriod": 15.2 },
+    { "age": 87, "distributionPeriod": 14.4 },
+    { "age": 88, "distributionPeriod": 13.7 },
+    { "age": 89, "distributionPeriod": 12.9 },
+    { "age": 90, "distributionPeriod": 12.2 },
+    { "age": 91, "distributionPeriod": 11.5 },
+    { "age": 92, "distributionPeriod": 10.8 },
+    { "age": 93, "distributionPeriod": 10.1 },
+    { "age": 94, "distributionPeriod": 9.5 },
+    { "age": 95, "distributionPeriod": 8.9 },
+    { "age": 96, "distributionPeriod": 8.4 },
+    { "age": 97, "distributionPeriod": 7.8 },
+    { "age": 98, "distributionPeriod": 7.3 },
+    { "age": 99, "distributionPeriod": 6.8 },
+    { "age": 100, "distributionPeriod": 6.4 },
+    { "age": 101, "distributionPeriod": 6.0 },
+    { "age": 102, "distributionPeriod": 5.6 },
+    { "age": 103, "distributionPeriod": 5.2 },
+    { "age": 104, "distributionPeriod": 4.9 },
+    { "age": 105, "distributionPeriod": 4.6 },
+    { "age": 106, "distributionPeriod": 4.3 },
+    { "age": 107, "distributionPeriod": 4.1 },
+    { "age": 108, "distributionPeriod": 3.9 },
+    { "age": 109, "distributionPeriod": 3.7 },
+    { "age": 110, "distributionPeriod": 3.5 },
+    { "age": 111, "distributionPeriod": 3.4 },
+    { "age": 112, "distributionPeriod": 3.3 },
+    { "age": 113, "distributionPeriod": 3.1 },
+    { "age": 114, "distributionPeriod": 3.0 },
+    { "age": 115, "distributionPeriod": 2.9 },
+    { "age": 116, "distributionPeriod": 2.8 },
+    { "age": 117, "distributionPeriod": 2.7 },
+    { "age": 118, "distributionPeriod": 2.5 },
+    { "age": 119, "distributionPeriod": 2.3 },
+    { "age": 120, "distributionPeriod": 2.0 }
+  ]
+}
+```
+
+For ages above 120, use `distributionPeriod = 2.0`. For ages below 72, no RMD applies (RMDs start at 73 per SECURE 2.0).
+
+### 5.4.2 Standard Deduction Defaults (2025 Tax Year)
+
+Stored in `data/ss-parameters/standard-deductions.json`. Values SHOULD be updated annually.
+
+| Filing Status | Standard Deduction (2025) |
+|---|---|
+| `single` | $15,000 |
+| `mfj` | $30,000 |
+| `survivor` | $30,000 (same as MFJ) |
+
+Additional: filers age 65+ receive an extra $1,550 (single) or $1,300 (MFJ, per qualifying person). The engine SHOULD apply the age-based increase automatically based on the person's age in each simulation year.
+
+### 5.4.3 State Tax Parameter Dataset Schema
+
+Stored in `data/state-tax/states.json`. Each state entry:
+
+```json
+{
+  "stateCode": "WA",
+  "stateName": "Washington",
+  "incomeRate": 0,
+  "capitalGainsRate": 7.0,
+  "ssTaxExempt": true,
+  "notes": "No income tax; 7% capital gains tax on gains > $270,000 (2025)"
+}
+```
+
+Required fields: `stateCode`, `stateName`, `incomeRate` (effective %), `capitalGainsRate` (effective %), `ssTaxExempt` (boolean). The dataset MUST include all 50 states + DC. States with no income tax have `incomeRate: 0`.
+
+### 5.4.4 Application Config (`config.ndjson`)
+
+The `FinPlanner/config.ndjson` file in OneDrive stores application-level settings (not financial data):
+
+```
+{"_type":"header","schemaVersion":"3.0.0","exportedAt":"...","modules":["config"]}
+{"_type":"appConfig","theme":"light","claudeModelId":"claude-sonnet-4-5-20250929","anomalyThresholdPct":25,"anomalyThresholdAbsolute":5000,"confidenceThreshold":0.80,"lastSyncTimestamp":"..."}
+```
+
+The `appConfig` record contains user preferences and tunable thresholds. The Claude API key is NOT stored here — it is in IndexedDB only.
+
 ## 5.5 Storage Layer
 
 The storage architecture has two tiers: a local IndexedDB cache for fast access and offline support, and OneDrive - Personal as the durable cloud store. The **SPA owns both tiers** — there is no backend.
@@ -224,6 +327,17 @@ The storage architecture has two tiers: a local IndexedDB cache for fast access 
 * **Data minimization for LLM:** The system MUST send only the minimum data required for the specific analysis request. The prompt builder MUST strip personally identifiable information (names, SSNs, addresses) before sending to the LLM.
 * **No third-party data sharing:** Beyond the Claude API for explicit LLM analysis, data MUST NOT be transmitted to any external service.
 * **Exported NDJSON files** are written to OneDrive - Personal and remain within the user security context. They are formatted for consumption by other local LLM agents.
+
+## 5.7 Build Tooling and Monorepo
+
+* **Package manager:** pnpm (workspace protocol for monorepo)
+* **Build tool:** Vite (for the SPA; fast dev server and production bundler)
+* **Monorepo orchestrator:** Turborepo (for task caching, dependency-aware builds, and parallel execution across packages)
+* **TypeScript:** Strict mode (`"strict": true`) across all packages
+* **Linting:** ESLint with `@typescript-eslint` and Fluent UI recommended rules
+* **Formatting:** Prettier
+* **Testing:** Vitest (compatible with Vite, supports jsdom/happy-dom for browser-like environment)
+* **Pre-commit:** lint-staged + Husky (lint and typecheck changed files)
 
 ---
 
@@ -555,6 +669,52 @@ Tax-optimized heuristic MUST:
 * Attempt to minimize current-year tax burden
 * Respect spending target constraints
 * Consider simple look-ahead to avoid future tax cliffs (heuristic acceptable)
+
+### Tax-Optimized Withdrawal Algorithm (v1)
+
+The `taxOptimized` strategy uses the following greedy algorithm after mandatory income (RMDs, SS, NQDC, pensions) has been applied:
+
+```
+1. Compute remainingGap = withdrawalTarget (after mandatory income)
+2. If remainingGap <= 0: done (mandatory income covers spending)
+
+3. FILL THE 0% BRACKET — Withdraw from taxDeferred accounts up to the
+   amount that keeps taxable ordinary income at or below the standard
+   deduction. This withdrawal is effectively tax-free.
+   remainingGap -= amountWithdrawn
+
+4. RETURN OF BASIS — Withdraw from taxable accounts up to the
+   available cost basis (the non-taxable portion). This generates no
+   taxable income. Use gainFraction to compute the tax-free portion:
+   taxFreeAvailable = min(remainingGap, accountBalance * (1 - gainFraction))
+   remainingGap -= amountWithdrawn
+
+5. FILL LOW BRACKETS — Withdraw from taxDeferred accounts up to the
+   amount that keeps total ordinary income below the next marginal
+   bracket threshold (using the effective-rate model in v1: withdraw
+   until adding more would push the blended rate above the current
+   federalEffectiveRatePct by more than 2 percentage points).
+   remainingGap -= amountWithdrawn
+
+6. CAPITAL GAINS — Withdraw from taxable accounts (taxed at
+   capGainsRatePct, typically lower than ordinary rate). Use gain
+   portion of withdrawal.
+   remainingGap -= amountWithdrawn
+
+7. REMAINING TAX-DEFERRED — Withdraw any remaining gap from
+   taxDeferred accounts (taxed as ordinary income).
+   remainingGap -= amountWithdrawn
+
+8. ROTH LAST — Withdraw from Roth accounts only if all other sources
+   are exhausted (tax-free, most valuable to preserve).
+   remainingGap -= amountWithdrawn
+
+9. If remainingGap > 0: record shortfall.
+```
+
+**Look-ahead heuristic:** Before step 5, if the account owner is within 3 years of RMD age and has large `taxDeferred` balances, the engine SHOULD increase the step-5 withdrawal amount by up to 20% to reduce future RMD-driven tax spikes. This "RMD smoothing" is optional but recommended.
+
+**Diagnostics:** The engine MUST record which step each withdrawal came from in `YearResult` diagnostics so the rationale is explainable in the UI.
 
 ### RMD Interaction with Withdrawal Strategy
 
@@ -1023,6 +1183,7 @@ interface Account {
   expectedReturnPct: number;
   volatilityPct?: number;
   feePct: number;
+  targetAllocationPct?: number;       // target % of total portfolio (0–100); used by rebalancing. If omitted, account is excluded from rebalancing.
   deferredCompSchedule?: DeferredCompSchedule;
 }
 
@@ -1250,6 +1411,51 @@ interface TaxAnalysisResult {
 }
 ```
 
+### 7.2.1 Error Types
+
+All client-side modules MUST use the following error types for structured error reporting:
+
+```ts
+type AppErrorCode =
+  // Validation errors
+  | "VALIDATION_FAILED"            // Zod schema validation failed
+  | "INVALID_PLAN_INPUT"           // PlanInput fails validation
+  | "INVALID_NDJSON"               // NDJSON content is malformed or fails schema
+  | "SCHEMA_VERSION_UNSUPPORTED"   // NDJSON schemaVersion not recognized or migratable
+  // Computation errors
+  | "SIMULATION_ERROR"             // Engine encountered an unrecoverable state
+  | "NEGATIVE_BALANCE"             // Account balance went negative (should not happen)
+  | "WITHDRAWAL_CONVERGENCE"       // Tax-withdrawal iteration did not converge
+  // Claude API errors
+  | "CLAUDE_API_KEY_MISSING"       // No API key configured
+  | "CLAUDE_API_KEY_INVALID"       // Key validation failed (401/403)
+  | "CLAUDE_API_RATE_LIMITED"      // 429 response from Claude API
+  | "CLAUDE_API_NETWORK_ERROR"     // Network failure reaching Claude API
+  | "CLAUDE_API_TIMEOUT"           // Request timed out
+  | "CLAUDE_RESPONSE_INVALID"      // Response did not match expected Zod schema
+  | "CLAUDE_FALLBACK_USED"         // Not an error — informational: fallback advice returned
+  // OneDrive / storage errors
+  | "ONEDRIVE_AUTH_FAILED"         // MSAL auth flow failed or was cancelled
+  | "ONEDRIVE_PERMISSION_DENIED"   // Insufficient Graph API permissions
+  | "ONEDRIVE_NETWORK_ERROR"       // Network failure reaching Graph API
+  | "ONEDRIVE_SYNC_CONFLICT"       // Both local and remote modified since last sync
+  | "ONEDRIVE_QUOTA_EXCEEDED"      // User's OneDrive storage is full
+  // PDF extraction errors
+  | "PDF_PARSE_FAILED"             // pdf.js could not parse the file
+  | "PDF_FORM_UNRECOGNIZED"        // No form-type template matched
+  | "PDF_EXTRACTION_LOW_CONFIDENCE"; // Aggregate confidence below threshold
+
+interface AppError {
+  code: AppErrorCode;
+  message: string;                   // human-readable description
+  details?: Record<string, unknown>; // structured context (e.g., field paths, line numbers)
+  retryable: boolean;                // whether the operation can be retried
+  timestamp: string;                 // ISO 8601
+}
+```
+
+All module interface functions (§9) MUST throw or return `AppError` instances on failure. The UI MUST map `AppErrorCode` to user-friendly messages using Fluent `MessageBar` or `Toast`.
+
 ### 7.3 NDJSON Record Wrapper
 
 Every line in an NDJSON file MUST conform to:
@@ -1333,7 +1539,8 @@ Engine MUST execute in this order:
 8. Calculate taxes (federal + state) using income classification rules from FR-4; iterate if tax estimate was materially wrong (1–3 iterations)
 9. Compute net spendable and shortfall/surplus
 10. Apply fees to end-of-year balances: `balance = balance * (1 - feePct / 100)`
-11. Produce end-of-year balances and diagnostics
+11. Apply rebalancing if `rebalanceFrequency` is `"annual"` (see §8.5). For `"quarterly"`, rebalancing occurs at end of each quarter within the year.
+12. Produce end-of-year balances and diagnostics
 
 ## 8.2 Survivor Transition Rules
 
@@ -1398,6 +1605,21 @@ The retirement engine (§8.1) and tax module use different inputs for the same t
 * **Tax module:** Uses actual/imported income data for historical and current years, estimated data for future years.
 
 When historical `filed` tax years exist, the system SHOULD use the actual effective rates from those years to inform the retirement engine's `TaxConfig` defaults (e.g., suggest a `federalEffectiveRatePct` based on the user's real 3-year average).
+
+## 8.5 Portfolio Rebalancing
+
+When `StrategyConfig.rebalanceFrequency` is not `"none"` and at least two accounts have `targetAllocationPct` set, the engine MUST apply portfolio rebalancing:
+
+1. **Timing:** Rebalancing occurs at end-of-year (after fees, step 10 in §8.1) for `"annual"`, or at end of each quarter for `"quarterly"` (modeled as 4 sub-periods per simulation year).
+2. **Target allocation:** Each account with a `targetAllocationPct` defines its target share of the **total portfolio balance** (sum of all accounts with targets). Accounts without `targetAllocationPct` are excluded from rebalancing.
+3. **Validation:** The sum of all `targetAllocationPct` values MUST equal 100. If not, the engine MUST emit a `VALIDATION_FAILED` error before simulation starts.
+4. **Rebalancing step:**
+   a. Compute total portfolio value (sum of all accounts with targets).
+   b. For each account: `targetBalance = totalPortfolio * (targetAllocationPct / 100)`.
+   c. Compute delta: `delta = targetBalance - currentBalance`.
+   d. Transfer balances between accounts to match targets. Transfers are **notional** (no tax event in v1 — this is a simplifying assumption that MUST be documented in `model-limitations.md`).
+5. **Cost basis adjustment:** When a taxable account receives a notional inflow via rebalancing, the cost basis increases by the inflow amount (it represents new "purchases" at current value). When a taxable account has a notional outflow, cost basis decreases proportionally (same formula as withdrawal basis reduction in FR-2).
+6. When `rebalanceFrequency` is `"none"`, no rebalancing occurs and `targetAllocationPct` is ignored.
 
 ---
 
@@ -1647,6 +1869,64 @@ The `retirementProjectionSummary` (optional) enables cross-domain advice (e.g., 
 13. System SHOULD log schema failure frequency to IndexedDB-based local diagnostics.
 14. **No raw document transmission:** The system MUST NOT send raw PDF content, full document text, or unstructured data to Claude. Only extracted, structured, PII-stripped fields are permitted.
 
+### 10.1 Prompt Template Example (Portfolio Advice)
+
+The following is a reference prompt structure for `getPortfolioAdvice()`. All LLM functions MUST follow this pattern: system prompt with role/constraints, structured data context, and explicit JSON output schema.
+
+```
+System prompt:
+  You are a retirement planning analysis assistant. You provide educational
+  guidance about portfolio allocation and withdrawal strategies. You are NOT
+  a financial advisor. All output MUST be valid JSON matching the schema below.
+  Do not include any text outside the JSON object.
+
+  Output JSON schema:
+  {
+    "recommendations": [{ "title": string, "rationale": string,
+      "expectedImpact": string, "tradeoffs": [string], "source": "llm" }],
+    "withdrawalStrategyAdvice": [{ "title": string, "rationale": string }],
+    "riskFlags": [string],
+    "assumptionSensitivity": [string],
+    "disclaimer": "Educational planning guidance, not investment/tax/legal advice."
+  }
+
+User prompt:
+  Analyze this retirement plan and provide optimization suggestions.
+
+  HOUSEHOLD: Filing MFJ, state WA. Primary age 60 retiring at 62,
+  life expectancy 90. Spouse age 58 retiring at 62, life expectancy 92.
+
+  ACCOUNTS:
+  - Taxable brokerage: $900,000 (basis $500,000), 5.5% return, 0.15% fee
+  - 401k (primary): $1,400,000, 5.8% return, 0.20% fee
+  - Deferred comp (primary): $300,000, distributions $30k/yr 2030–2039
+
+  INCOME: Corporate pension $24,000/yr starting 2028. SS primary $3,200/mo
+  at 67, spouse $2,400/mo at 67.
+
+  SPENDING: $180,000/yr target, 2.5% inflation, survivor 70%.
+  Guardrails: floor $140,000, ceiling $220,000.
+
+  STRATEGY: Tax-optimized withdrawals, annual rebalancing.
+  TAX: 18% federal effective, 0% state, 15% cap gains.
+
+  SCENARIO RESULTS:
+  - Deterministic: no shortfall, terminal value $1.2M
+  - GFC 2008 replay: shortfall years 28–30, terminal value $0
+  - High inflation: shortfall years 25–35
+
+  USER PREFERENCES: Moderate risk tolerance, spending floor $120,000,
+  legacy goal $1,000,000.
+```
+
+Key principles demonstrated:
+* **No PII** — no names, SSNs, addresses, employer names (use "Corporate pension" not "Acme Corp pension")
+* **Structured context** — data is organized by section, not raw dumps
+* **Explicit schema** — the output format is defined in the system prompt
+* **Aggregated figures** — individual transaction details are not sent
+
+Tax strategy and anomaly analysis prompts MUST follow the same pattern, substituting the relevant data context and output schema.
+
 ---
 
 ## 11. UI/UX Requirements
@@ -1661,7 +1941,9 @@ The application MUST implement the **Fluent Design Language** using **Fluent UI 
 2. **Motion:** Use Fluent motion tokens (`durationNormal`, `curveEasyEase`, etc.) for transitions between views, expanding/collapsing panels, and data loading states. Page transitions, drawer open/close, and chart animations MUST use Fluent motion curves.
 3. **Depth:** Use Fluent's layering model to convey spatial relationships. The navigation shell sits at the base layer; content panels float above; dialogs and popovers use progressive elevation. Acrylic/reveal effects MAY be used for navigation surfaces where performance permits.
 4. **Material:** Apply Fluent material treatments — subtle backgrounds using Fluent `colorNeutralBackground2`/`3`/`4` tokens to differentiate content regions (e.g., sidebar vs. main content vs. detail panels).
-5. **Scale:** The layout MUST be responsive and adapt gracefully from compact (1024px) to wide (1920px+) viewports using Fluent's spacing tokens (`spacingHorizontalS` through `spacingHorizontalXXXL`). Touch targets MUST meet 44×44px minimum for interactive elements.
+5. **Scale:** The layout MUST be responsive and adapt gracefully from compact (1024px) to wide (1920px+) viewports using Fluent's spacing tokens (`spacingHorizontalS` through `spacingHorizontalXXXL`).
+* **Mobile Support:** While complex data entry is optimized for desktop, critical "read" flows (Dashboard, Checklist status, Advice review) MUST be usable on mobile viewports (375px+). Complex tables (e.g., Tax Year Detail) MAY use horizontal scrolling or stacked card views on mobile.
+* Touch targets MUST meet 44×44px minimum for interactive elements.
 
 ### Component Usage Requirements
 
@@ -1777,11 +2059,23 @@ Versioning rules:
 * Backward-compatible additive changes SHOULD increment minor version.
 * Breaking changes MUST increment major version and provide migration logic.
 
+### Migration: 2.0.0 → 3.0.0
+
+Schema version 3.0.0 is a major (breaking) change from 2.0.0. The migration removes all backend references. The `validateImport()` function MUST support importing 2.0.0 files with the following migration steps:
+
+1. Update the header `schemaVersion` from `"2.0.0"` to `"3.0.0"`.
+2. All record types and field names are unchanged — the data model is identical. The breaking change is architectural (no backend), not structural.
+3. If a 2.0.0 file contains records with fields not in the 3.0.0 schema, they MUST be preserved as-is (forward compatibility).
+4. After migration, validate all records against 3.0.0 schemas.
+5. Set `migrated: true` in the `ImportValidationResult`.
+
+Files with `schemaVersion` below `"2.0.0"` are not supported and MUST return `SCHEMA_VERSION_UNSUPPORTED`.
+
 Import pipeline MUST:
 
 1. Parse NDJSON line-by-line
 2. Validate header line for `schemaVersion`
-3. Migrate records if schema version is older but supported
+3. Migrate records if schema version is older but supported (currently: 2.0.0 → 3.0.0)
 4. Validate each record against its `_type` schema
 5. Return structured errors with line numbers if invalid
 6. Support selective import (tax-only, retirement-only, or full)
@@ -1812,6 +2106,7 @@ Import pipeline MUST:
 * **No third-party data sharing:** Beyond the Claude API, no user data may be transmitted externally.
 * **PDF storage:** Imported PDFs MUST be stored only in OneDrive - Personal (via the SPA), never on any external service. There is no server.
 * **OneDrive authentication:** The SPA MUST use MSAL.js with PKCE flow and delegated permissions (`Files.ReadWrite`, `User.Read`). There is no backend. See FR-14 for full details.
+* **Content Security Policy (CSP):** Static hosting SHOULD set CSP headers that disallow inline scripts, restrict script sources to the app's own origin, and allow `https://api.anthropic.com` for Claude calls. A CSP violation report endpoint MAY be configured.
 
 ## 13.4 Reliability
 
@@ -1833,6 +2128,7 @@ System SHOULD emit to IndexedDB-based local diagnostics:
 * Advice schema failure metrics
 * Import validation failure metrics
 * Claude API call latency and error rates
+* **Retention/opt-out:** The settings page MUST allow users to clear diagnostics and disable diagnostics collection. Default retention SHOULD be 30 days or 1,000 entries, whichever comes first.
 
 ---
 
@@ -1986,7 +2282,7 @@ finplanner/
 
 ## PR-3: Core Deterministic Engine
 
-* Implement annual cashflow loop (11-step execution order per §8.1)
+* Implement annual cashflow loop (12-step execution order per §8.1)
 * Account growth, withdrawals, tax impacts, reconciliation
 * Cost basis tracking for taxable accounts
 * RMD computation and enforcement for tax-deferred accounts
@@ -2060,23 +2356,38 @@ finplanner/
 * Income change >25% triggers warning anomaly
 * Omitted income source from prior year detected
 
-## PR-8: Full UI Flows + Dashboard (Tax + Retirement)
+## PR-8a: Dashboard + Shared UI + Tax Planning UI
 
-* Complete all required routes for both tax and retirement modules
-* Shared dashboard with both modules' status
-* Forms, validation, charts, comparison views
+* Shared dashboard (route 1) with both modules' status cards
+* Household & Shared Data (route 2), Accounts (route 3), Export/Import (route 4), Settings shell (route 5)
+* Tax Years list (route 6), Tax Year Detail (route 7), Document Import (route 8)
+* Tax Checklist (route 9), Year-over-Year Analysis (route 10)
 * Tax-specific visualizations (YoY charts, checklist progress, anomaly dashboard)
-* OneDrive sync status indicator
+* OneDrive sync status indicator in top bar
+* App shell layout (navigation rail, top bar, theme toggle)
+
+**Exit Criteria**
+
+* End-to-end PDF import → checklist → anomaly detection works (tax)
+* Shared data views show unified corpus
+* Dashboard renders tax module status cards
+* Inline validation complete for all tax forms
+
+## PR-8b: Retirement Planning UI
+
+* Plan Setup (route 12), Income & Social Security (route 13), Assumptions (route 14)
+* Scenarios (route 15), Results Dashboard (route 16)
+* Retirement-specific charts (income timeline, withdrawals by account, end balances, shortfall/surplus, scenario comparison)
 * LLM data transmission indicator
 
 **Exit Criteria**
 
 * End-to-end plan setup to result viewing works (retirement)
-* End-to-end PDF import → checklist → anomaly detection works (tax)
-* Shared data views show unified corpus
+* Scenario comparison renders delta metrics
+* Dashboard renders retirement module status cards
 * Inline validation and assumptions display complete
 
-## PR-9: Client-Side Claude Module (Tax + Retirement)
+## PR-9: Client-Side Claude Module (Tax + Retirement Advice)
 
 * Claude API key management UI (enter/update/delete in settings, stored in IndexedDB only)
 * Anthropic JS SDK integration with CORS support (`anthropic-dangerous-direct-browser-access` header)
