@@ -273,22 +273,67 @@ Stored in `data/ss-parameters/standard-deductions.json`. Values SHOULD be update
 
 Additional: filers age 65+ receive an extra $1,550 (single) or $1,300 (MFJ, per qualifying person). The engine SHOULD apply the age-based increase automatically based on the person's age in each simulation year.
 
-### 5.4.3 State Tax Parameter Dataset Schema
+### 5.4.3 State Tax Parameter Dataset
 
-Stored in `data/state-tax/states.json`. Each state entry:
+Stored in `data/state-tax/states.json`. Required fields per entry: `stateCode`, `stateName`, `incomeRate` (top marginal effective %, simplified for v1), `capitalGainsRate` (effective %), `ssTaxExempt` (boolean), `notes` (optional). Rates are approximate top-marginal effective rates suitable for the v1 effective-rate model; bracket-level modeling is a future enhancement.
 
-```json
-{
-  "stateCode": "WA",
-  "stateName": "Washington",
-  "incomeRate": 0,
-  "capitalGainsRate": 7.0,
-  "ssTaxExempt": true,
-  "notes": "No income tax; 7% capital gains tax on gains > $270,000 (2025)"
-}
-```
+The full dataset (50 states + DC):
 
-Required fields: `stateCode`, `stateName`, `incomeRate` (effective %), `capitalGainsRate` (effective %), `ssTaxExempt` (boolean). The dataset MUST include all 50 states + DC. States with no income tax have `incomeRate: 0`.
+| Code | State | Income % | Cap Gains % | SS Exempt | Notes |
+|---|---|---|---|---|---|
+| AL | Alabama | 5.0 | 5.0 | Yes | |
+| AK | Alaska | 0 | 0 | Yes | No income tax |
+| AZ | Arizona | 2.5 | 2.5 | Yes | Flat rate |
+| AR | Arkansas | 4.4 | 4.4 | Yes | |
+| CA | California | 13.3 | 13.3 | Yes | Highest state rate; no separate CG rate |
+| CO | Colorado | 4.4 | 4.4 | Partial | SS exempt if age 65+; partial 55–64 |
+| CT | Connecticut | 6.99 | 6.99 | Partial | SS exempt below AGI threshold |
+| DE | Delaware | 6.6 | 6.6 | Yes | |
+| FL | Florida | 0 | 0 | Yes | No income tax |
+| GA | Georgia | 5.49 | 5.49 | Yes | |
+| HI | Hawaii | 11.0 | 7.25 | Yes | Separate CG rate |
+| ID | Idaho | 5.8 | 5.8 | Yes | |
+| IL | Illinois | 4.95 | 4.95 | Yes | Flat rate |
+| IN | Indiana | 3.05 | 3.05 | Yes | Flat rate |
+| IA | Iowa | 5.7 | 5.7 | Yes | |
+| KS | Kansas | 5.7 | 5.7 | Partial | SS exempt below AGI $75k |
+| KY | Kentucky | 4.0 | 4.0 | Yes | Flat rate |
+| LA | Louisiana | 4.25 | 4.25 | Yes | |
+| ME | Maine | 7.15 | 7.15 | Yes | |
+| MD | Maryland | 5.75 | 5.75 | Yes | |
+| MA | Massachusetts | 5.0 | 9.0 | Yes | Higher rate on short-term CG and income >$1M |
+| MI | Michigan | 4.25 | 4.25 | Yes | Flat rate |
+| MN | Minnesota | 9.85 | 9.85 | Partial | SS taxed following federal rules |
+| MS | Mississippi | 5.0 | 5.0 | Yes | |
+| MO | Missouri | 4.95 | 4.95 | Partial | SS exempt below AGI $85k (MFJ) |
+| MT | Montana | 6.75 | 6.75 | Partial | Partial SS exemption |
+| NE | Nebraska | 6.64 | 6.64 | Partial | SS phasing to full exemption by 2025 |
+| NV | Nevada | 0 | 0 | Yes | No income tax |
+| NH | New Hampshire | 0 | 0 | Yes | Interest/dividend tax repealed 2025 |
+| NJ | New Jersey | 10.75 | 10.75 | Yes | SS exempt |
+| NM | New Mexico | 5.9 | 5.9 | Partial | SS exempt below $100k (MFJ) |
+| NY | New York | 10.9 | 10.9 | Yes | Includes NYC surcharge for NYC residents |
+| NC | North Carolina | 4.5 | 4.5 | Yes | Flat rate |
+| ND | North Dakota | 2.5 | 2.5 | Partial | SS taxed following federal rules |
+| OH | Ohio | 3.5 | 3.5 | Yes | |
+| OK | Oklahoma | 4.75 | 4.75 | Yes | |
+| OR | Oregon | 9.9 | 9.9 | Yes | No sales tax; higher income tax |
+| PA | Pennsylvania | 3.07 | 3.07 | Yes | Flat rate |
+| RI | Rhode Island | 5.99 | 5.99 | Partial | SS exempt below AGI threshold |
+| SC | South Carolina | 6.4 | 6.4 | Yes | |
+| SD | South Dakota | 0 | 0 | Yes | No income tax |
+| TN | Tennessee | 0 | 0 | Yes | No income tax |
+| TX | Texas | 0 | 0 | Yes | No income tax |
+| UT | Utah | 4.65 | 4.65 | Partial | SS taxed but tax credit offsets for lower income |
+| VT | Vermont | 8.75 | 8.75 | Partial | SS taxed following federal rules |
+| VA | Virginia | 5.75 | 5.75 | Yes | |
+| WA | Washington | 0 | 7.0 | Yes | No income tax; 7% CG tax on gains >$270k |
+| WV | West Virginia | 6.5 | 6.5 | Partial | SS phasing to full exemption |
+| WI | Wisconsin | 7.65 | 7.65 | Yes | |
+| WY | Wyoming | 0 | 0 | Yes | No income tax |
+| DC | District of Columbia | 10.75 | 10.75 | Yes | |
+
+When the user selects a state, the engine SHOULD pre-populate `TaxConfig.stateEffectiveRatePct` from `incomeRate` and apply the `ssTaxExempt` flag to the SS taxation calculation (§FR-3). Users MAY override the rate.
 
 ### 5.4.4 Application Config (`config.ndjson`)
 
@@ -1621,6 +1666,8 @@ When `StrategyConfig.rebalanceFrequency` is not `"none"` and at least two accoun
 5. **Cost basis adjustment:** When a taxable account receives a notional inflow via rebalancing, the cost basis increases by the inflow amount (it represents new "purchases" at current value). When a taxable account has a notional outflow, cost basis decreases proportionally (same formula as withdrawal basis reduction in FR-2).
 6. When `rebalanceFrequency` is `"none"`, no rebalancing occurs and `targetAllocationPct` is ignored.
 
+**Quarterly rebalancing and the annual loop:** When `rebalanceFrequency` is `"quarterly"`, the engine does NOT re-run the full 12-step annual loop four times. Instead, steps 1–10 execute once for the full year as normal. Then, the rebalancing step (step 11) executes four times at quarterly boundaries (end of Q1, Q2, Q3, Q4). At each quarterly checkpoint: split the year's total returns proportionally (each quarter applies ¼ of the annual return to each account's balance), then execute the rebalancing algorithm (step 4 above) against the resulting balances. The final Q4 rebalancing produces the end-of-year balances used by step 12. Withdrawals, taxes, RMDs, and spending remain annual — only the rebalancing frequency changes.
+
 ---
 
 ## 9. Module Interfaces (Client-Side)
@@ -2157,23 +2204,149 @@ System SHOULD emit to IndexedDB-based local diagnostics:
 
 ## 14.2 Golden Scenario Tests (MUST)
 
-**Retirement:**
+Each golden test defines fixture inputs and required numerical/structural assertions. All retirement scenarios use `simulationMode: "deterministic"` unless stated otherwise. Monetary values are in USD. Tolerance for floating-point assertions: ±$1.
 
-1. Stable baseline market case
-2. Early severe downturn case
-3. Survivor transition case (including filing status change and spending adjustment)
-4. High-tax state vs low/no-tax state comparison
-5. Deferred comp concentrated payout case (including balance overshoot)
-6. RMD interaction case (RMDs exceeding spending target)
-7. Guardrail spending case (floor and ceiling triggers)
+### Retirement Scenarios
 
-**Tax:**
+**1. Stable baseline market case**
 
-8. Two-year tax record with complete documents — checklist shows 100% complete
-9. Missing document detection — 1099-DIV present in year N-1, absent in year N
-10. Income anomaly detection — >25% wage change triggers warning
-11. Multi-form import — multiple W-2s and 1099s merge into single tax year record
-12. NDJSON roundtrip — full export of tax + retirement data, re-import, verify fidelity
+Fixture: Single retiree, age 65, life expectancy 90 (25 years). One taxable account: $1,000,000 balance, $600,000 basis, 6% return, 0.10% fee. Spending: $50,000/year, 2% inflation. Taxes: 12% federal effective, 0% state, 15% cap gains. No SS, no pensions, no adjustments. Strategy: `taxableFirst`, no rebalancing, no guardrails.
+
+Assertions:
+- Zero shortfall years across all 25 years.
+- Year 1 spending target = $50,000; year 25 spending target = $50,000 × 1.02²⁴ = $80,421 (±$1).
+- End-of-year-1 balance < $1,000,000 (withdrawals + fees exceed 6% growth at this spending level).
+- Final year (year 25) end balance > $0 (plan is sustainable).
+- Every `YearResult` has `netSpendable >= inflatedSpendingTarget`.
+- Total taxes paid over 25 years > $0 (taxable account generates capital gains).
+- Cost basis decreases monotonically year over year (taxable-first draws down basis).
+
+**2. Early severe downturn case**
+
+Fixture: Same as Scenario 1, except: historical scenario with returns = [-20%, -15%, -10%, 5%, 8%, 10%] for years 1-6, then 6% for years 7-25. Inflation sequence: plan default 2% for all years.
+
+Assertions:
+- At least 1 shortfall year in years 1–6 (downturn depletes the portfolio faster than spending can be covered).
+- Year 3 end balance < $600,000 (three consecutive negative years after withdrawals).
+- If no shortfall, end balance at year 6 < Scenario 1's year-6 end balance (sequence-of-returns risk is visible).
+- Plan recovers: year 25 end balance ≥ $0 OR shortfall years are recorded with exact amounts.
+
+**3. Survivor transition case**
+
+Fixture: Married couple, MFJ. Primary age 65, life expectancy 85 (20 years). Spouse age 63, life expectancy 90 (27 years). One tax-deferred account: $2,000,000, owner primary, 6% return, 0.20% fee. SS: primary $2,500/mo claiming at 67, spouse $1,800/mo claiming at 67. Spending: $120,000/year, 2.5% inflation, `survivorSpendingAdjustmentPct: 0.70`. Taxes: 18% federal effective, 5% state, 15% cap gains. Strategy: `taxOptimized`, no rebalancing, no guardrails.
+
+Assertions:
+- Years 1–20 (joint phase): filing status = `mfj`.
+- Year 21 (primary exits at life expectancy 85): filing status transitions to `survivor` (qualifying surviving spouse for 2 years), then `single`.
+- Year 21 spending target = year-20 inflation-adjusted target × 0.70.
+- Year 21 onward: primary's SS stops; spouse receives max(own benefit, primary's benefit).
+- Primary's account ownership transfers to survivor in year 21.
+- Total simulation length = 27 years (spouse's horizon, age 63 + 27 = 90).
+- No duplicate income streams for deceased spouse after year 20.
+
+**4. High-tax state vs low/no-tax state comparison**
+
+Fixture: Two runs with identical inputs except `stateOfResidence` and state tax rate. Single retiree, age 62, life expectancy 92. Tax-deferred account: $1,500,000, 5.5% return, 0.15% fee. Spending: $80,000/year, 2% inflation. Taxes: 22% federal effective, 15% cap gains. Strategy: `taxOptimized`. Run A: state = "CA", stateEffectiveRatePct = 9.3%. Run B: state = "WA", stateEffectiveRatePct = 0%.
+
+Assertions:
+- Run B (WA) final end balance > Run A (CA) final end balance.
+- Run B total taxes paid < Run A total taxes paid.
+- Difference in total taxes ≈ total withdrawals × 9.3% (±10% tolerance for compounding effects).
+- Run B has fewer or equal shortfall years compared to Run A.
+- Both runs have identical pre-tax withdrawal sequences (same spending target, same strategy), but different net spendable amounts.
+
+**5. Deferred comp concentrated payout case**
+
+Fixture: Single retiree, age 60, life expectancy 85. NQDC account: $500,000, 4% return, 0% fee, schedule: startYear = year 1, endYear = year 5, frequency = annual, amount = $120,000, inflationAdjusted = false. One taxable account: $800,000, $400,000 basis, 6% return, 0.10% fee. Spending: $100,000/year, 2% inflation. Taxes: 22% federal effective, 0% state, 15% cap gains. Strategy: `taxOptimized`, no guardrails.
+
+Assertions:
+- Years 1–5: NQDC distributes $120,000/year as ordinary income.
+- Year 5: cumulative distributions = $600,000 but original balance + returns ≈ $500,000 × 1.04⁵ ≈ $608,326. Distributions total $600,000 < $608,326 so no cap needed.
+- Year 6: remaining NQDC balance (≈$8,326 + year-5 growth) distributed as lump sum.
+- Year 7 onward: NQDC balance = $0, no further NQDC distributions.
+- Years 1–5: mandatory NQDC income ($120,000) exceeds spending target in early years → withdrawalTarget from taxable is reduced or zero.
+- NQDC distributions are classified as ordinary income in every year they occur.
+
+**6. RMD interaction case**
+
+Fixture: Single retiree, age 74, life expectancy 95. Tax-deferred account: $3,000,000, 5% return, 0.15% fee. No other accounts. Spending: $80,000/year, 2% inflation. Taxes: 22% federal effective, 0% state, 15% cap gains. Strategy: `taxOptimized`, no guardrails.
+
+Assertions:
+- Year 1 (age 74): RMD = $3,000,000 × 1.05 / 25.5 (ULT divisor for age 74) = $3,150,000 / 25.5 ≈ $123,529. RMD > spending target ($80,000) → no discretionary withdrawal needed.
+- Year 1: surplus = RMD - spending target - taxes > $0 (recorded in YearResult).
+- RMD amounts increase as a percentage of the portfolio as the divisor shrinks with age.
+- Zero shortfall years in early simulation (large portfolio relative to spending).
+- Taxes are computed on the full RMD amount (ordinary income), not just the spending-target portion.
+- The engine does NOT withdraw beyond the RMD when RMD already exceeds spending + taxes.
+
+**7. Guardrail spending case**
+
+Fixture: Single retiree, age 65, life expectancy 90. Taxable account: $2,000,000, $1,200,000 basis, 7% return, 0.10% fee. Spending: target $100,000/year, floor $70,000, ceiling $130,000, 2% inflation. Taxes: 15% federal effective, 0% state, 15% cap gains. Strategy: `taxableFirst`, no rebalancing, guardrails enabled.
+
+Assertions:
+- **Ceiling trigger test:** With 7% returns and $2M start, portfolio grows faster than spending. When portfolio > 20 × ceiling ($130,000 × inflation-adjusted) = $2,600,000+, spending is capped at the inflation-adjusted ceiling. Verify at least one year where actual spend = ceiling (inflation-adjusted).
+- **Floor trigger test:** Create a secondary sub-scenario OR verify: if withdrawal rate would exceed 6% of portfolio, spending drops to floor. With the given inputs and strong returns, the floor may not trigger; if so, assert that actual spend is never below the inflation-adjusted floor.
+- Actual spend recorded in `YearResult` differs from the unadjusted inflation-grown target in at least one year (ceiling is hit).
+- When guardrails are disabled (control run), every year's actual spend = inflation-adjusted target exactly.
+
+### Tax Scenarios
+
+**8. Two-year complete tax record**
+
+Fixture: Two `taxYear` records (2024 filed, 2025 draft), MFJ, WA. 2024: wages $150,000, W-2 present, 1099-DIV present ($8,000), 1099-INT present ($3,000). 2025: same sources, W-2 present, 1099-DIV present ($8,500), 1099-INT present ($3,200). All documents confirmed by user.
+
+Assertions:
+- `generateChecklist()` for 2025 returns `completionPct: 100`.
+- Checklist items for W-2, 1099-DIV, 1099-INT all have `status: "received"`.
+- No checklist items with `status: "missing"` or `status: "expected"`.
+- `sourceReasoning` for each item references the 2024 tax year.
+
+**9. Missing document detection**
+
+Fixture: 2024 (filed) has 1099-DIV from "Vanguard" with $8,000. 2025 (draft) has no 1099-DIV from Vanguard. All other documents match.
+
+Assertions:
+- `detectAnomalies()` returns at least one anomaly with `category: "omission"`.
+- Anomaly `field` references the Vanguard 1099-DIV.
+- Anomaly `severity` = `"warning"`.
+- Anomaly `comparisonYear` = 2024.
+- `generateChecklist()` for 2025 includes a checklist item for Vanguard 1099-DIV with `status: "expected"` or `"missing"`.
+- `completionPct` < 100.
+
+**10. Income anomaly detection**
+
+Fixture: 2024 (filed) wages = $100,000. 2025 (draft) wages = $140,000 (40% increase, exceeds 25% threshold).
+
+Assertions:
+- `detectAnomalies()` returns an anomaly with `category: "variance"`.
+- Anomaly `field` references wages.
+- Anomaly `severity` = `"warning"` (>25% change).
+- Anomaly `description` includes the percentage change or both values.
+- A 24% wage change ($100,000 → $124,000) must NOT trigger this anomaly.
+
+**11. Multi-form import**
+
+Fixture: Import 3 PDFs for tax year 2025 — two W-2s (Employer A: $80,000 wages, Employer B: $45,000 wages) and one 1099-INT ($2,500 interest). Tax year record exists with no prior income data.
+
+Assertions:
+- After import, `taxYear.income.wages` = $125,000 (sum of both W-2s).
+- After import, `taxYear.income.interestIncome` = $2,500.
+- Three separate `taxDocument` records created, each with correct `formType`.
+- `taxYear.documents` array contains all three document IDs.
+- No duplicate income fields — second W-2 adds to (not replaces) the first.
+
+**12. NDJSON roundtrip fidelity**
+
+Fixture: Full dataset with household, 3 accounts, 2 income streams, 2 adjustments, 1 retirement plan, 2 tax years, 4 tax documents, 3 checklist items, 2 anomalies (matching §20 reference payload structure).
+
+Assertions:
+- Export produces valid NDJSON: every line parses as valid JSON independently.
+- Line 1 is `_type: "header"` with `schemaVersion: "3.0.0"`.
+- Re-import via `validateImport()` returns `valid: true`, zero errors.
+- After re-import, every field in every record matches the original export byte-for-byte (no floating-point drift, no field reordering within tolerance, no dropped optional fields).
+- Record count after import equals record count before export.
+- `_type` distribution is preserved (same count of each record type).
+- API key is NOT present in the exported NDJSON.
 
 ## 14.3 Integration Tests (MUST)
 
@@ -2498,6 +2671,42 @@ Implementation MUST deliver:
 5. `docs/runbook.md`
 6. `docs/data-security.md` (data residency, LLM data flow, PII handling)
 7. `CHANGELOG.md`
+
+### 19.1 Required Contents: `assumptions.md`
+
+1. **Returns modeling** — returns applied to beginning-of-year balances before withdrawals; no intra-year compounding.
+2. **Tax model** — effective-rate approximation for draft/future years; actual rates for filed years; no AMT, no NIIT, no phase-outs in v1.
+3. **Inflation** — constant annual rate applied uniformly to spending, SS COLA, and pension COLA; no differential inflation for healthcare/housing.
+4. **Social Security** — user-provided monthly benefit at claim age; COLA applied from claim age forward; survivor receives the higher of own or deceased benefit.
+5. **Mortality** — deterministic life expectancy (no mortality tables or probability curves); survivor phase begins on deceased's life-expectancy year.
+6. **Rebalancing** — notional transfers between accounts (no tax event in v1); quarterly rebalancing splits annual returns into four equal sub-periods.
+7. **Withdrawal strategy** — greedy bucket ordering; no partial-year withdrawals; no tax-loss harvesting.
+8. **State taxes** — effective-rate model only; no bracket-level computation; dataset provides representative rates, not authoritative filing calculations.
+
+### 19.2 Required Contents: `model-limitations.md`
+
+1. **Filing status** — MFS and HoH not supported in v1; only single, MFJ, and survivor.
+2. **Federal tax brackets** — not modeled; effective-rate only. Marginal rate optimizations (e.g., Roth conversions to fill low brackets) cannot be evaluated.
+3. **AMT / NIIT / phase-outs** — not modeled.
+4. **Rebalancing tax events** — notional transfers do not trigger capital gains in v1; real-world rebalancing in taxable accounts would incur taxes.
+5. **Intra-year timing** — all cashflows are annual; no mid-year events, no monthly modeling.
+6. **Healthcare costs** — no explicit Medicare premium, Part D, or Medigap modeling; users must include in spending target.
+7. **Estate planning** — no estate tax, step-up in basis, or inheritance modeling.
+8. **Roth conversions** — not modeled as a planning lever; users cannot simulate conversion ladders.
+9. **Social Security taxation** — the engine applies SS income as taxable at the user's effective rate; the actual 50%/85% provisional-income thresholds are not modeled.
+10. **Monte Carlo** — if implemented, assumes normally distributed returns; no fat tails, no serial correlation.
+
+### 19.3 Required Contents: `runbook.md`
+
+1. **Prerequisites** — Node.js version, pnpm version, Azure AD app registration steps (client ID, redirect URI, `Files.ReadWrite` + `User.Read` permissions).
+2. **Local development** — `pnpm install`, `pnpm dev`, environment variables (MSAL client ID), dev server ports.
+3. **Build** — `pnpm build`, output directory, build artifacts.
+4. **Testing** — `pnpm test`, `pnpm test:golden`, `pnpm test:integration`, how to update golden snapshots.
+5. **Static hosting deployment** — Azure Static Web Apps (step-by-step), GitHub Pages (step-by-step), generic CDN deployment; CORS/CSP header configuration.
+6. **OneDrive folder structure** — expected folder layout in user's OneDrive (`/FinPlanner/`, `/FinPlanner/data/`, `/FinPlanner/exports/`); how the app creates it on first run.
+7. **Claude API key setup** — where to enter the key in the Settings UI, how it's stored (IndexedDB), how to verify it's working, how to rotate/delete it.
+8. **Troubleshooting** — common issues: MSAL redirect loop, OneDrive permission denied, Claude API 401/429, IndexedDB quota exceeded, PDF extraction failures.
+9. **Data backup and recovery** — how to export all data as NDJSON, how to re-import, how to clear IndexedDB cache.
 
 ---
 
