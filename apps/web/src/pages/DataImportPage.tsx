@@ -59,6 +59,7 @@ interface ImportResult {
   recordCount: number;
   types: Record<string, number>;
   errors: string[];
+  duplicatesSkipped: number;
 }
 
 function parseNdjsonLine(line: string): { type: string; data: Record<string, unknown> } | null {
@@ -129,7 +130,12 @@ export function DataImportPage() {
         recordCount: 0,
         types: {},
         errors: [],
+        duplicatesSkipped: 0,
       };
+
+      // Snapshot current store state for duplicate detection
+      const currentShared = useSharedStore.getState();
+      const currentTax = useTaxStore.getState();
 
       for (const line of lines) {
         const parsed = parseNdjsonLine(line);
@@ -153,30 +159,50 @@ export function DataImportPage() {
             case 'account': {
               const validated = accountSchema.safeParse(data);
               if (!validated.success) { result.errors.push(`Invalid account: ${validated.error.message}`); break; }
+              if (currentShared.accounts.some((a) => a.id === validated.data.id)) {
+                result.duplicatesSkipped++;
+                break;
+              }
               addAccount(validated.data);
               break;
             }
             case 'incomeStream': {
               const validated = incomeStreamSchema.safeParse(data);
               if (!validated.success) { result.errors.push(`Invalid incomeStream: ${validated.error.message}`); break; }
+              if (currentShared.incomeStreams.some((s) => s.id === validated.data.id)) {
+                result.duplicatesSkipped++;
+                break;
+              }
               addIncomeStream(validated.data);
               break;
             }
             case 'adjustment': {
               const validated = adjustmentSchema.safeParse(data);
               if (!validated.success) { result.errors.push(`Invalid adjustment: ${validated.error.message}`); break; }
+              if (currentShared.adjustments.some((a) => a.id === validated.data.id)) {
+                result.duplicatesSkipped++;
+                break;
+              }
               addAdjustment(validated.data);
               break;
             }
             case 'taxYear': {
               const validated = taxYearRecordSchema.safeParse(data);
               if (!validated.success) { result.errors.push(`Invalid taxYear: ${validated.error.message}`); break; }
+              if (currentTax.taxYears.some((ty) => ty.taxYear === validated.data.taxYear)) {
+                result.duplicatesSkipped++;
+                break;
+              }
               addTaxYear(validated.data);
               break;
             }
             case 'taxDocument': {
               const validated = taxDocumentSchema.safeParse(data);
               if (!validated.success) { result.errors.push(`Invalid taxDocument: ${validated.error.message}`); break; }
+              if (currentTax.documents.some((d) => d.id === validated.data.id)) {
+                result.duplicatesSkipped++;
+                break;
+              }
               addDocument(validated.data);
               break;
             }
@@ -283,12 +309,20 @@ export function DataImportPage() {
             {results.map((r, i) => (
               <div key={i}>
                 <Text weight="semibold">{r.fileName}</Text>
-                <Text> — {r.recordCount} records imported</Text>
+                <Text> — {r.recordCount - r.duplicatesSkipped} records imported</Text>
+                {r.duplicatesSkipped > 0 && (
+                  <Text> ({r.duplicatesSkipped} duplicate(s) skipped)</Text>
+                )}
                 <div className={styles.badgeRow}>
                   {Object.entries(r.types).map(([type, count]) => (
                     <Badge key={type} appearance="outline">{type}: {count}</Badge>
                   ))}
                 </div>
+                {r.duplicatesSkipped > 0 && (
+                  <MessageBar intent="info" className={styles.importWarning}>
+                    <MessageBarBody>{r.duplicatesSkipped} duplicate record(s) were skipped to avoid overwriting existing data.</MessageBarBody>
+                  </MessageBar>
+                )}
                 {r.errors.length > 0 && (
                   <MessageBar intent="warning" className={styles.importWarning}>
                     <MessageBarBody>{r.errors.length} error(s) during import</MessageBarBody>

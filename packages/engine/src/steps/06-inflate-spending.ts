@@ -28,7 +28,7 @@ export function inflateSpending(
 
   // Step 2: Survivor spending adjustment
   if (isSurvivorPhase) {
-    targetSpend *= plan.spending.survivorSpendingAdjustmentPct;
+    targetSpend *= plan.spending.survivorSpendingAdjustmentPct / 100;
   }
 
   // Step 3: Guardrails

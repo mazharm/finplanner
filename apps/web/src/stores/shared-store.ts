@@ -51,7 +51,9 @@ function persistShared(state: Pick<SharedState, 'household' | 'accounts' | 'inco
     accounts: state.accounts,
     incomeStreams: state.incomeStreams,
     adjustments: state.adjustments,
-  }).catch(() => {});
+  }).catch((err) => {
+    console.error('[FinPlanner] IndexedDB operation failed:', err);
+  });
 }
 
 export const useSharedStore = create<SharedState>((set, get) => ({

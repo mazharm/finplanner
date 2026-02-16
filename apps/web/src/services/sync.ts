@@ -87,9 +87,26 @@ export async function readFile(
   return null;
 }
 
+const MAX_RETRIES = 5;
+
+/**
+ * Check whether a sync queue entry should be skipped due to exponential backoff.
+ * Backoff delay: 2^retries * 1000ms (1s, 2s, 4s, 8s, 16s).
+ */
+function shouldSkipForBackoff(entry: SyncQueueEntry): boolean {
+  if (entry.retries === 0) return false;
+  const backoffMs = Math.pow(2, entry.retries) * 1000;
+  const queuedAt = new Date(entry.queuedAt).getTime();
+  return Date.now() - queuedAt < backoffMs;
+}
+
 /**
  * Process the sync queue — push pending writes to OneDrive.
  * Returns sync result with status and file count.
+ *
+ * Failed entries are retained in the queue with an incremented retry
+ * counter and exponential backoff. After MAX_RETRIES (5), the entry is
+ * permanently removed and the failure is reported.
  */
 export async function processSyncQueue(
   oneDrive: OneDriveClient,
@@ -107,6 +124,11 @@ export async function processSyncQueue(
   const errors: string[] = [];
 
   for (const entry of queue) {
+    // Skip entries that are still in their backoff window
+    if (shouldSkipForBackoff(entry)) {
+      continue;
+    }
+
     try {
       if (entry.operation === 'write') {
         const result = await oneDrive.writeFile(entry.path, entry.content);
@@ -124,13 +146,23 @@ export async function processSyncQueue(
       await removeFromSyncQueue(entry.id);
       filesWritten++;
     } catch (err) {
-      const message = `Failed to sync ${entry.path}: ${String(err)}`;
+      const message = `Failed to sync ${entry.path} (attempt ${entry.retries + 1}/${MAX_RETRIES}): ${String(err)}`;
       errors.push(message);
+      console.error('[FinPlanner] Sync error:', message);
 
-      // Retry with exponential backoff (max 5 retries)
-      if (entry.retries < 5) {
-        await addToSyncQueue({ ...entry, retries: entry.retries + 1 });
-        await removeFromSyncQueue(entry.id);
+      // Remove the old entry
+      await removeFromSyncQueue(entry.id);
+
+      if (entry.retries < MAX_RETRIES) {
+        // Re-queue with incremented retry count and fresh timestamp for backoff
+        await addToSyncQueue({
+          ...entry,
+          id: `sync_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          retries: entry.retries + 1,
+          queuedAt: new Date().toISOString(),
+        });
+      } else {
+        console.error(`[FinPlanner] Permanently failed to sync ${entry.path} after ${MAX_RETRIES} retries`);
       }
     }
   }

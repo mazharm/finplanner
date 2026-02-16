@@ -1,19 +1,22 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": "./src",
     "jsx": "react-jsx",
-    "noEmit": true
+    "noEmit": true,
+    "types": ["vite/client"]
   },
   "include": ["src"],
   "references": [
     { "path": "../../packages/domain" },
     { "path": "../../packages/validation" },
     { "path": "../../packages/engine" },
+    { "path": "../../packages/scenarios" },
     { "path": "../../packages/claude" },
     { "path": "../../packages/storage" },
     { "path": "../../packages/ui" },
-    { "path": "../../packages/tax/extraction" }
+    { "path": "../../packages/tax/extraction" },
+    { "path": "../../packages/tax/computation" },
+    { "path": "../../packages/tax/checklist" },
+    { "path": "../../packages/tax/anomaly" }
   ]
 }

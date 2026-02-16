@@ -31,6 +31,12 @@ export interface SimulationState {
   currentYear: number;
   yearIndex: number;
   priorYearEffectiveRate: number;
+  /**
+   * Capital gains realized during the prior year's rebalancing step.
+   * Because rebalancing (step 12) occurs after tax calculation (step 9),
+   * these gains are deferred to the next year's tax computation.
+   */
+  priorYearRebalanceGains: number;
   scenarioReturns?: number[];
   scenarioInflation?: number[];
   baselineReturn: number;

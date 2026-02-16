@@ -15,7 +15,7 @@
         "inflationPct": { "type": "number", "minimum": -100, "maximum": 100 },
         "floorAnnualSpend": { "type": "number", "minimum": 0 },
         "ceilingAnnualSpend": { "type": "number", "minimum": 0 },
-        "survivorSpendingAdjustmentPct": { "type": "number", "minimum": 0, "maximum": 1 }
+        "survivorSpendingAdjustmentPct": { "type": "number", "minimum": 0, "maximum": 100 }
       },
       "additionalProperties": false
     },

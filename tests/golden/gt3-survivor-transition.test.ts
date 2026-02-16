@@ -84,7 +84,7 @@ const gt3Fixture: PlanInput = {
   spending: {
     targetAnnualSpend: 120_000,
     inflationPct: 2.5,
-    survivorSpendingAdjustmentPct: 0.70,
+    survivorSpendingAdjustmentPct: 70,
   },
   taxes: {
     federalModel: 'effective',

@@ -46,12 +46,16 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setClaudeApiKey: (key) => {
     set({ claudeApiKey: key, hasApiKey: key.length > 0 });
     // Persist to IndexedDB (fire-and-forget)
-    setApiKeyIdb(key).catch(() => {});
+    setApiKeyIdb(key).catch((err) => {
+      console.error('[FinPlanner] IndexedDB operation failed:', err);
+    });
   },
 
   clearClaudeApiKey: () => {
     set({ claudeApiKey: '', hasApiKey: false });
-    clearApiKeyIdb().catch(() => {});
+    clearApiKeyIdb().catch((err) => {
+      console.error('[FinPlanner] IndexedDB operation failed:', err);
+    });
   },
 
   setOneDriveConnected: (connected) => set({ oneDriveConnected: connected }),

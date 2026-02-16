@@ -21,12 +21,22 @@ export function identifyFormType(text: string): FormIdentificationResult | null 
       }
     }
     if (matchCount > 0) {
-      const score = matchCount / template.formIdentifiers.length;
+      // Skip: single match on a multi-identifier template is unreliable
+      if (matchCount < 2 && matchCount < template.formIdentifiers.length) {
+        continue;
+      }
+
+      // Score combines match ratio with absolute match bonus
+      // Minimum 2 matches required for a valid identification (or all identifiers matched)
+      const matchRatio = matchCount / template.formIdentifiers.length;
+      const absoluteBonus = Math.min(matchCount / 5, 0.2); // up to 0.2 bonus for more matches
+      const score = matchRatio + absoluteBonus;
+
       if (score > bestScore) {
         bestScore = score;
         bestMatch = {
           formType: template.formType,
-          confidence: Math.min(1.0, score + 0.3), // boost: even 1 match is decent
+          confidence: Math.min(1.0, score + 0.3),
           template,
         };
       }

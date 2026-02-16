@@ -27,6 +27,7 @@ import {
 import { MoneyRegular, AddRegular, DeleteRegular } from '@fluentui/react-icons';
 import { useState, useCallback } from 'react';
 import { useSharedStore } from '../../stores/shared-store.js';
+import { safeParseNumber } from '../../utils/parse-number.js';
 import type { IncomeStream } from '@finplanner/domain';
 
 const useStyles = makeStyles({
@@ -153,7 +154,7 @@ export function IncomeSocialSecurityPage() {
                     <Input
                       type="number"
                       value={String(draft.annualAmount)}
-                      onChange={(_, d) => setDraft((s) => ({ ...s, annualAmount: Number(d.value) }))}
+                      onChange={(_, d) => setDraft((s) => ({ ...s, annualAmount: safeParseNumber(d.value) }))}
                     />
                   </Field>
                 </div>
@@ -162,14 +163,14 @@ export function IncomeSocialSecurityPage() {
                     <Input
                       type="number"
                       value={String(draft.startYear)}
-                      onChange={(_, d) => setDraft((s) => ({ ...s, startYear: Number(d.value) }))}
+                      onChange={(_, d) => setDraft((s) => ({ ...s, startYear: safeParseNumber(d.value, new Date().getFullYear()) }))}
                     />
                   </Field>
                   <Field label="End Year (optional)">
                     <Input
                       type="number"
                       value={draft.endYear ? String(draft.endYear) : ''}
-                      onChange={(_, d) => setDraft((s) => ({ ...s, endYear: d.value ? Number(d.value) : undefined }))}
+                      onChange={(_, d) => setDraft((s) => ({ ...s, endYear: d.value ? safeParseNumber(d.value) || undefined : undefined }))}
                       placeholder="Leave empty for lifetime"
                     />
                   </Field>
@@ -190,7 +191,7 @@ export function IncomeSocialSecurityPage() {
                   <Input
                     type="number"
                     value={String(draft.colaPct ?? 0)}
-                    onChange={(_, d) => setDraft((s) => ({ ...s, colaPct: Number(d.value) }))}
+                    onChange={(_, d) => setDraft((s) => ({ ...s, colaPct: safeParseNumber(d.value) }))}
                     placeholder="0"
                   />
                 </Field>

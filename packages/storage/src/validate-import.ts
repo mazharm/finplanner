@@ -88,7 +88,10 @@ export function validateImport(ndjsonContent: string): ImportValidationResult {
 
     const schema = getSchemaForType(type);
     if (!schema) {
-      errors.push({ line: lineNum, message: `Unknown record type: ${type}` });
+      // Unknown record types are preserved by generateBackup for forward
+      // compatibility.  Rejecting them here would break round-trip fidelity,
+      // so we skip validation and still count them.
+      recordCounts[type] = (recordCounts[type] ?? 0) + 1;
       continue;
     }
 

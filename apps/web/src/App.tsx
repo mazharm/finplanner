@@ -2,6 +2,7 @@ import { FluentProvider, webLightTheme, webDarkTheme } from '@fluentui/react-com
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary.js';
+import { StoreLoadingGate } from './components/StoreLoadingGate.js';
 import { AppShell } from './layout/AppShell.js';
 import { useSettingsStore } from './stores/settings-store.js';
 import { useSharedStore } from './stores/shared-store.js';
@@ -40,6 +41,7 @@ export function App() {
   return (
     <FluentProvider theme={theme === 'light' ? webLightTheme : webDarkTheme}>
       <ErrorBoundary>
+      <StoreLoadingGate>
       <BrowserRouter>
         <AppShell theme={theme} onToggleTheme={toggleTheme}>
           <Routes>
@@ -63,6 +65,7 @@ export function App() {
           </Routes>
         </AppShell>
       </BrowserRouter>
+      </StoreLoadingGate>
       </ErrorBoundary>
     </FluentProvider>
   );

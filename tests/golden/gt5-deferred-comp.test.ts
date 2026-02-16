@@ -83,7 +83,7 @@ const fixture: PlanInput = {
   spending: {
     targetAnnualSpend: 100_000,
     inflationPct: 2,
-    survivorSpendingAdjustmentPct: 1.0,
+    survivorSpendingAdjustmentPct: 100,
   },
   taxes: {
     federalModel: 'effective',

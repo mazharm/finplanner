@@ -16,6 +16,7 @@ import {
 import { CalculatorRegular, SaveRegular } from '@fluentui/react-icons';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRetirementStore } from '../../stores/retirement-store.js';
+import { safeParseNumber } from '../../utils/parse-number.js';
 import type { SpendingPlan, StrategyConfig } from '@finplanner/domain';
 
 const useStyles = makeStyles({
@@ -65,14 +66,14 @@ export function PlanSetupPage() {
               <Input
                 type="number"
                 value={String(draftSpending.targetAnnualSpend)}
-                onChange={(_, d) => setDraftSpending((s) => ({ ...s, targetAnnualSpend: Number(d.value) }))}
+                onChange={(_, d) => setDraftSpending((s) => ({ ...s, targetAnnualSpend: safeParseNumber(d.value) }))}
               />
             </Field>
             <Field label="Inflation (%)">
               <Input
                 type="number"
                 value={String(draftSpending.inflationPct)}
-                onChange={(_, d) => setDraftSpending((s) => ({ ...s, inflationPct: Number(d.value) }))}
+                onChange={(_, d) => setDraftSpending((s) => ({ ...s, inflationPct: safeParseNumber(d.value) }))}
               />
             </Field>
           </div>
@@ -81,14 +82,14 @@ export function PlanSetupPage() {
               <Input
                 type="number"
                 value={String(draftSpending.floorAnnualSpend ?? 0)}
-                onChange={(_, d) => setDraftSpending((s) => ({ ...s, floorAnnualSpend: Number(d.value) }))}
+                onChange={(_, d) => setDraftSpending((s) => ({ ...s, floorAnnualSpend: safeParseNumber(d.value) }))}
               />
             </Field>
             <Field label="Ceiling Spending ($)">
               <Input
                 type="number"
                 value={String(draftSpending.ceilingAnnualSpend ?? 0)}
-                onChange={(_, d) => setDraftSpending((s) => ({ ...s, ceilingAnnualSpend: Number(d.value) || undefined }))}
+                onChange={(_, d) => setDraftSpending((s) => ({ ...s, ceilingAnnualSpend: safeParseNumber(d.value) || undefined }))}
               />
             </Field>
           </div>
@@ -96,7 +97,7 @@ export function PlanSetupPage() {
             <Input
               type="number"
               value={String(draftSpending.survivorSpendingAdjustmentPct)}
-              onChange={(_, d) => setDraftSpending((s) => ({ ...s, survivorSpendingAdjustmentPct: Number(d.value) }))}
+              onChange={(_, d) => setDraftSpending((s) => ({ ...s, survivorSpendingAdjustmentPct: safeParseNumber(d.value) }))}
             />
           </Field>
         </div>

@@ -29,6 +29,7 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTaxStore } from '../../stores/tax-store.js';
 import { useSharedStore } from '../../stores/shared-store.js';
+import { safeParseNumber } from '../../utils/parse-number.js';
 import type { TaxYearRecord, TaxYearStatus, FilingStatus } from '@finplanner/domain';
 
 const useStyles = makeStyles({
@@ -78,6 +79,7 @@ export function TaxYearsPage() {
   const { household } = useSharedStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newYear, setNewYear] = useState(new Date().getFullYear());
+  const [deleteYear, setDeleteYear] = useState<number | null>(null);
 
   const handleAdd = useCallback(() => {
     if (taxYears.some((ty) => ty.taxYear === newYear)) return;
@@ -143,7 +145,7 @@ export function TaxYearsPage() {
                       icon={<DeleteRegular />}
                       size="small"
                       aria-label={`Delete tax year ${ty.taxYear}`}
-                      onClick={() => removeTaxYear(ty.taxYear)}
+                      onClick={() => setDeleteYear(ty.taxYear)}
                     />
                   </TableCell>
                 </TableRow>
@@ -163,7 +165,7 @@ export function TaxYearsPage() {
                   <Input
                     type="number"
                     value={String(newYear)}
-                    onChange={(_, data) => setNewYear(Number(data.value))}
+                    onChange={(_, data) => setNewYear(safeParseNumber(data.value, new Date().getFullYear()))}
                   />
                 </Field>
                 {taxYears.some((ty) => ty.taxYear === newYear) && (
@@ -183,6 +185,25 @@ export function TaxYearsPage() {
                 disabled={taxYears.some((ty) => ty.taxYear === newYear)}
               >
                 Add
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+
+      <Dialog open={deleteYear !== null} onOpenChange={(_, data) => { if (!data.open) setDeleteYear(null); }}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Delete Tax Year</DialogTitle>
+            <DialogContent>
+              Are you sure you want to delete tax year {deleteYear}? This cannot be undone.
+            </DialogContent>
+            <DialogActions>
+              <DialogTrigger disableButtonEnhancement>
+                <Button appearance="secondary">Cancel</Button>
+              </DialogTrigger>
+              <Button appearance="primary" onClick={() => { removeTaxYear(deleteYear!); setDeleteYear(null); }}>
+                Delete
               </Button>
             </DialogActions>
           </DialogBody>

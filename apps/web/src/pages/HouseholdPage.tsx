@@ -16,6 +16,7 @@ import {
 import { PeopleRegular, SaveRegular } from '@fluentui/react-icons';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useSharedStore } from '../stores/shared-store.js';
+import { safeParseNumber } from '../utils/parse-number.js';
 import type { FilingStatus, PersonProfile, HouseholdProfile } from '@finplanner/domain';
 
 const useStyles = makeStyles({
@@ -35,6 +36,7 @@ const US_STATES = [
 export function HouseholdPage() {
   const styles = useStyles();
   const { household, setHousehold } = useSharedStore();
+  const storeHousehold = useSharedStore((s) => s.household);
   const [saved, setSaved] = useState(false);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -46,6 +48,12 @@ export function HouseholdPage() {
 
   const [draft, setDraft] = useState<HouseholdProfile>({ ...household });
   const [hasSpouse, setHasSpouse] = useState(!!household.spouse);
+
+  // Sync draft when store changes externally (e.g., import, sync)
+  useEffect(() => {
+    setDraft(storeHousehold);
+    setHasSpouse(!!storeHousehold.spouse);
+  }, [storeHousehold]);
 
   const updatePrimary = useCallback((field: keyof PersonProfile, value: number) => {
     setDraft((d) => ({
@@ -143,14 +151,14 @@ export function HouseholdPage() {
               <Input
                 type="number"
                 value={String(draft.primary.birthYear)}
-                onChange={(_, data) => updatePrimary('birthYear', Number(data.value))}
+                onChange={(_, data) => updatePrimary('birthYear', safeParseNumber(data.value))}
               />
             </Field>
             <Field label="Current Age">
               <Input
                 type="number"
                 value={String(draft.primary.currentAge)}
-                onChange={(_, data) => updatePrimary('currentAge', Number(data.value))}
+                onChange={(_, data) => updatePrimary('currentAge', safeParseNumber(data.value))}
               />
             </Field>
           </div>
@@ -159,14 +167,14 @@ export function HouseholdPage() {
               <Input
                 type="number"
                 value={String(draft.primary.retirementAge)}
-                onChange={(_, data) => updatePrimary('retirementAge', Number(data.value))}
+                onChange={(_, data) => updatePrimary('retirementAge', safeParseNumber(data.value))}
               />
             </Field>
             <Field label="Life Expectancy">
               <Input
                 type="number"
                 value={String(draft.primary.lifeExpectancy)}
-                onChange={(_, data) => updatePrimary('lifeExpectancy', Number(data.value))}
+                onChange={(_, data) => updatePrimary('lifeExpectancy', safeParseNumber(data.value))}
               />
             </Field>
           </div>
@@ -181,14 +189,14 @@ export function HouseholdPage() {
                 <Input
                   type="number"
                   value={String(draft.spouse.birthYear)}
-                  onChange={(_, data) => updateSpouse('birthYear', Number(data.value))}
+                  onChange={(_, data) => updateSpouse('birthYear', safeParseNumber(data.value))}
                 />
               </Field>
               <Field label="Current Age">
                 <Input
                   type="number"
                   value={String(draft.spouse.currentAge)}
-                  onChange={(_, data) => updateSpouse('currentAge', Number(data.value))}
+                  onChange={(_, data) => updateSpouse('currentAge', safeParseNumber(data.value))}
                 />
               </Field>
             </div>
@@ -197,14 +205,14 @@ export function HouseholdPage() {
                 <Input
                   type="number"
                   value={String(draft.spouse.retirementAge)}
-                  onChange={(_, data) => updateSpouse('retirementAge', Number(data.value))}
+                  onChange={(_, data) => updateSpouse('retirementAge', safeParseNumber(data.value))}
                 />
               </Field>
               <Field label="Life Expectancy">
                 <Input
                   type="number"
                   value={String(draft.spouse.lifeExpectancy)}
-                  onChange={(_, data) => updateSpouse('lifeExpectancy', Number(data.value))}
+                  onChange={(_, data) => updateSpouse('lifeExpectancy', safeParseNumber(data.value))}
                 />
               </Field>
             </div>

@@ -13,6 +13,7 @@ export interface StateEntry {
   incomeRate: number;
   capitalGainsRate: number;
   ssTaxExempt: 'yes' | 'no' | 'partial';
+  stateStandardDeduction?: number;
   notes?: string;
 }
 

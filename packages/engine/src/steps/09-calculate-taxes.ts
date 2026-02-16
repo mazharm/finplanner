@@ -135,8 +135,10 @@ function computeStateTax(
     // 'no': SS is fully taxable at state level
   }
 
-  // Apply deduction
-  const stateTaxableOrdinary = Math.max(0, stateOrdinaryIncome - standardDeduction);
+  // Use approximate state standard deduction (varies by state, roughly 50% of federal on average)
+  // States without income tax (rate=0) won't typically reach this code path with meaningful amounts
+  const stateDeduction = stateInfo?.stateStandardDeduction ?? Math.round(standardDeduction * 0.5);
+  const stateTaxableOrdinary = Math.max(0, stateOrdinaryIncome - stateDeduction);
 
   const stateOrdinaryTax = stateTaxableOrdinary * (stateIncomeRate / 100);
   const stateCapGainsTax = totalCapitalGains * (stateCapGainsRate / 100);

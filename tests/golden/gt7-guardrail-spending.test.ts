@@ -65,7 +65,7 @@ const baseFixture: PlanInput = {
     inflationPct: 2,
     floorAnnualSpend: 70_000,
     ceilingAnnualSpend: 130_000,
-    survivorSpendingAdjustmentPct: 1.0,
+    survivorSpendingAdjustmentPct: 100,
   },
   taxes: {
     federalModel: 'effective',

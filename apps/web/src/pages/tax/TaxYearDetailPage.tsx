@@ -20,6 +20,7 @@ import { CalendarRegular, SaveRegular } from '@fluentui/react-icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useTaxStore } from '../../stores/tax-store.js';
+import { safeParseNumber } from '../../utils/parse-number.js';
 import type { TaxYearRecord, TaxYearStatus, TaxYearIncome, TaxYearDeductions, TaxYearCredits, TaxYearPayments } from '@finplanner/domain';
 
 const useStyles = makeStyles({
@@ -34,7 +35,7 @@ const useStyles = makeStyles({
 function CurrencyField({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
     <Field label={label}>
-      <Input type="number" value={String(value)} onChange={(_, d) => onChange(Number(d.value))} />
+      <Input type="number" value={String(value)} onChange={(_, d) => onChange(safeParseNumber(d.value))} />
     </Field>
   );
 }
@@ -61,6 +62,13 @@ export function TaxYearDetailPage() {
   }, []);
 
   const [draft, setDraft] = useState<TaxYearRecord | null>(taxYear ?? null);
+
+  // Sync draft when store changes externally (e.g., import, sync)
+  useEffect(() => {
+    if (taxYear) {
+      setDraft(taxYear);
+    }
+  }, [taxYear]);
 
   const updateIncome = useCallback((field: keyof TaxYearIncome, value: number) => {
     setDraft((d) => d ? { ...d, income: { ...d.income, [field]: value } } : null);

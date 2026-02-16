@@ -69,7 +69,7 @@ export function determinePhase(state: SimulationState): YearContext {
     calendarYear: currentYear,
     agePrimary,
     ageSpouse,
-    isSurvivorPhase: isSurvivorPhase || bothDead,
+    isSurvivorPhase,
     survivorId,
     survivorYearCount,
     filingStatus,

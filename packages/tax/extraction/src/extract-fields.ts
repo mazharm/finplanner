@@ -1,14 +1,23 @@
 import type { TaxFormField, TaxFormTemplate } from './types.js';
 import { DEFAULT_CONFIDENCE_THRESHOLD } from '@finplanner/domain';
 
-const CURRENCY_REGEX = /\$?\s*([\d,]+\.?\d*)/;
+const CURRENCY_REGEX = /[-−]?\$?\s*([\d,]+\.?\d*)|\(\$?\s*([\d,]+\.?\d*)\)/;
 
 function parseCurrencyValue(text: string): number | null {
-  const match = text.match(CURRENCY_REGEX);
+  // Try parenthesized negative first: ($1,234.56) or (1,234.56)
+  const parenMatch = text.match(/\(\$?\s*([\d,]+\.?\d*)\)/);
+  if (parenMatch) {
+    const cleaned = parenMatch[1].replace(/,/g, '');
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? null : -num;
+  }
+  // Try regular (possibly negative): -$1,234.56 or $1,234.56 or -1,234.56
+  const match = text.match(/([−-])?\$?\s*([\d,]+\.?\d*)/);
   if (!match) return null;
-  const cleaned = match[1].replace(/,/g, '');
+  const cleaned = match[2].replace(/,/g, '');
   const num = parseFloat(cleaned);
-  return isNaN(num) ? null : num;
+  if (isNaN(num)) return null;
+  return match[1] ? -num : num;
 }
 
 export interface FieldExtractionResult {
@@ -67,13 +76,23 @@ function extractSingleField(
       const afterMatch = text.substring(match.index + match[0].length, match.index + match[0].length + 100);
 
       if (field.valueType === 'currency') {
-        // Prefer values with explicit $ sign (higher confidence they're currency, not years)
-        const dollarMatch = afterMatch.match(/\$\s*([\d,]+\.?\d*)/);
-        if (dollarMatch) {
-          const cleaned = dollarMatch[1].replace(/,/g, '');
+        // Check for parenthesized negative: ($1,234.56)
+        const parenMatch = afterMatch.match(/\(\$?\s*([\d,]+\.?\d*)\)/);
+        if (parenMatch) {
+          const cleaned = parenMatch[1].replace(/,/g, '');
           const num = parseFloat(cleaned);
           if (!isNaN(num)) {
-            return { value: num, confidence: 1.0 };
+            return { value: -num, confidence: 1.0 };
+          }
+        }
+        // Prefer values with explicit $ sign (higher confidence they're currency, not years)
+        const dollarMatch = afterMatch.match(/([−-])?\$\s*([\d,]+\.?\d*)/);
+        if (dollarMatch) {
+          const cleaned = dollarMatch[2].replace(/,/g, '');
+          const num = parseFloat(cleaned);
+          if (!isNaN(num)) {
+            const value = dollarMatch[1] ? -num : num;
+            return { value, confidence: 1.0 };
           }
         }
         // Fall back to bare number only if no more matches of this pattern exist

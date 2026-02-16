@@ -10,3 +10,4 @@ export type {
   TaxResult,
   NetSpendableResult,
 } from './types.js';
+export type { RebalanceResult } from './steps/12-rebalance.js';

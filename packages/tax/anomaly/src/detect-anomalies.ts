@@ -141,7 +141,9 @@ export function detectAnomalies(request: AnomalyDetectionRequest): AnomalyDetect
   }
 
   // 4. Pattern breaks (3+ years of data)
-  const sortedRecords = [...request.records].sort((a, b) => a.taxYear - b.taxYear);
+  const sortedRecords = [...request.records]
+    .filter(r => r.taxYear <= request.currentYear)
+    .sort((a, b) => a.taxYear - b.taxYear);
   if (sortedRecords.length >= 3) {
     for (const { key, label } of INCOME_FIELDS) {
       const values = sortedRecords.map(r => r.income[key]);
@@ -191,7 +193,18 @@ export function detectAnomalies(request: AnomalyDetectionRequest): AnomalyDetect
     yearOverYearSummary: {
       totalIncomeChange: totalIncomeCurrent - totalIncomePrior,
       totalDeductionChange: totalDeductionsCurrent - totalDeductionsPrior,
-      effectiveRateChange: currentRecord.computedEffectiveFederalRate - priorRecord.computedEffectiveFederalRate,
+      effectiveRateChange: (() => {
+        // Compute effective rates from available data instead of using potentially-zero stored rates
+        const currentTotalIncome = computeTotalIncome(currentRecord.income);
+        const priorTotalIncome = computeTotalIncome(priorRecord.income);
+        const currentEffRate = currentTotalIncome > 0
+          ? ((currentRecord.computedFederalTax + currentRecord.computedStateTax) / currentTotalIncome) * 100
+          : currentRecord.computedEffectiveFederalRate + currentRecord.computedEffectiveStateRate;
+        const priorEffRate = priorTotalIncome > 0
+          ? ((priorRecord.computedFederalTax + priorRecord.computedStateTax) / priorTotalIncome) * 100
+          : priorRecord.computedEffectiveFederalRate + priorRecord.computedEffectiveStateRate;
+        return currentEffRate - priorEffRate;
+      })(),
       flagCount,
     },
   };

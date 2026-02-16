@@ -2,6 +2,11 @@ import type { StrategyConfig } from '@finplanner/domain';
 import type { AccountState } from '../types.js';
 import { computeGainFraction, reduceBasis } from '../helpers/cost-basis.js';
 
+export interface RebalanceResult {
+  /** Realized capital gains from selling taxable account positions during rebalancing. */
+  realizedCapitalGains: number;
+}
+
 /**
  * Step 12: Rebalance Portfolio
  *
@@ -17,30 +22,36 @@ import { computeGainFraction, reduceBasis } from '../helpers/cost-basis.js';
  * 3. For each: targetBalance = total * (targetPct / 100)
  * 4. Transfer balances to match targets
  * 5. Adjust cost basis for taxable accounts
+ * 6. Track realized capital gains from taxable account sales
+ *
+ * Returns realized capital gains so they can be included in the next year's
+ * tax calculation (rebalancing occurs after tax computation in the current year).
  */
 export function rebalance(
   accounts: AccountState[],
   rebalanceFrequency: StrategyConfig['rebalanceFrequency']
-): void {
-  if (rebalanceFrequency === 'none') return;
+): RebalanceResult {
+  if (rebalanceFrequency === 'none') return { realizedCapitalGains: 0 };
 
   // For both 'annual' and 'quarterly', we perform a single rebalance pass.
   // (Quarterly is a simplification; in production this would be integrated
   // into the return application step.)
-  performRebalance(accounts);
+  return performRebalance(accounts);
 }
 
-function performRebalance(accounts: AccountState[]): void {
+function performRebalance(accounts: AccountState[]): RebalanceResult {
+  let realizedCapitalGains = 0;
+
   // Filter to accounts that participate in rebalancing
   const rebalanceable = accounts.filter(
     a => a.targetAllocationPct !== undefined && a.targetAllocationPct > 0
   );
 
-  if (rebalanceable.length === 0) return;
+  if (rebalanceable.length === 0) return { realizedCapitalGains: 0 };
 
   // Compute total portfolio value of rebalanceable accounts
   const totalValue = rebalanceable.reduce((sum, a) => sum + a.balance, 0);
-  if (totalValue <= 0) return;
+  if (totalValue <= 0) return { realizedCapitalGains: 0 };
 
   // Compute target balances and deltas
   const deltas: Array<{ account: AccountState; targetBalance: number; delta: number }> = [];
@@ -62,12 +73,16 @@ function performRebalance(accounts: AccountState[]): void {
         // The funds come from other accounts being sold, so this is a purchase
         account.costBasis += delta;
       } else {
-        // Outflow: reduce basis proportionally to the withdrawal
+        // Outflow: selling from taxable account realizes capital gains
+        const sellAmount = Math.abs(delta);
         const gainFraction = computeGainFraction(account.balance, account.costBasis);
-        account.costBasis = reduceBasis(account.costBasis, Math.abs(delta), gainFraction);
+        realizedCapitalGains += sellAmount * gainFraction;
+        account.costBasis = reduceBasis(account.costBasis, sellAmount, gainFraction);
       }
     }
 
     account.balance = targetBalance;
   }
+
+  return { realizedCapitalGains };
 }

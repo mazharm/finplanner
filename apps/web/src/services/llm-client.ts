@@ -14,6 +14,7 @@ const DEFAULT_MAX_TOKENS = 4096;
 
 const MAX_RETRIES = 3;
 const INITIAL_DELAY_MS = 1000;
+const REQUEST_TIMEOUT_MS = 30_000;
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 529]);
 
 function sleep(ms: number): Promise<void> {
@@ -49,16 +50,35 @@ export function createLlmClient(apiKey: string): LlmClient {
           await sleep(delay);
         }
 
-        const response = await fetch(ANTHROPIC_API_URL, {
-          method: 'POST',
-          headers: {
-            'anthropic-api-key': apiKey,
-            'anthropic-version': ANTHROPIC_VERSION,
-            'anthropic-dangerous-direct-browser-access': 'true',
-            'content-type': 'application/json',
-          },
-          body: requestBody,
-        });
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+        let response: Response;
+        try {
+          response = await fetch(ANTHROPIC_API_URL, {
+            method: 'POST',
+            headers: {
+              'anthropic-api-key': apiKey,
+              'anthropic-version': ANTHROPIC_VERSION,
+              'anthropic-dangerous-direct-browser-access': 'true',
+              'content-type': 'application/json',
+            },
+            body: requestBody,
+            signal: controller.signal,
+          });
+        } catch (err) {
+          clearTimeout(timeout);
+          if (err instanceof DOMException && err.name === 'AbortError') {
+            if (attempt < MAX_RETRIES) {
+              lastError = new Error(`Anthropic API request timed out after ${REQUEST_TIMEOUT_MS}ms`);
+              continue;
+            }
+            throw new Error(`Anthropic API request timed out after ${REQUEST_TIMEOUT_MS}ms`);
+          }
+          throw err;
+        } finally {
+          clearTimeout(timeout);
+        }
 
         if (!response.ok) {
           const errorBody = await response.text().catch(() => '');

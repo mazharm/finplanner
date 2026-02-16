@@ -37,7 +37,9 @@ function persistTax(state: Pick<TaxState, 'taxYears' | 'documents' | 'checklistI
     documents: state.documents,
     checklistItems: state.checklistItems,
     anomalies: state.anomalies,
-  }).catch(() => {});
+  }).catch((err) => {
+    console.error('[FinPlanner] IndexedDB operation failed:', err);
+  });
 }
 
 export const useTaxStore = create<TaxState>((set, get) => ({

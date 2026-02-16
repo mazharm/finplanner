@@ -11,6 +11,13 @@ import {
   Badge,
   MessageBar,
   MessageBarBody,
+  Dialog,
+  DialogSurface,
+  DialogBody,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogTrigger,
 } from '@fluentui/react-components';
 import { SettingsRegular, KeyRegular, CloudRegular, DeleteRegular } from '@fluentui/react-icons';
 import { useState, useCallback, useRef, useEffect } from 'react';
@@ -29,6 +36,7 @@ export function SettingsPage() {
   const { hasApiKey, syncStatus, setClaudeApiKey, clearClaudeApiKey } = useSettingsStore();
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [saved, setSaved] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
@@ -50,6 +58,7 @@ export function SettingsPage() {
   const handleClearKey = useCallback(() => {
     clearClaudeApiKey();
     setSaved(false);
+    setConfirmClear(false);
   }, [clearClaudeApiKey]);
 
   return (
@@ -88,7 +97,7 @@ export function SettingsPage() {
             </Button>
           </div>
           {hasApiKey && (
-            <Button appearance="subtle" icon={<DeleteRegular />} onClick={handleClearKey}>
+            <Button appearance="subtle" icon={<DeleteRegular />} onClick={() => setConfirmClear(true)}>
               Clear API Key
             </Button>
           )}
@@ -122,6 +131,25 @@ export function SettingsPage() {
           </Text>
         </div>
       </Card>
+
+      <Dialog open={confirmClear} onOpenChange={(_, data) => { if (!data.open) setConfirmClear(false); }}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Clear API Key</DialogTitle>
+            <DialogContent>
+              Are you sure you want to clear your Claude API key? You will need to re-enter it to use AI-powered features.
+            </DialogContent>
+            <DialogActions>
+              <DialogTrigger disableButtonEnhancement>
+                <Button appearance="secondary">Cancel</Button>
+              </DialogTrigger>
+              <Button appearance="primary" onClick={handleClearKey}>
+                Clear
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
     </div>
   );
 }

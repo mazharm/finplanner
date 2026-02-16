@@ -19,6 +19,7 @@ import { calculateTaxes } from './steps/09-calculate-taxes.js';
 import { computeNetSpendable } from './steps/10-net-spendable.js';
 import { applyFees } from './steps/11-apply-fees.js';
 import { rebalance } from './steps/12-rebalance.js';
+import type { RebalanceResult } from './steps/12-rebalance.js';
 import { produceYearResult } from './steps/13-produce-result.js';
 
 /**
@@ -104,6 +105,7 @@ function initializeState(planInput: PlanInput): SimulationState {
     currentYear: BASE_CALENDAR_YEAR,
     yearIndex: 0,
     priorYearEffectiveRate: 0,
+    priorYearRebalanceGains: 0,
     scenarioReturns,
     scenarioInflation,
     baselineReturn: computeBaselineReturn(accounts),
@@ -116,6 +118,7 @@ function initializeState(planInput: PlanInput): SimulationState {
 /**
  * Compute the simulation horizon in years.
  * Takes the maximum of primary and spouse life expectancy remaining years.
+ * Throws if the horizon is zero or negative (age >= life expectancy).
  */
 function computeHorizon(planInput: PlanInput): number {
   const { primary, spouse } = planInput.household;
@@ -126,7 +129,15 @@ function computeHorizon(planInput: PlanInput): number {
     spouseYears = spouse.lifeExpectancy - spouse.currentAge;
   }
 
-  return Math.max(primaryYears, spouseYears);
+  const horizon = Math.max(primaryYears, spouseYears);
+  if (horizon <= 0) {
+    throw new Error(
+      `Invalid simulation horizon: ${horizon} years. ` +
+      `Primary age ${primary.currentAge} >= life expectancy ${primary.lifeExpectancy}` +
+      (spouse ? `, Spouse age ${spouse.currentAge} >= life expectancy ${spouse.lifeExpectancy}` : '')
+    );
+  }
+  return horizon;
 }
 
 /**
@@ -197,12 +208,13 @@ function simulateYear(state: SimulationState): YearResult {
       );
 
       // Step 9: Calculate taxes
+      // Include prior year's rebalance gains as additional capital gains
       const taxResult = calculateTaxes(
         plan,
         mandatoryIncome,
         rmdResult.rmdTotal,
         withdrawalResult.taxableOrdinaryFromWithdrawals,
-        withdrawalResult.taxableCapGainsFromWithdrawals,
+        withdrawalResult.taxableCapGainsFromWithdrawals + state.priorYearRebalanceGains,
         standardDeduction,
         yearContext.filingStatus
       );
@@ -216,6 +228,14 @@ function simulateYear(state: SimulationState): YearResult {
   );
 
   const { withdrawalResult, taxResult } = convergenceResult.result;
+
+  if (!convergenceResult.converged) {
+    // Log warning - convergence failed, using last iteration's result
+    console.warn(
+      `[FinPlanner] Tax-withdrawal convergence did not converge in year ${state.currentYear} ` +
+      `after ${convergenceResult.iterations} iterations. Results may be approximate.`
+    );
+  }
 
   // Update prior year effective rate for next year's initial estimate
   const totalIncome =
@@ -244,7 +264,11 @@ function simulateYear(state: SimulationState): YearResult {
   applyFees(state.accounts);
 
   // Step 12: Rebalance portfolio
-  rebalance(state.accounts, plan.strategy.rebalanceFrequency);
+  const rebalanceResult: RebalanceResult = rebalance(state.accounts, plan.strategy.rebalanceFrequency);
+
+  // Store rebalance gains for inclusion in next year's tax calculation
+  // (rebalancing happens after this year's tax computation)
+  state.priorYearRebalanceGains = rebalanceResult.realizedCapitalGains;
 
   // Step 13: Produce year result
   return produceYearResult(

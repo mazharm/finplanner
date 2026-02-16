@@ -1,6 +1,19 @@
 import type { ChecklistItem, TaxChecklist } from '@finplanner/domain';
 import type { ChecklistRequest } from './types.js';
 
+function normalizeIssuerName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[.,\-]/g, ' ')       // punctuation to spaces
+    .replace(/\b(inc|llc|corp|ltd|co|the)\b/gi, '') // remove common suffixes
+    .replace(/\s+/g, ' ')          // collapse whitespace
+    .trim();
+}
+
+function issuerNamesMatch(a: string, b: string): boolean {
+  return normalizeIssuerName(a) === normalizeIssuerName(b);
+}
+
 export function generateChecklist(request: ChecklistRequest): TaxChecklist {
   const items: ChecklistItem[] = [];
   let index = 0;
@@ -10,7 +23,7 @@ export function generateChecklist(request: ChecklistRequest): TaxChecklist {
   // Rule 1: Prior-year document match
   for (const priorDoc of request.priorYearDocuments) {
     const matchingCurrent = request.currentYearDocuments.find(
-      d => d.formType === priorDoc.formType && d.issuerName === priorDoc.issuerName
+      d => d.formType === priorDoc.formType && issuerNamesMatch(d.issuerName, priorDoc.issuerName)
     );
 
     items.push({
@@ -34,6 +47,23 @@ export function generateChecklist(request: ChecklistRequest): TaxChecklist {
         description: `1099-INT/1099-DIV expected from ${account.name}`,
         status: 'pending',
         sourceReasoning: `Taxable account "${account.name}" has balance > $0`,
+      });
+    }
+  }
+
+  // Rule 2b: Tax-deferred and Roth accounts may generate 1099-R forms
+  for (const account of request.sharedCorpus.accounts) {
+    if (account.type === 'taxDeferred' || account.type === 'roth') {
+      const has1099R = request.currentYearDocuments.some(
+        d => d.formType === '1099-R' && issuerNamesMatch(d.issuerName, account.name)
+      );
+      items.push({
+        id: makeId(),
+        taxYear: request.taxYear,
+        category: 'document',
+        description: `1099-R expected from retirement account: ${account.name}`,
+        status: has1099R ? 'received' : 'pending',
+        sourceReasoning: `Retirement account "${account.name}" (${account.type}) may have distributions requiring 1099-R`,
       });
     }
   }

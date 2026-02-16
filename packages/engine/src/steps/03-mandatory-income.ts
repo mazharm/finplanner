@@ -103,16 +103,30 @@ function computeSocialSecurity(
     const survivorProfile = survivorId === 'primary' ? household.primary : household.spouse;
 
     if (deceasedProfile?.socialSecurity && survivorProfile?.socialSecurity) {
-      const deceasedBenefit = computePersonSS(
-        deceasedProfile,
-        calendarYear,
-        yearIndex,
-        plan,
-        scenarioInflation,
-        cumulativeInflation
-      );
-      const survivorOwnBenefit = survivorId === 'primary' ? primarySS : spouseSS;
+      // For survivor benefits, use deceased's PIA even if they hadn't started claiming
+      // The deceased's benefit is their PIA adjusted by COLA from their claim age year
+      const deceasedSS = deceasedProfile.socialSecurity;
+      const deceasedClaimYear = deceasedProfile.birthYear + deceasedSS.claimAge;
+      const deceasedBaseBenefit = deceasedSS.estimatedMonthlyBenefitAtClaim * 12;
 
+      let deceasedBenefit: number;
+      if (calendarYear >= deceasedClaimYear) {
+        // Deceased would have been claiming - compute their benefit normally (includes COLA)
+        deceasedBenefit = computePersonSS(
+          deceasedProfile,
+          calendarYear,
+          yearIndex,
+          plan,
+          scenarioInflation,
+          cumulativeInflation
+        );
+      } else {
+        // Deceased died before claiming - survivor gets PIA directly
+        // (no early/late adjustment modeled; PIA is used as the base benefit)
+        deceasedBenefit = deceasedBaseBenefit;
+      }
+
+      const survivorOwnBenefit = survivorId === 'primary' ? primarySS : spouseSS;
       return Math.max(survivorOwnBenefit, deceasedBenefit);
     }
 

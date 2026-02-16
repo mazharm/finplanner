@@ -75,7 +75,9 @@ function persistRetirement(state: PersistableRetirement) {
     strategy: state.strategy,
     scenarios: state.scenarios,
     activeScenarioId: state.activeScenarioId,
-  }).catch(() => {});
+  }).catch((err) => {
+    console.error('[FinPlanner] IndexedDB operation failed:', err);
+  });
 }
 
 export const useRetirementStore = create<RetirementState>((set, get) => ({

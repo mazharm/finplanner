@@ -11,9 +11,12 @@ export default defineConfig({
       '@finplanner/engine': path.resolve(__dirname, '../../packages/engine/src'),
       '@finplanner/scenarios': path.resolve(__dirname, '../../packages/scenarios/src'),
       '@finplanner/claude': path.resolve(__dirname, '../../packages/claude/src'),
-      '@finplanner/tax-extraction': path.resolve(__dirname, '../../packages/tax/extraction/src'),
       '@finplanner/storage': path.resolve(__dirname, '../../packages/storage/src'),
       '@finplanner/ui': path.resolve(__dirname, '../../packages/ui/src'),
+      '@finplanner/tax-extraction': path.resolve(__dirname, '../../packages/tax/extraction/src'),
+      '@finplanner/tax-computation': path.resolve(__dirname, '../../packages/tax/computation/src'),
+      '@finplanner/tax-checklist': path.resolve(__dirname, '../../packages/tax/checklist/src'),
+      '@finplanner/tax-anomaly': path.resolve(__dirname, '../../packages/tax/anomaly/src'),
     },
   },
   server: {

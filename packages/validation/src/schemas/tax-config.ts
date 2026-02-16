@@ -8,4 +8,7 @@ export const taxConfigSchema = z.object({
   stateCapGainsRatePct: z.number().min(0).max(100).optional(),
   capGainsRatePct: z.number().min(0).max(100).optional(),
   standardDeductionOverride: z.number().min(0).optional(),
-});
+}).refine(
+  (data) => data.federalModel !== 'effective' || data.federalEffectiveRatePct !== undefined,
+  { message: 'federalEffectiveRatePct is required when federalModel is "effective"', path: ['federalEffectiveRatePct'] }
+);

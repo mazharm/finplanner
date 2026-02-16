@@ -26,6 +26,7 @@ import {
 import { WalletRegular, AddRegular, DeleteRegular } from '@fluentui/react-icons';
 import { useState, useCallback } from 'react';
 import { useSharedStore } from '../stores/shared-store.js';
+import { safeParseNumber } from '../utils/parse-number.js';
 import type { Account, AccountType } from '@finplanner/domain';
 
 const useStyles = makeStyles({
@@ -58,6 +59,8 @@ export function AccountsPage() {
   const { accounts, addAccount, removeAccount } = useSharedStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [draft, setDraft] = useState<Omit<Account, 'id'>>(emptyAccount);
+  const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
+  const deleteAccount = accounts.find((a) => a.id === deleteAccountId);
 
   const handleAdd = useCallback(() => {
     addAccount({ ...draft, id: generateId() });
@@ -116,7 +119,7 @@ export function AccountsPage() {
                       icon={<DeleteRegular />}
                       size="small"
                       aria-label={`Delete account ${acct.name}`}
-                      onClick={() => removeAccount(acct.id)}
+                      onClick={() => setDeleteAccountId(acct.id)}
                     />
                   </TableCell>
                 </TableRow>
@@ -168,7 +171,7 @@ export function AccountsPage() {
                   <Input
                     type="number"
                     value={String(draft.currentBalance)}
-                    onChange={(_, data) => setDraft((d) => ({ ...d, currentBalance: Number(data.value) }))}
+                    onChange={(_, data) => setDraft((d) => ({ ...d, currentBalance: safeParseNumber(data.value) }))}
                   />
                 </Field>
                 <div className={styles.row}>
@@ -177,7 +180,7 @@ export function AccountsPage() {
                       type="number"
                       value={String(draft.expectedReturnPct)}
                       onChange={(_, data) =>
-                        setDraft((d) => ({ ...d, expectedReturnPct: Number(data.value) }))
+                        setDraft((d) => ({ ...d, expectedReturnPct: safeParseNumber(data.value) }))
                       }
                     />
                   </Field>
@@ -185,7 +188,7 @@ export function AccountsPage() {
                     <Input
                       type="number"
                       value={String(draft.feePct)}
-                      onChange={(_, data) => setDraft((d) => ({ ...d, feePct: Number(data.value) }))}
+                      onChange={(_, data) => setDraft((d) => ({ ...d, feePct: safeParseNumber(data.value) }))}
                     />
                   </Field>
                 </div>
@@ -197,6 +200,25 @@ export function AccountsPage() {
               </DialogTrigger>
               <Button appearance="primary" onClick={handleAdd} disabled={!draft.name}>
                 Add
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+
+      <Dialog open={deleteAccountId !== null} onOpenChange={(_, data) => { if (!data.open) setDeleteAccountId(null); }}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Delete Account</DialogTitle>
+            <DialogContent>
+              Are you sure you want to delete account &quot;{deleteAccount?.name}&quot;? This cannot be undone.
+            </DialogContent>
+            <DialogActions>
+              <DialogTrigger disableButtonEnhancement>
+                <Button appearance="secondary">Cancel</Button>
+              </DialogTrigger>
+              <Button appearance="primary" onClick={() => { removeAccount(deleteAccountId!); setDeleteAccountId(null); }}>
+                Delete
               </Button>
             </DialogActions>
           </DialogBody>
