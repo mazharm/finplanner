@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "checklist-item.schema.json",
+  "title": "ChecklistItem",
+  "description": "One record per tax filing checklist entry.",
+  "type": "object",
+  "required": ["_type", "id", "taxYear", "category", "description", "status", "sourceReasoning"],
+  "properties": {
+    "_type": { "const": "checklistItem" },
+    "id": { "type": "string", "minLength": 1 },
+    "taxYear": { "type": "integer" },
+    "category": { "type": "string", "enum": ["document", "income", "deduction", "life_event", "deadline"] },
+    "description": { "type": "string" },
+    "status": { "type": "string", "enum": ["pending", "received", "not_applicable", "waived"] },
+    "sourceReasoning": { "type": "string" },
+    "relatedPriorYearItem": { "type": "string" },
+    "linkedDocumentId": { "type": "string" }
+  },
+  "additionalProperties": false
+}

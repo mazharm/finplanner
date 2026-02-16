@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "income-stream.schema.json",
+  "title": "IncomeStream",
+  "description": "Shared corpus: one record per income stream (pensions, rental income, etc.).",
+  "type": "object",
+  "required": ["_type", "id", "name", "owner", "startYear", "annualAmount", "taxable"],
+  "properties": {
+    "_type": { "const": "incomeStream" },
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "owner": { "type": "string", "enum": ["primary", "spouse", "joint"] },
+    "startYear": { "type": "integer", "minimum": 1900, "maximum": 2200 },
+    "endYear": { "type": "integer", "minimum": 1900, "maximum": 2200 },
+    "annualAmount": { "type": "number", "minimum": 0 },
+    "colaPct": { "type": "number", "minimum": -100, "maximum": 100 },
+    "taxable": { "type": "boolean" },
+    "survivorContinues": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

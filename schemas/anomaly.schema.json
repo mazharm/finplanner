@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "anomaly.schema.json",
+  "title": "Anomaly",
+  "description": "One record per detected year-over-year anomaly.",
+  "type": "object",
+  "required": ["_type", "id", "taxYear", "comparisonYear", "category", "severity", "field", "description", "suggestedAction"],
+  "properties": {
+    "_type": { "const": "anomaly" },
+    "id": { "type": "string", "minLength": 1 },
+    "taxYear": { "type": "integer" },
+    "comparisonYear": { "type": "integer" },
+    "category": { "type": "string", "enum": ["omission", "anomaly", "pattern_break"] },
+    "severity": { "type": "string", "enum": ["info", "warning", "critical"] },
+    "field": { "type": "string" },
+    "description": { "type": "string" },
+    "priorValue": { "oneOf": [{ "type": "number" }, { "type": "string" }] },
+    "currentValue": { "oneOf": [{ "type": "number" }, { "type": "string" }] },
+    "percentChange": { "type": "number" },
+    "suggestedAction": { "type": "string" },
+    "llmAnalysis": { "type": "string" }
+  },
+  "additionalProperties": false
+}

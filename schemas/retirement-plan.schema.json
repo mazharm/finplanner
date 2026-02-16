@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "retirement-plan.schema.json",
+  "title": "RetirementPlan",
+  "description": "Retirement-specific configuration (the non-shared subset of PlanInput).",
+  "type": "object",
+  "required": ["_type", "spending", "taxes", "market", "strategy"],
+  "properties": {
+    "_type": { "const": "retirementPlan" },
+    "spending": {
+      "type": "object",
+      "required": ["targetAnnualSpend", "inflationPct", "survivorSpendingAdjustmentPct"],
+      "properties": {
+        "targetAnnualSpend": { "type": "number", "minimum": 0 },
+        "inflationPct": { "type": "number", "minimum": -100, "maximum": 100 },
+        "floorAnnualSpend": { "type": "number", "minimum": 0 },
+        "ceilingAnnualSpend": { "type": "number", "minimum": 0 },
+        "survivorSpendingAdjustmentPct": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "taxes": {
+      "type": "object",
+      "required": ["federalModel", "stateModel"],
+      "properties": {
+        "federalModel": { "type": "string", "enum": ["effective", "bracket"] },
+        "stateModel": { "type": "string", "enum": ["effective", "bracket", "none"] },
+        "federalEffectiveRatePct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "stateEffectiveRatePct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "stateCapGainsRatePct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "capGainsRatePct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "standardDeductionOverride": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "market": {
+      "type": "object",
+      "required": ["simulationMode"],
+      "properties": {
+        "simulationMode": { "type": "string", "enum": ["deterministic", "historical", "stress", "monteCarlo"] },
+        "deterministicReturnPct": { "type": "number", "minimum": -100, "maximum": 100 },
+        "deterministicInflationPct": { "type": "number", "minimum": -100, "maximum": 100 },
+        "historicalScenarioIds": { "type": "array", "items": { "type": "string" } },
+        "stressScenarioIds": { "type": "array", "items": { "type": "string" } },
+        "monteCarloRuns": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "strategy": {
+      "type": "object",
+      "required": ["withdrawalOrder", "rebalanceFrequency", "guardrailsEnabled"],
+      "properties": {
+        "withdrawalOrder": { "type": "string", "enum": ["taxableFirst", "taxDeferredFirst", "proRata", "taxOptimized"] },
+        "rebalanceFrequency": { "type": "string", "enum": ["none", "annual", "quarterly"] },
+        "guardrailsEnabled": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ndjson-header.schema.json",
+  "title": "NdjsonHeader",
+  "description": "Header record for NDJSON files. Must be the first line of every .ndjson file.",
+  "type": "object",
+  "required": ["_type", "schemaVersion", "savedAt", "modules"],
+  "properties": {
+    "_type": { "const": "header" },
+    "schemaVersion": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "savedAt": { "type": "string", "format": "date-time" },
+    "modules": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["tax", "retirement", "config"] },
+      "minItems": 1
+    },
+    "checksum": { "type": "string", "description": "Informational SHA-256 hex digest. Not enforced on load." }
+  },
+  "additionalProperties": false
+}

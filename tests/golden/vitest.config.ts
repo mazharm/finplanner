@@ -17,6 +17,7 @@ export default defineConfig({
       '@finplanner/tax-checklist': path.resolve(__dirname, '../../packages/tax/checklist/src'),
       '@finplanner/tax-anomaly': path.resolve(__dirname, '../../packages/tax/anomaly/src'),
       '@finplanner/storage': path.resolve(__dirname, '../../packages/storage/src'),
+      '@finplanner/claude': path.resolve(__dirname, '../../packages/claude/src'),
     },
   },
 });

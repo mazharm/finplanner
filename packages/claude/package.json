@@ -4,7 +4,13 @@
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc -b",
     "test": "vitest run",
@@ -12,7 +18,9 @@
     "lint": "eslint src/"
   },
   "dependencies": {
-    "@finplanner/domain": "workspace:*"
+    "@finplanner/domain": "workspace:*",
+    "@finplanner/validation": "workspace:*",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0",

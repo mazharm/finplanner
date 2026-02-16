@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tax-document.schema.json",
+  "title": "TaxDocument",
+  "description": "One record per imported tax document (W-2, 1099, K-1, etc.).",
+  "type": "object",
+  "required": ["_type", "id", "taxYear", "formType", "issuerName", "extractedFields", "fieldConfidence", "extractionConfidence", "lowConfidenceFields", "confirmedByUser", "importedAt"],
+  "properties": {
+    "_type": { "const": "taxDocument" },
+    "id": { "type": "string", "minLength": 1 },
+    "taxYear": { "type": "integer" },
+    "formType": { "type": "string", "enum": ["W-2", "1099-INT", "1099-DIV", "1099-R", "1099-B", "1099-MISC", "1099-NEC", "K-1", "1098", "other"] },
+    "issuerName": { "type": "string", "minLength": 1 },
+    "sourceFileName": { "type": "string" },
+    "oneDrivePath": { "type": "string" },
+    "extractedFields": { "type": "object", "additionalProperties": { "oneOf": [{ "type": "number" }, { "type": "string" }] } },
+    "fieldConfidence": { "type": "object", "additionalProperties": { "type": "number" } },
+    "extractionConfidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "lowConfidenceFields": { "type": "array", "items": { "type": "string" } },
+    "confirmedByUser": { "type": "boolean" },
+    "importedAt": { "type": "string" }
+  },
+  "additionalProperties": false
+}

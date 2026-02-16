@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "account.schema.json",
+  "title": "Account",
+  "description": "Shared corpus: one record per financial account.",
+  "type": "object",
+  "required": ["_type", "id", "name", "type", "owner", "currentBalance", "expectedReturnPct", "feePct"],
+  "properties": {
+    "_type": { "const": "account" },
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "type": { "type": "string", "enum": ["taxable", "taxDeferred", "deferredComp", "roth"] },
+    "owner": { "type": "string", "enum": ["primary", "spouse", "joint"] },
+    "currentBalance": { "type": "number", "minimum": 0 },
+    "costBasis": { "type": "number", "minimum": 0 },
+    "expectedReturnPct": { "type": "number", "minimum": -100, "maximum": 100 },
+    "volatilityPct": { "type": "number", "minimum": 0, "maximum": 100 },
+    "feePct": { "type": "number", "minimum": 0, "maximum": 100 },
+    "targetAllocationPct": { "type": "number", "minimum": 0, "maximum": 100 },
+    "deferredCompSchedule": {
+      "type": "object",
+      "required": ["startYear", "endYear", "frequency", "amount", "inflationAdjusted"],
+      "properties": {
+        "startYear": { "type": "integer", "minimum": 1900, "maximum": 2200 },
+        "endYear": { "type": "integer", "minimum": 1900, "maximum": 2200 },
+        "frequency": { "type": "string", "enum": ["annual", "monthly"] },
+        "amount": { "type": "number", "minimum": 0 },
+        "inflationAdjusted": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

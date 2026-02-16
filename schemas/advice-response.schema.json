@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "advice-response.schema.json",
+  "title": "AdviceResponse",
+  "description": "Transient response structure for getPortfolioAdvice() and getTaxStrategyAdvice(). Not persisted as NDJSON records.",
+  "oneOf": [
+    { "$ref": "#/$defs/portfolioAdviceResponse" },
+    { "$ref": "#/$defs/taxStrategyAdviceResponse" }
+  ],
+  "$defs": {
+    "recommendation": {
+      "type": "object",
+      "required": ["title", "rationale", "expectedImpact", "tradeoffs", "source"],
+      "properties": {
+        "title": { "type": "string" },
+        "rationale": { "type": "string" },
+        "expectedImpact": { "type": "string" },
+        "tradeoffs": { "type": "array", "items": { "type": "string" } },
+        "source": { "type": "string", "enum": ["llm", "fallback"] }
+      },
+      "additionalProperties": false
+    },
+    "portfolioAdviceResponse": {
+      "type": "object",
+      "required": ["recommendations", "withdrawalStrategyAdvice", "riskFlags", "assumptionSensitivity", "disclaimer"],
+      "properties": {
+        "recommendations": { "type": "array", "items": { "$ref": "#/$defs/recommendation" } },
+        "withdrawalStrategyAdvice": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["title", "rationale"],
+            "properties": {
+              "title": { "type": "string" },
+              "rationale": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "riskFlags": { "type": "array", "items": { "type": "string" } },
+        "assumptionSensitivity": { "type": "array", "items": { "type": "string" } },
+        "disclaimer": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "taxStrategyAdviceResponse": {
+      "type": "object",
+      "required": ["recommendations", "taxOptimizationOpportunities", "riskFlags", "disclaimer"],
+      "properties": {
+        "recommendations": { "type": "array", "items": { "$ref": "#/$defs/recommendation" } },
+        "taxOptimizationOpportunities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["title", "rationale"],
+            "properties": {
+              "title": { "type": "string" },
+              "rationale": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "riskFlags": { "type": "array", "items": { "type": "string" } },
+        "disclaimer": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

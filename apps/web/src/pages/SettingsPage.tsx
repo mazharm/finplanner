@@ -1,0 +1,118 @@
+import {
+  makeStyles,
+  tokens,
+  Card,
+  CardHeader,
+  Text,
+  Title3,
+  Field,
+  Input,
+  Button,
+  Badge,
+  MessageBar,
+  MessageBarBody,
+} from '@fluentui/react-components';
+import { SettingsRegular, KeyRegular, CloudRegular, DeleteRegular } from '@fluentui/react-icons';
+import { useState, useCallback } from 'react';
+import { useSettingsStore } from '../stores/settings-store.js';
+
+const useStyles = makeStyles({
+  root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
+  form: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM, maxWidth: '600px' },
+  row: { display: 'flex', gap: tokens.spacingHorizontalM, alignItems: 'flex-end' },
+  statusRow: { display: 'flex', gap: tokens.spacingHorizontalM, alignItems: 'center' },
+});
+
+export function SettingsPage() {
+  const styles = useStyles();
+  const { hasApiKey, syncStatus, setClaudeApiKey, clearClaudeApiKey } = useSettingsStore();
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  const handleSaveKey = useCallback(() => {
+    if (apiKeyInput.trim()) {
+      setClaudeApiKey(apiKeyInput.trim());
+      setApiKeyInput('');
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    }
+  }, [apiKeyInput, setClaudeApiKey]);
+
+  const handleClearKey = useCallback(() => {
+    clearClaudeApiKey();
+    setSaved(false);
+  }, [clearClaudeApiKey]);
+
+  return (
+    <div className={styles.root}>
+      <Title3>
+        <SettingsRegular /> Settings
+      </Title3>
+      {saved && (
+        <MessageBar intent="success">
+          <MessageBarBody>API key saved to IndexedDB.</MessageBarBody>
+        </MessageBar>
+      )}
+      <Card>
+        <CardHeader
+          header={<Text weight="semibold">Claude API Key</Text>}
+          description="Your API key is stored locally in IndexedDB only. It is never sent to any server other than the Anthropic API."
+        />
+        <div className={styles.form}>
+          <div className={styles.statusRow}>
+            <Text>Status:</Text>
+            <Badge appearance="filled" color={hasApiKey ? 'success' : 'warning'}>
+              {hasApiKey ? 'Configured' : 'Not Set'}
+            </Badge>
+          </div>
+          <div className={styles.row}>
+            <Field label="API Key" style={{ flex: 1 }}>
+              <Input
+                type="password"
+                placeholder="sk-ant-..."
+                value={apiKeyInput}
+                onChange={(_, data) => setApiKeyInput(data.value)}
+              />
+            </Field>
+            <Button appearance="primary" icon={<KeyRegular />} onClick={handleSaveKey} disabled={!apiKeyInput.trim()}>
+              Save
+            </Button>
+          </div>
+          {hasApiKey && (
+            <Button appearance="subtle" icon={<DeleteRegular />} onClick={handleClearKey}>
+              Clear API Key
+            </Button>
+          )}
+        </div>
+      </Card>
+      <Card>
+        <CardHeader header={<Text weight="semibold">OneDrive Connection</Text>} />
+        <div className={styles.form}>
+          <div className={styles.statusRow}>
+            <Badge
+              appearance="filled"
+              color={syncStatus === 'synced' ? 'success' : syncStatus === 'error' ? 'danger' : 'informative'}
+              icon={<CloudRegular />}
+            >
+              {syncStatus === 'offline' ? 'Not Connected' : syncStatus}
+            </Badge>
+            <Button appearance="primary" disabled>
+              Connect OneDrive
+            </Button>
+            <Text size={200}>(Available in a future update)</Text>
+          </div>
+        </div>
+      </Card>
+      <Card>
+        <CardHeader header={<Text weight="semibold">About</Text>} />
+        <div className={styles.form}>
+          <Text>FinPlanner v0.0.1</Text>
+          <Text size={200}>
+            Integrated tax planning and retirement planning tool.
+            All data is stored locally or in your personal OneDrive.
+          </Text>
+        </div>
+      </Card>
+    </div>
+  );
+}

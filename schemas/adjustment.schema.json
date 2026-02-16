@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "adjustment.schema.json",
+  "title": "Adjustment",
+  "description": "Shared corpus: one-time or recurring financial adjustment.",
+  "type": "object",
+  "required": ["_type", "id", "name", "year", "amount", "taxable"],
+  "properties": {
+    "_type": { "const": "adjustment" },
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "year": { "type": "integer", "minimum": 1900, "maximum": 2200 },
+    "endYear": { "type": "integer", "minimum": 1900, "maximum": 2200 },
+    "amount": { "type": "number" },
+    "taxable": { "type": "boolean" },
+    "inflationAdjusted": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

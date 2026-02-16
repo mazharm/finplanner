@@ -4,14 +4,32 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -b",
-    "test": "vitest run",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@finplanner/claude": "workspace:*",
+    "@finplanner/domain": "workspace:*",
+    "@finplanner/engine": "workspace:*",
+    "@finplanner/storage": "workspace:*",
+    "@finplanner/ui": "workspace:*",
+    "@finplanner/validation": "workspace:*",
+    "@fluentui/react-components": "^9.54.0",
+    "@fluentui/react-icons": "^2.0.245",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-router-dom": "^6.23.0",
+    "recharts": "^2.12.0",
+    "zustand": "^5.0.11"
+  },
   "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.0",
     "typescript": "^5.4.0",
-    "vitest": "^1.6.0"
+    "vite": "^5.4.0"
   }
 }

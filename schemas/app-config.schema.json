@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "app-config.schema.json",
+  "title": "AppConfig",
+  "description": "Application settings and tunable thresholds.",
+  "type": "object",
+  "required": ["_type", "theme", "claudeModelId", "anomalyThresholdPct", "anomalyThresholdAbsolute", "confidenceThreshold"],
+  "properties": {
+    "_type": { "const": "appConfig" },
+    "theme": { "type": "string", "enum": ["light", "dark"] },
+    "claudeModelId": { "type": "string" },
+    "anomalyThresholdPct": { "type": "number", "minimum": 0, "maximum": 100 },
+    "anomalyThresholdAbsolute": { "type": "number", "minimum": 0 },
+    "confidenceThreshold": { "type": "number", "minimum": 0, "maximum": 1 },
+    "lastSyncTimestamp": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

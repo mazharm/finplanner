@@ -4,18 +4,26 @@
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc -b",
-    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/"
   },
   "dependencies": {
-    "@finplanner/domain": "workspace:*"
+    "@finplanner/domain": "workspace:*",
+    "@fluentui/react-components": "^9.54.0",
+    "@fluentui/react-icons": "^2.0.245",
+    "react": "^18.3.0"
   },
   "devDependencies": {
-    "typescript": "^5.4.0",
-    "vitest": "^1.6.0"
+    "@types/react": "^18.3.0",
+    "typescript": "^5.4.0"
   }
 }

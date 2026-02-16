@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tax-year-record.schema.json",
+  "title": "TaxYearRecord",
+  "description": "Tax year record containing income, deductions, credits, payments, and computed tax.",
+  "type": "object",
+  "required": ["_type", "taxYear", "status", "filingStatus", "stateOfResidence", "income", "deductions", "credits", "payments", "computedFederalTax", "computedStateTax", "computedEffectiveFederalRate", "computedEffectiveStateRate", "documentIds"],
+  "properties": {
+    "_type": { "const": "taxYear" },
+    "taxYear": { "type": "integer" },
+    "status": { "type": "string", "enum": ["draft", "ready", "filed", "amended"] },
+    "filingStatus": { "type": "string", "enum": ["single", "mfj", "survivor"] },
+    "stateOfResidence": { "type": "string", "minLength": 2, "maxLength": 2 },
+    "income": {
+      "type": "object",
+      "required": ["wages", "selfEmploymentIncome", "interestIncome", "dividendIncome", "qualifiedDividends", "capitalGains", "capitalLosses", "rentalIncome", "nqdcDistributions", "retirementDistributions", "socialSecurityIncome", "otherIncome"],
+      "properties": {
+        "wages": { "type": "number" },
+        "selfEmploymentIncome": { "type": "number" },
+        "interestIncome": { "type": "number" },
+        "dividendIncome": { "type": "number" },
+        "qualifiedDividends": { "type": "number" },
+        "capitalGains": { "type": "number" },
+        "capitalLosses": { "type": "number" },
+        "rentalIncome": { "type": "number" },
+        "nqdcDistributions": { "type": "number" },
+        "retirementDistributions": { "type": "number" },
+        "socialSecurityIncome": { "type": "number" },
+        "otherIncome": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "deductions": {
+      "type": "object",
+      "required": ["standardDeduction", "useItemized"],
+      "properties": {
+        "standardDeduction": { "type": "number", "minimum": 0 },
+        "itemizedDeductions": {
+          "type": "object",
+          "required": ["mortgageInterest", "stateAndLocalTaxes", "charitableContributions", "medicalExpenses", "other"],
+          "properties": {
+            "mortgageInterest": { "type": "number" },
+            "stateAndLocalTaxes": { "type": "number" },
+            "charitableContributions": { "type": "number" },
+            "medicalExpenses": { "type": "number" },
+            "other": { "type": "number" }
+          },
+          "additionalProperties": false
+        },
+        "useItemized": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "credits": {
+      "type": "object",
+      "required": ["childTaxCredit", "educationCredits", "foreignTaxCredit", "otherCredits"],
+      "properties": {
+        "childTaxCredit": { "type": "number", "minimum": 0 },
+        "educationCredits": { "type": "number", "minimum": 0 },
+        "foreignTaxCredit": { "type": "number", "minimum": 0 },
+        "otherCredits": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "payments": {
+      "type": "object",
+      "required": ["federalWithheld", "stateWithheld", "estimatedPaymentsFederal", "estimatedPaymentsState"],
+      "properties": {
+        "federalWithheld": { "type": "number", "minimum": 0 },
+        "stateWithheld": { "type": "number", "minimum": 0 },
+        "estimatedPaymentsFederal": { "type": "number", "minimum": 0 },
+        "estimatedPaymentsState": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "computedFederalTax": { "type": "number" },
+    "computedStateTax": { "type": "number" },
+    "computedEffectiveFederalRate": { "type": "number" },
+    "computedEffectiveStateRate": { "type": "number" },
+    "refundOrBalanceDueFederal": { "type": "number" },
+    "refundOrBalanceDueState": { "type": "number" },
+    "documentIds": { "type": "array", "items": { "type": "string" } },
+    "notes": { "type": "string" }
+  },
+  "additionalProperties": false
+}

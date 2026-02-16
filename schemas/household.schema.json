@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "household.schema.json",
+  "title": "HouseholdProfile",
+  "description": "Shared corpus: household demographics and Social Security configuration.",
+  "type": "object",
+  "required": ["_type", "maritalStatus", "filingStatus", "stateOfResidence", "primary"],
+  "properties": {
+    "_type": { "const": "household" },
+    "maritalStatus": { "type": "string", "enum": ["single", "married"] },
+    "filingStatus": { "type": "string", "enum": ["single", "mfj", "survivor"] },
+    "stateOfResidence": { "type": "string", "minLength": 2, "maxLength": 2 },
+    "primary": { "$ref": "#/$defs/personProfile" },
+    "spouse": { "$ref": "#/$defs/personProfile" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "personProfile": {
+      "type": "object",
+      "required": ["id", "birthYear", "currentAge", "retirementAge", "lifeExpectancy"],
+      "properties": {
+        "id": { "type": "string", "enum": ["primary", "spouse"] },
+        "birthYear": { "type": "integer", "minimum": 1900, "maximum": 2100 },
+        "currentAge": { "type": "integer", "minimum": 0, "maximum": 120 },
+        "retirementAge": { "type": "integer", "minimum": 0, "maximum": 120 },
+        "lifeExpectancy": { "type": "integer", "minimum": 1, "maximum": 120 },
+        "socialSecurity": {
+          "type": "object",
+          "required": ["claimAge", "estimatedMonthlyBenefitAtClaim", "colaPct"],
+          "properties": {
+            "claimAge": { "type": "integer", "minimum": 62, "maximum": 70 },
+            "piaMonthlyAtFRA": { "type": "number", "minimum": 0 },
+            "estimatedMonthlyBenefitAtClaim": { "type": "number", "minimum": 0 },
+            "colaPct": { "type": "number", "minimum": -100, "maximum": 100 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

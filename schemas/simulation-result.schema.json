@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "simulation-result.schema.json",
+  "title": "SimulationResult",
+  "description": "PlanResult per scenario, stored in retirement/results/{scenario-id}.ndjson.",
+  "type": "object",
+  "required": ["_type", "scenarioId", "summary", "yearly", "assumptionsUsed"],
+  "properties": {
+    "_type": { "const": "simulationResult" },
+    "scenarioId": { "type": "string", "minLength": 1 },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "successProbability": { "type": "number", "minimum": 0, "maximum": 1 },
+        "medianTerminalValue": { "type": "number" },
+        "worstCaseShortfall": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "yearly": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/yearResult" }
+    },
+    "assumptionsUsed": { "type": "object" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "yearResult": {
+      "type": "object",
+      "required": ["year", "agePrimary", "isSurvivorPhase", "filingStatus", "targetSpend", "actualSpend", "grossIncome", "socialSecurityIncome", "nqdcDistributions", "rmdTotal", "pensionAndOtherIncome", "rothWithdrawals", "withdrawalsByAccount", "taxesFederal", "taxesState", "taxableOrdinaryIncome", "taxableCapitalGains", "netSpendable", "shortfall", "surplus", "endBalanceByAccount"],
+      "properties": {
+        "year": { "type": "integer" },
+        "agePrimary": { "type": "integer" },
+        "ageSpouse": { "type": "integer" },
+        "isSurvivorPhase": { "type": "boolean" },
+        "filingStatus": { "type": "string", "enum": ["single", "mfj", "survivor"] },
+        "targetSpend": { "type": "number" },
+        "actualSpend": { "type": "number" },
+        "grossIncome": { "type": "number" },
+        "socialSecurityIncome": { "type": "number" },
+        "nqdcDistributions": { "type": "number" },
+        "rmdTotal": { "type": "number" },
+        "pensionAndOtherIncome": { "type": "number" },
+        "rothWithdrawals": { "type": "number" },
+        "withdrawalsByAccount": { "type": "object", "additionalProperties": { "type": "number" } },
+        "taxesFederal": { "type": "number" },
+        "taxesState": { "type": "number" },
+        "taxableOrdinaryIncome": { "type": "number" },
+        "taxableCapitalGains": { "type": "number" },
+        "netSpendable": { "type": "number" },
+        "shortfall": { "type": "number", "minimum": 0 },
+        "surplus": { "type": "number", "minimum": 0 },
+        "endBalanceByAccount": { "type": "object", "additionalProperties": { "type": "number" } },
+        "costBasisByAccount": { "type": "object", "additionalProperties": { "type": "number" } }
+      },
+      "additionalProperties": false
+    }
+  }
+}
