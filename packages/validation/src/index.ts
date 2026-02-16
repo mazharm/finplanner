@@ -13,6 +13,8 @@ export { taxDocumentSchema, taxYearIncomeSchema, taxYearDeductionsSchema, taxYea
 export { appConfigSchema } from './schemas/app-config.js';
 export { ndjsonHeaderSchema, ndjsonRecordSchema } from './schemas/ndjson.js';
 export { portfolioAdviceResponseSchema, taxStrategyAdviceResponseSchema } from './schemas/advice.js';
+export { appErrorSchema } from './schemas/errors.js';
+export { portfolioAdviceRequestSchema, taxStrategyAdviceRequestSchema, taxChecklistSchema, taxAnalysisResultSchema } from './schemas/advice-requests.js';
 
 // Validators
 export { validatePlanInput } from './validators/plan-input.js';

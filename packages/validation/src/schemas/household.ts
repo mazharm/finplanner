@@ -23,4 +23,13 @@ export const householdProfileSchema = z.object({
   stateOfResidence: z.string().length(2),
   primary: personProfileSchema,
   spouse: personProfileSchema.optional(),
-});
+}).refine(
+  (data) => data.maritalStatus !== 'single' || data.spouse === undefined,
+  { message: 'Single households cannot have a spouse', path: ['spouse'] }
+).refine(
+  (data) => data.maritalStatus !== 'married' || data.spouse !== undefined,
+  { message: 'Married households must have a spouse', path: ['spouse'] }
+).refine(
+  (data) => data.filingStatus !== 'mfj' || data.maritalStatus === 'married',
+  { message: 'MFJ filing status requires married marital status', path: ['filingStatus'] }
+);

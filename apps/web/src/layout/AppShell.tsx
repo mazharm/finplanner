@@ -196,6 +196,7 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
               appearance="subtle"
               icon={theme === 'light' ? <WeatherMoonRegular /> : <WeatherSunnyRegular />}
               onClick={onToggleTheme}
+              aria-label={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
             />
           </div>
         </header>

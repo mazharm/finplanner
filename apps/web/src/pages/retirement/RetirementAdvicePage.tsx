@@ -13,9 +13,12 @@ import {
 } from '@fluentui/react-components';
 import { LightbulbRegular } from '@fluentui/react-icons';
 import { useState, useCallback } from 'react';
+import { getPortfolioAdvice } from '@finplanner/claude';
+import type { PortfolioAdviceRequest } from '@finplanner/domain';
 import { useSharedStore } from '../../stores/shared-store.js';
 import { useRetirementStore } from '../../stores/retirement-store.js';
 import { useSettingsStore } from '../../stores/settings-store.js';
+import { createLlmClient } from '../../services/llm-client.js';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
@@ -25,6 +28,9 @@ const useStyles = makeStyles({
     borderLeft: `3px solid ${tokens.colorBrandStroke1}`,
     paddingLeft: tokens.spacingHorizontalL,
   },
+  actionRow: { display: 'flex', gap: tokens.spacingHorizontalL, alignItems: 'center' },
+  recHeader: { display: 'flex', gap: tokens.spacingHorizontalS, alignItems: 'center', marginBottom: tokens.spacingVerticalXS },
+  disclaimerBar: { marginTop: tokens.spacingVerticalL },
 });
 
 interface Recommendation {
@@ -35,58 +41,67 @@ interface Recommendation {
 
 export function RetirementAdvicePage() {
   const styles = useStyles();
-  const { accounts } = useSharedStore();
-  const { spending, latestResult } = useRetirementStore();
+  const { household, accounts, incomeStreams } = useSharedStore();
+  const { spending, taxes, market, strategy, latestResult } = useRetirementStore();
   const { hasApiKey } = useSettingsStore();
   const [loading, setLoading] = useState(false);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [disclaimer, setDisclaimer] = useState('');
+  const [error, setError] = useState('');
 
   const handleGetAdvice = useCallback(async () => {
     setLoading(true);
+    setError('');
 
-    // Simulate getting advice — in production this calls getPortfolioAdvice()
-    await new Promise((r) => setTimeout(r, 500));
+    try {
+      const { claudeApiKey } = useSettingsStore.getState();
+      const client = claudeApiKey ? createLlmClient(claudeApiKey) : undefined;
 
-    const recs: Recommendation[] = [];
-    const totalBalance = accounts.reduce((sum, a) => sum + a.currentBalance, 0);
+      const request: PortfolioAdviceRequest = {
+        planInput: {
+          household,
+          accounts,
+          otherIncome: incomeStreams,
+          adjustments: [],
+          spending,
+          taxes,
+          market,
+          strategy,
+        },
+        planResultSummary: latestResult?.summary ?? {
+          successProbability: 0,
+          medianTerminalValue: 0,
+          worstCaseShortfall: 0,
+          medianShortfallYear: null,
+          percentile10: 0,
+          percentile25: 0,
+          percentile50: 0,
+          percentile75: 0,
+          percentile90: 0,
+        },
+        userPreferences: {
+          riskTolerance: 'moderate',
+          spendingFloor: spending.floorAnnualSpend ?? spending.targetAnnualSpend * 0.8,
+          legacyGoal: 0,
+        },
+      };
 
-    if (latestResult && latestResult.summary.worstCaseShortfall > 0) {
-      recs.push({
-        title: 'Shortfall Risk',
-        description: 'Consider reducing spending target or delaying retirement to address potential shortfall.',
-        source: 'fallback',
-      });
+      const response = await getPortfolioAdvice(request, client);
+
+      const recs: Recommendation[] = response.recommendations.map((r) => ({
+        title: r.title,
+        description: r.rationale,
+        source: r.source,
+      }));
+
+      setRecommendations(recs);
+      setDisclaimer(response.disclaimer);
+    } catch (err) {
+      setError(`Failed to get advice: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setLoading(false);
     }
-
-    if (totalBalance > 0 && totalBalance * 0.04 < (spending.floorAnnualSpend ?? spending.targetAnnualSpend)) {
-      recs.push({
-        title: '4% Rule Warning',
-        description: 'Current savings may not support desired spending at a 4% withdrawal rate.',
-        source: 'fallback',
-      });
-    }
-
-    const hasTaxDeferred = accounts.some((a) => a.type === 'taxDeferred');
-    const hasRoth = accounts.some((a) => a.type === 'roth');
-    if (hasTaxDeferred && hasRoth) {
-      recs.push({
-        title: 'Tax-Optimized Withdrawal',
-        description: 'Consider tax-optimized withdrawal ordering (taxable → tax-deferred → Roth) to minimize lifetime taxes.',
-        source: 'fallback',
-      });
-    }
-
-    recs.push({
-      title: 'Stress Scenarios',
-      description: 'Review historical stress scenarios to understand downside risk.',
-      source: 'fallback',
-    });
-
-    setRecommendations(recs);
-    setDisclaimer('This is rule-based guidance, not personalized financial advice. Consult a qualified financial advisor.');
-    setLoading(false);
-  }, [accounts, spending, latestResult]);
+  }, [household, accounts, incomeStreams, spending, taxes, market, strategy, latestResult, hasApiKey]);
 
   return (
     <div className={styles.root}>
@@ -103,7 +118,7 @@ export function RetirementAdvicePage() {
           header={<Text weight="semibold">Get Retirement Advice</Text>}
           description="Configure your plan and run a simulation first for best results."
         />
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div className={styles.actionRow}>
           <Button appearance="primary" onClick={handleGetAdvice} disabled={loading}>
             {loading ? <Spinner size="tiny" /> : 'Get Retirement Advice'}
           </Button>
@@ -112,13 +127,18 @@ export function RetirementAdvicePage() {
           </Badge>
         </div>
       </Card>
+      {error && (
+        <MessageBar intent="error">
+          <MessageBarBody>{error}</MessageBarBody>
+        </MessageBar>
+      )}
       {recommendations.length > 0 && (
         <Card>
           <CardHeader header={<Text weight="semibold">Recommendations</Text>} />
           <div className={styles.adviceList}>
             {recommendations.map((rec, i) => (
               <div key={i} className={styles.recommendation}>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '4px' }}>
+                <div className={styles.recHeader}>
                   <Text weight="semibold">{rec.title}</Text>
                   <Badge appearance="outline" size="small">{rec.source}</Badge>
                 </div>
@@ -127,7 +147,7 @@ export function RetirementAdvicePage() {
             ))}
           </div>
           {disclaimer && (
-            <MessageBar intent="warning" style={{ marginTop: '12px' }}>
+            <MessageBar intent="warning" className={styles.disclaimerBar}>
               <MessageBarBody>{disclaimer}</MessageBarBody>
             </MessageBar>
           )}

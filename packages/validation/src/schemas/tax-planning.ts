@@ -9,7 +9,7 @@ export const taxDocumentSchema = z.object({
   sourceFileName: z.string().optional(),
   oneDrivePath: z.string().optional(),
   extractedFields: z.record(z.string(), z.union([z.number(), z.string()])),
-  fieldConfidence: z.record(z.string(), z.number()),
+  fieldConfidence: z.record(z.string(), z.number().min(0).max(1)),
   extractionConfidence: z.number().min(0).max(1),
   lowConfidenceFields: z.array(z.string()),
   confirmedByUser: z.boolean(),
@@ -17,28 +17,28 @@ export const taxDocumentSchema = z.object({
 });
 
 export const taxYearIncomeSchema = z.object({
-  wages: z.number(),
-  selfEmploymentIncome: z.number(),
-  interestIncome: z.number(),
-  dividendIncome: z.number(),
-  qualifiedDividends: z.number(),
-  capitalGains: z.number(),
-  capitalLosses: z.number(),
+  wages: z.number().min(0),
+  selfEmploymentIncome: z.number().min(0),
+  interestIncome: z.number().min(0),
+  dividendIncome: z.number().min(0),
+  qualifiedDividends: z.number().min(0),
+  capitalGains: z.number().min(0),
+  capitalLosses: z.number().min(0),
   rentalIncome: z.number(),
-  nqdcDistributions: z.number(),
-  retirementDistributions: z.number(),
-  socialSecurityIncome: z.number(),
-  otherIncome: z.number(),
+  nqdcDistributions: z.number().min(0),
+  retirementDistributions: z.number().min(0),
+  socialSecurityIncome: z.number().min(0),
+  otherIncome: z.number().min(0),
 });
 
 export const taxYearDeductionsSchema = z.object({
   standardDeduction: z.number().min(0),
   itemizedDeductions: z.object({
-    mortgageInterest: z.number(),
-    stateAndLocalTaxes: z.number(),
-    charitableContributions: z.number(),
-    medicalExpenses: z.number(),
-    other: z.number(),
+    mortgageInterest: z.number().min(0),
+    stateAndLocalTaxes: z.number().min(0),
+    charitableContributions: z.number().min(0),
+    medicalExpenses: z.number().min(0),
+    other: z.number().min(0),
   }).optional(),
   useItemized: z.boolean(),
 });

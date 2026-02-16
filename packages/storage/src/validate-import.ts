@@ -4,17 +4,37 @@ import type { ImportValidationResult, ImportLineError } from './types.js';
 import { getSchemaForType } from './ndjson-schemas.js';
 
 function compareVersions(v1: string, v2: string): number {
-  const parts1 = v1.split('.').map(Number);
-  const parts2 = v2.split('.').map(Number);
+  // Strip pre-release suffix (e.g., "3.0.0-beta" -> "3.0.0")
+  const clean1 = v1.split('-')[0];
+  const clean2 = v2.split('-')[0];
+  const parts1 = clean1.split('.').map(Number);
+  const parts2 = clean2.split('.').map(Number);
   for (let i = 0; i < 3; i++) {
-    if ((parts1[i] ?? 0) < (parts2[i] ?? 0)) return -1;
-    if ((parts1[i] ?? 0) > (parts2[i] ?? 0)) return 1;
+    const a = parts1[i] ?? 0;
+    const b = parts2[i] ?? 0;
+    if (isNaN(a) || isNaN(b)) return 0;
+    if (a < b) return -1;
+    if (a > b) return 1;
   }
+  // Pre-release versions are considered less than their release counterpart
+  const hasPreRelease1 = v1.includes('-');
+  const hasPreRelease2 = v2.includes('-');
+  if (hasPreRelease1 && !hasPreRelease2) return -1;
+  if (!hasPreRelease1 && hasPreRelease2) return 1;
   return 0;
 }
 
 export function validateImport(ndjsonContent: string): ImportValidationResult {
-  const lines = ndjsonContent.split('\n').filter(l => l.trim().length > 0);
+  const rawLines = ndjsonContent.split('\n');
+  // Build a mapping from filtered index to original line number
+  const lineMap: number[] = [];
+  const lines: string[] = [];
+  for (let i = 0; i < rawLines.length; i++) {
+    if (rawLines[i].trim().length > 0) {
+      lines.push(rawLines[i]);
+      lineMap.push(i + 1); // 1-based original line number
+    }
+  }
   const errors: ImportLineError[] = [];
   const recordCounts: Record<string, number> = {};
   let schemaVersion: string | undefined;
@@ -28,13 +48,13 @@ export function validateImport(ndjsonContent: string): ImportValidationResult {
   try {
     header = JSON.parse(lines[0]);
   } catch {
-    errors.push({ line: 1, message: 'Invalid JSON on header line', raw: lines[0] });
+    errors.push({ line: lineMap[0], message: 'Invalid JSON on header line', raw: lines[0] });
     return { valid: false, errors, recordCounts };
   }
 
   const headerResult = ndjsonHeaderSchema.safeParse(header);
   if (!headerResult.success) {
-    errors.push({ line: 1, message: `Invalid header: ${headerResult.error.message}` });
+    errors.push({ line: lineMap[0], message: `Invalid header: ${headerResult.error.message}` });
     return { valid: false, errors, recordCounts };
   }
 
@@ -42,13 +62,13 @@ export function validateImport(ndjsonContent: string): ImportValidationResult {
 
   // Version check
   if (compareVersions(schemaVersion, '2.0.0') < 0) {
-    errors.push({ line: 1, message: `Schema version ${schemaVersion} is too old (< 2.0.0)` });
+    errors.push({ line: lineMap[0], message: `Schema version ${schemaVersion} is too old (< 2.0.0)` });
     return { valid: false, errors, recordCounts, schemaVersion };
   }
 
   // Parse remaining lines
   for (let i = 1; i < lines.length; i++) {
-    const lineNum = i + 1;
+    const lineNum = lineMap[i];
     let record: any;
     try {
       record = JSON.parse(lines[i]);

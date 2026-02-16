@@ -47,7 +47,10 @@ export function computeRmds(
         ownerAge = agePrimary;
         ownerBirthYear = household.primary.birthYear;
       } else if (account.owner === 'spouse' && household.spouse) {
-        ownerAge = ageSpouse ?? agePrimary;
+        if (ageSpouse === undefined) {
+          throw new Error(`Spouse age is undefined for spouse-owned account ${account.id} but household has a spouse`);
+        }
+        ownerAge = ageSpouse;
         ownerBirthYear = household.spouse.birthYear;
       } else {
         // Joint or fallback to primary

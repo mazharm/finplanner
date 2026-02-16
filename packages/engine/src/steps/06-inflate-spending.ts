@@ -3,7 +3,7 @@ import {
   GUARDRAIL_MAX_WITHDRAWAL_RATE_PCT,
 } from '@finplanner/domain';
 import type { SimulationState, YearContext, SpendingResult, AccountState } from '../types.js';
-import { getCumulativeInflation } from '../helpers/inflation.js';
+import { getCumulativeInflationCached } from '../helpers/inflation.js';
 
 /**
  * Step 6: Inflate Spending Target
@@ -20,8 +20,10 @@ export function inflateSpending(
   const { plan, yearIndex, scenarioInflation } = state;
   const { isSurvivorPhase } = yearContext;
 
-  // Step 1: Base target inflated from year 1
-  const inflationMultiplier = getCumulativeInflation(yearIndex, plan, scenarioInflation);
+  // Step 1: Base target inflated from year 1 — O(1) cached lookup
+  const inflationMultiplier = getCumulativeInflationCached(
+    yearIndex, state.cumulativeInflationByYear, plan, scenarioInflation
+  );
   let targetSpend = plan.spending.targetAnnualSpend * inflationMultiplier;
 
   // Step 2: Survivor spending adjustment

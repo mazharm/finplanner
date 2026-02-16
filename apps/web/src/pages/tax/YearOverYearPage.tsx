@@ -16,6 +16,22 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: tokens.spacingVerticalXS,
   },
+  anomalyList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalS,
+  },
+  anomalyItemCard: {
+    padding: tokens.spacingVerticalS,
+  },
+  anomalyHeader: {
+    display: 'flex',
+    gap: tokens.spacingHorizontalS,
+    alignItems: 'center',
+  },
+  suggestedAction: {
+    color: tokens.colorBrandForeground1,
+  },
 });
 
 const severityColors: Record<AnomalySeverity, 'informative' | 'warning' | 'danger'> = {
@@ -105,10 +121,10 @@ export function YearOverYearPage() {
             {anomalies.length === 0 ? (
               <Text>No anomalies detected across tax years.</Text>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div className={styles.anomalyList}>
                 {anomalies.map((a) => (
-                  <Card key={a.id} style={{ padding: '8px' }}>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <Card key={a.id} className={styles.anomalyItemCard}>
+                    <div className={styles.anomalyHeader}>
                       <Badge appearance="filled" color={severityColors[a.severity]}>{a.severity}</Badge>
                       <Text weight="semibold">{a.field}</Text>
                       <Text size={200}>({a.comparisonYear} → {a.taxYear})</Text>
@@ -117,7 +133,7 @@ export function YearOverYearPage() {
                     {a.percentChange !== undefined && (
                       <Text size={200}>Change: {a.percentChange >= 0 ? '+' : ''}{a.percentChange.toFixed(1)}%</Text>
                     )}
-                    <Text size={200} style={{ color: tokens.colorBrandForeground1 }}>
+                    <Text size={200} className={styles.suggestedAction}>
                       Suggested: {a.suggestedAction}
                     </Text>
                   </Card>

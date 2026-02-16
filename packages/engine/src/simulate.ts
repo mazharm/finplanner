@@ -4,6 +4,7 @@ import { validatePlanInput } from '@finplanner/validation';
 import type { SimulationState, AccountState } from './types.js';
 import { computeBaselineReturn } from './helpers/scenario-returns.js';
 import { iterateUntilConverged } from './helpers/convergence.js';
+import { getInflationRate } from './helpers/inflation.js';
 
 // Steps
 import { determinePhase } from './steps/01-determine-phase.js';
@@ -53,6 +54,15 @@ export function simulate(planInput: PlanInput): PlanResult {
     state.yearIndex = yearIndex;
     state.currentYear = BASE_CALENDAR_YEAR + yearIndex;
 
+    // Build cumulative inflation incrementally: O(1) per year instead of O(n)
+    if (yearIndex === 0) {
+      state.cumulativeInflationByYear[0] = 1;
+    } else {
+      const prevMultiplier = state.cumulativeInflationByYear[yearIndex - 1];
+      const rate = getInflationRate(yearIndex - 1, state.plan, state.scenarioInflation);
+      state.cumulativeInflationByYear[yearIndex] = prevMultiplier * (1 + rate / 100);
+    }
+
     // Recompute baseline return each year (weights change as balances change)
     state.baselineReturn = computeBaselineReturn(state.accounts);
 
@@ -99,6 +109,7 @@ function initializeState(planInput: PlanInput): SimulationState {
     baselineReturn: computeBaselineReturn(accounts),
     survivorTransitioned: false,
     firstSurvivorYearIndex: -1,
+    cumulativeInflationByYear: [1],
   };
 }
 

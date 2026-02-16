@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { SpendingPlan, TaxConfig, MarketConfig, StrategyConfig, PlanResult } from '@finplanner/domain';
+import { getAppState, setAppState } from '../services/indexeddb.js';
 
 interface Scenario {
   id: string;
@@ -20,6 +21,10 @@ interface RetirementState {
   scenarios: Scenario[];
   activeScenarioId: string | null;
   latestResult: PlanResult | null;
+  initialized: boolean;
+
+  // Lifecycle
+  initFromIndexedDB: () => Promise<void>;
 
   // Actions
   setSpending: (spending: SpendingPlan) => void;
@@ -60,7 +65,20 @@ const defaultStrategy: StrategyConfig = {
   guardrailsEnabled: false,
 };
 
-export const useRetirementStore = create<RetirementState>((set) => ({
+type PersistableRetirement = Pick<RetirementState, 'spending' | 'taxes' | 'market' | 'strategy' | 'scenarios' | 'activeScenarioId'>;
+
+function persistRetirement(state: PersistableRetirement) {
+  setAppState('retirement', {
+    spending: state.spending,
+    taxes: state.taxes,
+    market: state.market,
+    strategy: state.strategy,
+    scenarios: state.scenarios,
+    activeScenarioId: state.activeScenarioId,
+  }).catch(() => {});
+}
+
+export const useRetirementStore = create<RetirementState>((set, get) => ({
   spending: defaultSpending,
   taxes: defaultTaxes,
   market: defaultMarket,
@@ -68,19 +86,69 @@ export const useRetirementStore = create<RetirementState>((set) => ({
   scenarios: [],
   activeScenarioId: null,
   latestResult: null,
+  initialized: false,
 
-  setSpending: (spending) => set({ spending }),
-  setTaxes: (taxes) => set({ taxes }),
-  setMarket: (market) => set({ market }),
-  setStrategy: (strategy) => set({ strategy }),
-  addScenario: (scenario) =>
-    set((state) => ({ scenarios: [...state.scenarios, scenario] })),
-  updateScenario: (id, partial) =>
-    set((state) => ({
-      scenarios: state.scenarios.map((s) => (s.id === id ? { ...s, ...partial } : s)),
-    })),
-  removeScenario: (id) =>
-    set((state) => ({ scenarios: state.scenarios.filter((s) => s.id !== id) })),
-  setActiveScenario: (id) => set({ activeScenarioId: id }),
+  initFromIndexedDB: async () => {
+    try {
+      const saved = await getAppState<PersistableRetirement>('retirement');
+      if (saved) {
+        set({
+          spending: saved.spending ?? defaultSpending,
+          taxes: saved.taxes ?? defaultTaxes,
+          market: saved.market ?? defaultMarket,
+          strategy: saved.strategy ?? defaultStrategy,
+          scenarios: saved.scenarios ?? [],
+          activeScenarioId: saved.activeScenarioId ?? null,
+          initialized: true,
+        });
+      } else {
+        set({ initialized: true });
+      }
+    } catch {
+      set({ initialized: true });
+    }
+  },
+
+  setSpending: (spending) => {
+    set({ spending });
+    persistRetirement({ ...get(), spending });
+  },
+  setTaxes: (taxes) => {
+    set({ taxes });
+    persistRetirement({ ...get(), taxes });
+  },
+  setMarket: (market) => {
+    set({ market });
+    persistRetirement({ ...get(), market });
+  },
+  setStrategy: (strategy) => {
+    set({ strategy });
+    persistRetirement({ ...get(), strategy });
+  },
+  addScenario: (scenario) => {
+    set((state) => {
+      const scenarios = [...state.scenarios, scenario];
+      persistRetirement({ ...state, scenarios });
+      return { scenarios };
+    });
+  },
+  updateScenario: (id, partial) => {
+    set((state) => {
+      const scenarios = state.scenarios.map((s) => (s.id === id ? { ...s, ...partial } : s));
+      persistRetirement({ ...state, scenarios });
+      return { scenarios };
+    });
+  },
+  removeScenario: (id) => {
+    set((state) => {
+      const scenarios = state.scenarios.filter((s) => s.id !== id);
+      persistRetirement({ ...state, scenarios });
+      return { scenarios };
+    });
+  },
+  setActiveScenario: (id) => {
+    set({ activeScenarioId: id });
+    persistRetirement({ ...get(), activeScenarioId: id });
+  },
   setLatestResult: (result) => set({ latestResult: result }),
 }));

@@ -83,7 +83,7 @@ describe('GT12: NDJSON Import/Restore Fidelity', () => {
     const files: OneDriveFile[] = [
       { name: 'data.ndjson', content: fixtureContent },
     ];
-    const backup = generateBackup(files);
+    const { content: backup } = generateBackup(files);
     const roundTripResult = validateImport(backup);
 
     it('should produce valid NDJSON from generateBackup', () => {
@@ -151,7 +151,7 @@ describe('GT12: NDJSON Import/Restore Fidelity', () => {
   describe('Multi-file consolidation', () => {
     const file1Content = [
       '{"_type":"header","schemaVersion":"3.0.0","savedAt":"2025-01-01T00:00:00Z","modules":["retirement"]}',
-      '{"_type":"household","maritalStatus":"married","filingStatus":"mfj","stateOfResidence":"WA","primary":{"id":"primary","birthYear":1980,"currentAge":45,"retirementAge":65,"lifeExpectancy":90}}',
+      '{"_type":"household","maritalStatus":"married","filingStatus":"mfj","stateOfResidence":"WA","primary":{"id":"primary","birthYear":1980,"currentAge":45,"retirementAge":65,"lifeExpectancy":90},"spouse":{"id":"spouse","birthYear":1982,"currentAge":43,"retirementAge":65,"lifeExpectancy":92}}',
       '{"_type":"account","id":"acct-1","name":"Brokerage","type":"taxable","owner":"primary","currentBalance":500000,"expectedReturnPct":6,"feePct":0.1}',
     ].join('\n');
 
@@ -165,7 +165,7 @@ describe('GT12: NDJSON Import/Restore Fidelity', () => {
       { name: 'tax.ndjson', content: file2Content },
     ];
 
-    const backup = generateBackup(files);
+    const { content: backup } = generateBackup(files);
     const result = validateImport(backup);
 
     it('should consolidate multiple files into valid NDJSON', () => {

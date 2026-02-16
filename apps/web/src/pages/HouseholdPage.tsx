@@ -14,7 +14,7 @@ import {
   MessageBarBody,
 } from '@fluentui/react-components';
 import { PeopleRegular, SaveRegular } from '@fluentui/react-icons';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useSharedStore } from '../stores/shared-store.js';
 import type { FilingStatus, PersonProfile, HouseholdProfile } from '@finplanner/domain';
 
@@ -36,6 +36,13 @@ export function HouseholdPage() {
   const styles = useStyles();
   const { household, setHousehold } = useSharedStore();
   const [saved, setSaved] = useState(false);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(savedTimerRef.current);
+    };
+  }, []);
 
   const [draft, setDraft] = useState<HouseholdProfile>({ ...household });
   const [hasSpouse, setHasSpouse] = useState(!!household.spouse);
@@ -82,7 +89,8 @@ export function HouseholdPage() {
   const handleSave = useCallback(() => {
     setHousehold(draft);
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
   }, [draft, setHousehold]);
 
   return (

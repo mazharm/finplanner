@@ -115,6 +115,7 @@ export function AccountsPage() {
                       appearance="subtle"
                       icon={<DeleteRegular />}
                       size="small"
+                      aria-label={`Delete account ${acct.name}`}
                       onClick={() => removeAccount(acct.id)}
                     />
                   </TableCell>

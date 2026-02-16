@@ -35,6 +35,7 @@ const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   form: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM },
+  errorText: { color: tokens.colorPaletteRedForeground1 },
 });
 
 function formatCurrency(value: number): string {
@@ -134,12 +135,14 @@ export function TaxYearsPage() {
                       appearance="subtle"
                       icon={<OpenRegular />}
                       size="small"
+                      aria-label={`Open tax year ${ty.taxYear}`}
                       onClick={() => navigate(`/tax/${ty.taxYear}`)}
                     />
                     <Button
                       appearance="subtle"
                       icon={<DeleteRegular />}
                       size="small"
+                      aria-label={`Delete tax year ${ty.taxYear}`}
                       onClick={() => removeTaxYear(ty.taxYear)}
                     />
                   </TableCell>
@@ -164,7 +167,7 @@ export function TaxYearsPage() {
                   />
                 </Field>
                 {taxYears.some((ty) => ty.taxYear === newYear) && (
-                  <Text style={{ color: tokens.colorPaletteRedForeground1 }}>
+                  <Text className={styles.errorText}>
                     Tax year {newYear} already exists.
                   </Text>
                 )}

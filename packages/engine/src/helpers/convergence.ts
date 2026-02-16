@@ -38,5 +38,8 @@ export function iterateUntilConverged<T>(
     taxEstimate = actualTaxes;
   }
 
-  return { result: lastResult as T, converged: false, iterations: MAX_ITERATIONS };
+  if (lastResult === undefined) {
+    throw new Error('Convergence loop did not execute: MAX_ITERATIONS may be 0');
+  }
+  return { result: lastResult, converged: false, iterations: MAX_ITERATIONS };
 }

@@ -13,7 +13,7 @@ import {
   MessageBarBody,
 } from '@fluentui/react-components';
 import { SlideSizeRegular, SaveRegular } from '@fluentui/react-icons';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRetirementStore } from '../../stores/retirement-store.js';
 import type { TaxConfig, MarketConfig, SimulationMode } from '@finplanner/domain';
 
@@ -30,12 +30,20 @@ export function AssumptionsPage() {
   const [draftTaxes, setDraftTaxes] = useState<TaxConfig>({ ...taxes });
   const [draftMarket, setDraftMarket] = useState<MarketConfig>({ ...market });
   const [saved, setSaved] = useState(false);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(savedTimerRef.current);
+    };
+  }, []);
 
   const handleSave = useCallback(() => {
     setTaxes(draftTaxes);
     setMarket(draftMarket);
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
   }, [draftTaxes, draftMarket, setTaxes, setMarket]);
 
   return (

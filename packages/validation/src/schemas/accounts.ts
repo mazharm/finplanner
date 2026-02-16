@@ -7,7 +7,10 @@ export const deferredCompScheduleSchema = z.object({
   frequency: z.enum(['annual', 'monthly']),
   amount: z.number().min(0),
   inflationAdjusted: z.boolean(),
-});
+}).refine(
+  (data) => data.startYear <= data.endYear,
+  { message: 'startYear must be <= endYear', path: ['endYear'] }
+);
 
 export const accountSchema = z.object({
   id: z.string().min(1),
@@ -24,4 +27,7 @@ export const accountSchema = z.object({
 }).refine(
   (data) => data.owner !== 'joint' || data.type === 'taxable',
   { message: 'Joint ownership is only valid for taxable accounts', path: ['owner'] }
+).refine(
+  (data) => data.deferredCompSchedule === undefined || data.type === 'deferredComp',
+  { message: 'deferredCompSchedule is only valid for deferredComp accounts', path: ['deferredCompSchedule'] }
 );

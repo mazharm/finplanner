@@ -110,6 +110,28 @@ export function generateChecklist(request: ChecklistRequest): TaxChecklist {
     sourceReasoning: 'Standard federal filing deadline',
   });
 
+  // Rule 8: Estimated tax payment reminders (if prior year had estimated payments)
+  if (request.priorYearRecord &&
+    (request.priorYearRecord.payments.estimatedPaymentsFederal > 0 ||
+     request.priorYearRecord.payments.estimatedPaymentsState > 0)) {
+    const quarters = [
+      { label: 'Q1', date: `April 15, ${request.taxYear}` },
+      { label: 'Q2', date: `June 15, ${request.taxYear}` },
+      { label: 'Q3', date: `September 15, ${request.taxYear}` },
+      { label: 'Q4', date: `January 15, ${request.taxYear + 1}` },
+    ];
+    for (const q of quarters) {
+      items.push({
+        id: makeId(),
+        taxYear: request.taxYear,
+        category: 'deadline',
+        description: `${q.label} estimated tax payment due ${q.date}`,
+        status: 'pending',
+        sourceReasoning: `Prior year included estimated tax payments (federal: $${request.priorYearRecord.payments.estimatedPaymentsFederal.toLocaleString()}, state: $${request.priorYearRecord.payments.estimatedPaymentsState.toLocaleString()})`,
+      });
+    }
+  }
+
   // Compute completionPct
   const completedCount = items.filter(i => i.status !== 'pending').length;
   const completionPct = items.length > 0 ? (completedCount / items.length) * 100 : 100;

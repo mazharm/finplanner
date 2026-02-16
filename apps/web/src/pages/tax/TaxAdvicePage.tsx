@@ -15,9 +15,12 @@ import {
 } from '@fluentui/react-components';
 import { LightbulbRegular } from '@fluentui/react-icons';
 import { useState, useCallback } from 'react';
+import { getTaxStrategyAdvice } from '@finplanner/claude';
+import type { TaxStrategyAdviceRequest } from '@finplanner/domain';
 import { useTaxStore } from '../../stores/tax-store.js';
 import { useSharedStore } from '../../stores/shared-store.js';
 import { useSettingsStore } from '../../stores/settings-store.js';
+import { createLlmClient } from '../../services/llm-client.js';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
@@ -27,6 +30,14 @@ const useStyles = makeStyles({
     borderLeft: `3px solid ${tokens.colorBrandStroke1}`,
     paddingLeft: tokens.spacingHorizontalL,
   },
+  controlRow: { display: 'flex', gap: tokens.spacingHorizontalM, alignItems: 'flex-end' },
+  recommendationHeader: {
+    display: 'flex',
+    gap: tokens.spacingHorizontalS,
+    alignItems: 'center',
+    marginBottom: tokens.spacingVerticalXS,
+  },
+  disclaimerBar: { marginTop: tokens.spacingVerticalM },
 });
 
 interface Recommendation {
@@ -44,46 +55,54 @@ export function TaxAdvicePage() {
   const [loading, setLoading] = useState(false);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [disclaimer, setDisclaimer] = useState('');
+  const [error, setError] = useState('');
 
   const handleGetAdvice = useCallback(async () => {
     if (!selectedYear) return;
     setLoading(true);
+    setError('');
 
-    // Simulate getting advice — in production this calls getTaxStrategyAdvice()
-    await new Promise((r) => setTimeout(r, 500));
-
-    const taxYear = taxYears.find((ty) => ty.taxYear === selectedYear);
-    const recs: Recommendation[] = [];
-
-    if (taxYear) {
-      const totalPaid = taxYear.payments.federalWithheld + taxYear.payments.estimatedPaymentsFederal;
-      if (totalPaid < taxYear.computedFederalTax * 0.9) {
-        recs.push({
-          title: 'Estimated Payment Adequacy',
-          description: 'Federal payments may be insufficient. Consider increasing estimated payments to avoid underpayment penalties.',
-          source: 'fallback',
-        });
+    try {
+      const taxYear = taxYears.find((ty) => ty.taxYear === selectedYear);
+      if (!taxYear) {
+        setLoading(false);
+        return;
       }
 
-      if (household.filingStatus === 'mfj') {
-        recs.push({
-          title: 'Filing Status Optimization',
-          description: 'Verify MFJ vs MFS comparison for your situation. In some cases, filing separately can reduce overall tax burden.',
-          source: 'fallback',
-        });
-      }
+      const priorYear = taxYears.find((ty) => ty.taxYear === selectedYear - 1) ?? null;
+      const { claudeApiKey } = useSettingsStore.getState();
 
-      recs.push({
-        title: 'Document Review',
-        description: 'Review all pending tax documents before filing to ensure completeness.',
-        source: 'fallback',
-      });
+      const request: TaxStrategyAdviceRequest = {
+        taxYear: selectedYear,
+        taxYearRecord: taxYear,
+        priorYearRecord: priorYear,
+        sharedCorpus: {
+          household,
+          accounts,
+          incomeStreams,
+        },
+        userPreferences: {
+          prioritize: 'minimize_tax',
+        },
+      };
+
+      const client = claudeApiKey ? createLlmClient(claudeApiKey) : undefined;
+      const response = await getTaxStrategyAdvice(request, client);
+
+      setRecommendations(
+        response.recommendations.map((r) => ({
+          title: r.title,
+          description: r.rationale,
+          source: r.source,
+        })),
+      );
+      setDisclaimer(response.disclaimer);
+    } catch (err) {
+      setError(`Failed to get tax advice: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setLoading(false);
     }
-
-    setRecommendations(recs);
-    setDisclaimer('This is rule-based guidance, not personalized tax advice. Consult a qualified tax professional.');
-    setLoading(false);
-  }, [selectedYear, taxYears, household]);
+  }, [selectedYear, taxYears, household, accounts, incomeStreams]);
 
   return (
     <div className={styles.root}>
@@ -100,7 +119,7 @@ export function TaxAdvicePage() {
           header={<Text weight="semibold">Get Tax Advice</Text>}
           description={hasApiKey ? 'Claude API key configured.' : 'No API key — using fallback rules.'}
         />
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+        <div className={styles.controlRow}>
           <Field label="Tax Year">
             <Select
               value={selectedYear ? String(selectedYear) : ''}
@@ -124,13 +143,18 @@ export function TaxAdvicePage() {
           </Badge>
         </div>
       </Card>
+      {error && (
+        <MessageBar intent="error">
+          <MessageBarBody>{error}</MessageBarBody>
+        </MessageBar>
+      )}
       {recommendations.length > 0 && (
         <Card>
           <CardHeader header={<Text weight="semibold">Recommendations</Text>} />
           <div className={styles.adviceList}>
             {recommendations.map((rec, i) => (
               <div key={i} className={styles.recommendation}>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '4px' }}>
+                <div className={styles.recommendationHeader}>
                   <Text weight="semibold">{rec.title}</Text>
                   <Badge appearance="outline" size="small">{rec.source}</Badge>
                 </div>
@@ -139,7 +163,7 @@ export function TaxAdvicePage() {
             ))}
           </div>
           {disclaimer && (
-            <MessageBar intent="warning" style={{ marginTop: '12px' }}>
+            <MessageBar intent="warning" className={styles.disclaimerBar}>
               <MessageBarBody>{disclaimer}</MessageBarBody>
             </MessageBar>
           )}

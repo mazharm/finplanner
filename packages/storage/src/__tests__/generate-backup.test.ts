@@ -9,12 +9,12 @@ describe('generateBackup', () => {
       name: 'data.ndjson',
       content: [
         '{"_type":"header","schemaVersion":"3.0.0","savedAt":"2025-01-01T00:00:00Z","modules":["retirement"]}',
-        '{"_type":"household","maritalStatus":"married","filingStatus":"mfj","stateOfResidence":"WA","primary":{"id":"primary","birthYear":1980,"currentAge":45,"retirementAge":65,"lifeExpectancy":90}}',
+        '{"_type":"household","maritalStatus":"married","filingStatus":"mfj","stateOfResidence":"WA","primary":{"id":"primary","birthYear":1980,"currentAge":45,"retirementAge":65,"lifeExpectancy":90},"spouse":{"id":"spouse","birthYear":1982,"currentAge":43,"retirementAge":65,"lifeExpectancy":92}}',
         '{"_type":"account","id":"acct-1","name":"Brokerage","type":"taxable","owner":"primary","currentBalance":500000,"expectedReturnPct":6,"feePct":0.1}',
       ].join('\n'),
     }];
-    const backup = generateBackup(files);
-    const result = validateImport(backup);
+    const { content } = generateBackup(files);
+    const result = validateImport(content);
     expect(result.valid).toBe(true);
     expect(result.recordCounts.household).toBe(1);
     expect(result.recordCounts.account).toBe(1);
@@ -25,8 +25,8 @@ describe('generateBackup', () => {
       name: 'data.ndjson',
       content: '{"_type":"header","schemaVersion":"3.0.0","savedAt":"2025-01-01T00:00:00Z","modules":["retirement"]}',
     }];
-    const backup = generateBackup(files);
-    const firstLine = JSON.parse(backup.split('\n')[0]);
+    const { content } = generateBackup(files);
+    const firstLine = JSON.parse(content.split('\n')[0]);
     expect(firstLine._type).toBe('header');
     expect(firstLine.schemaVersion).toBe('3.0.0');
   });
@@ -37,7 +37,7 @@ describe('generateBackup', () => {
         name: 'file1.ndjson',
         content: [
           '{"_type":"header","schemaVersion":"3.0.0","savedAt":"2025-01-01T00:00:00Z","modules":["retirement"]}',
-          '{"_type":"household","maritalStatus":"married","filingStatus":"mfj","stateOfResidence":"WA","primary":{"id":"primary","birthYear":1980,"currentAge":45,"retirementAge":65,"lifeExpectancy":90}}',
+          '{"_type":"household","maritalStatus":"married","filingStatus":"mfj","stateOfResidence":"WA","primary":{"id":"primary","birthYear":1980,"currentAge":45,"retirementAge":65,"lifeExpectancy":90},"spouse":{"id":"spouse","birthYear":1982,"currentAge":43,"retirementAge":65,"lifeExpectancy":92}}',
         ].join('\n'),
       },
       {
@@ -48,8 +48,8 @@ describe('generateBackup', () => {
         ].join('\n'),
       },
     ];
-    const backup = generateBackup(files);
-    const lines = backup.split('\n');
+    const { content } = generateBackup(files);
+    const lines = content.split('\n');
     // Only one header (first line)
     const headerLines = lines.filter(l => {
       try { return JSON.parse(l)._type === 'header'; } catch { return false; }
@@ -63,11 +63,11 @@ describe('generateBackup', () => {
       content: [
         '{"_type":"header","schemaVersion":"3.0.0","savedAt":"2025-01-01T00:00:00Z","modules":["retirement","tax"]}',
         '{"_type":"account","id":"acct-1","name":"Brokerage","type":"taxable","owner":"primary","currentBalance":500000,"expectedReturnPct":6,"feePct":0.1}',
-        '{"_type":"household","maritalStatus":"married","filingStatus":"mfj","stateOfResidence":"WA","primary":{"id":"primary","birthYear":1980,"currentAge":45,"retirementAge":65,"lifeExpectancy":90}}',
+        '{"_type":"household","maritalStatus":"married","filingStatus":"mfj","stateOfResidence":"WA","primary":{"id":"primary","birthYear":1980,"currentAge":45,"retirementAge":65,"lifeExpectancy":90},"spouse":{"id":"spouse","birthYear":1982,"currentAge":43,"retirementAge":65,"lifeExpectancy":92}}',
       ].join('\n'),
     }];
-    const backup = generateBackup(files);
-    const lines = backup.split('\n').filter(l => l.trim());
+    const { content } = generateBackup(files);
+    const lines = content.split('\n').filter(l => l.trim());
     const types = lines.map(l => JSON.parse(l)._type);
     // header first, then household before account (canonical order)
     expect(types[0]).toBe('header');
@@ -82,8 +82,8 @@ describe('generateBackup', () => {
         '{"_type":"appConfig","theme":"light","claudeModelId":"claude-sonnet-4-5-20250929","anomalyThresholdPct":25,"anomalyThresholdAbsolute":5000,"confidenceThreshold":0.8,"claudeApiKey":"sk-ant-secret123"}',
       ].join('\n'),
     }];
-    const backup = generateBackup(files);
-    expect(backup).not.toContain('sk-ant-secret123');
-    expect(backup).not.toContain('claudeApiKey');
+    const { content } = generateBackup(files);
+    expect(content).not.toContain('sk-ant-secret123');
+    expect(content).not.toContain('claudeApiKey');
   });
 });

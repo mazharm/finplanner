@@ -113,18 +113,27 @@ function withdrawProRata(
   // Cap withdrawal at total available balance
   const actualTarget = Math.min(target, totalBalance);
 
-  for (const account of accounts) {
-    if (account.balance <= 0) continue;
+  let totalWithdrawnSoFar = 0;
+  const withdrawableAccounts = accounts.filter(a => a.balance > 0);
 
-    const proportion = account.balance / totalBalance;
-    const withdrawal = actualTarget * proportion;
-    const actualWithdrawal = Math.min(withdrawal, account.balance);
+  for (let idx = 0; idx < withdrawableAccounts.length; idx++) {
+    const account = withdrawableAccounts[idx];
+    const isLast = idx === withdrawableAccounts.length - 1;
 
-    applyWithdrawal(account, actualWithdrawal, result);
+    if (isLast) {
+      // Dust collection: last account takes the remainder for exact target
+      const withdrawal = Math.min(actualTarget - totalWithdrawnSoFar, account.balance);
+      applyWithdrawal(account, withdrawal, result);
+      totalWithdrawnSoFar += withdrawal;
+    } else {
+      const proportion = account.balance / totalBalance;
+      const withdrawal = Math.min(actualTarget * proportion, account.balance);
+      applyWithdrawal(account, withdrawal, result);
+      totalWithdrawnSoFar += withdrawal;
+    }
   }
 
-  result.totalWithdrawn = Object.values(result.withdrawalsByAccount)
-    .reduce((sum, v) => sum + v, 0);
+  result.totalWithdrawn = totalWithdrawnSoFar;
   return result;
 }
 

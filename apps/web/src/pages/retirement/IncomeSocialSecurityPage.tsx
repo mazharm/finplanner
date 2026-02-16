@@ -114,6 +114,7 @@ export function IncomeSocialSecurityPage() {
                       appearance="subtle"
                       icon={<DeleteRegular />}
                       size="small"
+                      aria-label={`Delete income stream ${s.name}`}
                       onClick={() => removeIncomeStream(s.id)}
                     />
                   </TableCell>

@@ -13,7 +13,7 @@ import {
   MessageBarBody,
 } from '@fluentui/react-components';
 import { SettingsRegular, KeyRegular, CloudRegular, DeleteRegular } from '@fluentui/react-icons';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useSettingsStore } from '../stores/settings-store.js';
 
 const useStyles = makeStyles({
@@ -21,6 +21,7 @@ const useStyles = makeStyles({
   form: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM, maxWidth: '600px' },
   row: { display: 'flex', gap: tokens.spacingHorizontalM, alignItems: 'flex-end' },
   statusRow: { display: 'flex', gap: tokens.spacingHorizontalM, alignItems: 'center' },
+  flexField: { flex: 1 },
 });
 
 export function SettingsPage() {
@@ -28,13 +29,21 @@ export function SettingsPage() {
   const { hasApiKey, syncStatus, setClaudeApiKey, clearClaudeApiKey } = useSettingsStore();
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [saved, setSaved] = useState(false);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(savedTimerRef.current);
+    };
+  }, []);
 
   const handleSaveKey = useCallback(() => {
     if (apiKeyInput.trim()) {
       setClaudeApiKey(apiKeyInput.trim());
       setApiKeyInput('');
       setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      clearTimeout(savedTimerRef.current);
+      savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
     }
   }, [apiKeyInput, setClaudeApiKey]);
 
@@ -66,7 +75,7 @@ export function SettingsPage() {
             </Badge>
           </div>
           <div className={styles.row}>
-            <Field label="API Key" style={{ flex: 1 }}>
+            <Field label="API Key" className={styles.flexField}>
               <Input
                 type="password"
                 placeholder="sk-ant-..."

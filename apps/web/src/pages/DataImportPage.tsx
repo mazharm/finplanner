@@ -11,11 +11,20 @@ import {
   ProgressBar,
   Badge,
 } from '@fluentui/react-components';
-import { ArrowImportRegular, DocumentRegular } from '@fluentui/react-icons';
+import { ArrowImportRegular, DocumentRegular, ArrowExportRegular } from '@fluentui/react-icons';
 import { useState, useCallback, useRef } from 'react';
 import { useSharedStore } from '../stores/shared-store.js';
 import { useTaxStore } from '../stores/tax-store.js';
-import type { HouseholdProfile, Account, IncomeStream, Adjustment, TaxYearRecord, TaxDocument } from '@finplanner/domain';
+import {
+  householdProfileSchema,
+  accountSchema,
+  incomeStreamSchema,
+  adjustmentSchema,
+  taxYearRecordSchema,
+  taxDocumentSchema,
+} from '@finplanner/validation';
+import { generateBackup } from '@finplanner/storage';
+import type { OneDriveFile } from '@finplanner/storage';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
@@ -35,6 +44,14 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorBrandBackground2,
   },
   results: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalS },
+  exportMessage: { marginTop: tokens.spacingVerticalS },
+  badgeRow: {
+    display: 'flex',
+    gap: tokens.spacingHorizontalXS,
+    flexWrap: 'wrap',
+    marginTop: tokens.spacingVerticalXS,
+  },
+  importWarning: { marginTop: tokens.spacingVerticalXS },
 });
 
 interface ImportResult {
@@ -60,9 +77,48 @@ export function DataImportPage() {
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<ImportResult[]>([]);
+  const [exportMsg, setExportMsg] = useState<string | null>(null);
 
   const { setHousehold, addAccount, addIncomeStream, addAdjustment } = useSharedStore();
   const { addTaxYear, addDocument } = useTaxStore();
+
+  const handleExport = useCallback(() => {
+    const sharedState = useSharedStore.getState();
+    const taxState = useTaxStore.getState();
+
+    // Build NDJSON lines from current state
+    const lines: string[] = [];
+    if (sharedState.household) {
+      lines.push(JSON.stringify({ _type: 'household', ...sharedState.household }));
+    }
+    for (const acct of sharedState.accounts) {
+      lines.push(JSON.stringify({ _type: 'account', ...acct }));
+    }
+    for (const stream of sharedState.incomeStreams) {
+      lines.push(JSON.stringify({ _type: 'incomeStream', ...stream }));
+    }
+    for (const adj of sharedState.adjustments) {
+      lines.push(JSON.stringify({ _type: 'adjustment', ...adj }));
+    }
+    for (const ty of taxState.taxYears) {
+      lines.push(JSON.stringify({ _type: 'taxYear', ...ty }));
+    }
+    for (const doc of taxState.documents) {
+      lines.push(JSON.stringify({ _type: 'taxDocument', ...doc }));
+    }
+
+    const file: OneDriveFile = { name: 'state.ndjson', content: lines.join('\n') };
+    const { content } = generateBackup([file]);
+
+    const blob = new Blob([content], { type: 'application/x-ndjson' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `finplanner-backup-${new Date().toISOString().slice(0, 10)}.ndjson`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setExportMsg('Backup exported successfully.');
+  }, []);
 
   const processFile = useCallback(
     async (file: File): Promise<ImportResult> => {
@@ -86,25 +142,44 @@ export function DataImportPage() {
         result.types[parsed.type] = (result.types[parsed.type] ?? 0) + 1;
 
         try {
+          const { _type, ...data } = parsed.data;
           switch (parsed.type) {
-            case 'household':
-              setHousehold(parsed.data as unknown as HouseholdProfile);
+            case 'household': {
+              const validated = householdProfileSchema.safeParse(data);
+              if (!validated.success) { result.errors.push(`Invalid household: ${validated.error.message}`); break; }
+              setHousehold(validated.data);
               break;
-            case 'account':
-              addAccount(parsed.data as unknown as Account);
+            }
+            case 'account': {
+              const validated = accountSchema.safeParse(data);
+              if (!validated.success) { result.errors.push(`Invalid account: ${validated.error.message}`); break; }
+              addAccount(validated.data);
               break;
-            case 'incomeStream':
-              addIncomeStream(parsed.data as unknown as IncomeStream);
+            }
+            case 'incomeStream': {
+              const validated = incomeStreamSchema.safeParse(data);
+              if (!validated.success) { result.errors.push(`Invalid incomeStream: ${validated.error.message}`); break; }
+              addIncomeStream(validated.data);
               break;
-            case 'adjustment':
-              addAdjustment(parsed.data as unknown as Adjustment);
+            }
+            case 'adjustment': {
+              const validated = adjustmentSchema.safeParse(data);
+              if (!validated.success) { result.errors.push(`Invalid adjustment: ${validated.error.message}`); break; }
+              addAdjustment(validated.data);
               break;
-            case 'taxYear':
-              addTaxYear(parsed.data as unknown as TaxYearRecord);
+            }
+            case 'taxYear': {
+              const validated = taxYearRecordSchema.safeParse(data);
+              if (!validated.success) { result.errors.push(`Invalid taxYear: ${validated.error.message}`); break; }
+              addTaxYear(validated.data);
               break;
-            case 'taxDocument':
-              addDocument(parsed.data as unknown as TaxDocument);
+            }
+            case 'taxDocument': {
+              const validated = taxDocumentSchema.safeParse(data);
+              if (!validated.success) { result.errors.push(`Invalid taxDocument: ${validated.error.message}`); break; }
+              addDocument(validated.data);
               break;
+            }
             case 'header':
               break;
             default:
@@ -161,10 +236,14 @@ export function DataImportPage() {
         />
         <div
           className={`${styles.dropZone} ${dragActive ? styles.dropZoneActive : ''}`}
+          role="button"
+          tabIndex={0}
+          aria-label="Drop zone for NDJSON backup files. Click or drag and drop files here."
           onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
           onDragLeave={() => setDragActive(false)}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
         >
           <DocumentRegular fontSize={48} />
           <Text>{dragActive ? 'Drop files here...' : 'Drag and drop NDJSON files here, or click to browse.'}</Text>
@@ -176,11 +255,26 @@ export function DataImportPage() {
             type="file"
             accept=".ndjson,.jsonl"
             multiple
+            aria-label="Upload NDJSON backup files"
             style={{ display: 'none' }}
             onChange={(e) => { if (e.target.files) handleFiles(e.target.files); }}
           />
         </div>
         {importing && <ProgressBar value={progress} />}
+      </Card>
+      <Card>
+        <CardHeader
+          header={<Text weight="semibold">Export NDJSON Backup</Text>}
+          description="Download all current data as an NDJSON backup file."
+        />
+        <Button appearance="secondary" icon={<ArrowExportRegular />} onClick={handleExport}>
+          Export Backup
+        </Button>
+        {exportMsg && (
+          <MessageBar intent="success" className={styles.exportMessage}>
+            <MessageBarBody>{exportMsg}</MessageBarBody>
+          </MessageBar>
+        )}
       </Card>
       {results.length > 0 && (
         <Card>
@@ -190,13 +284,13 @@ export function DataImportPage() {
               <div key={i}>
                 <Text weight="semibold">{r.fileName}</Text>
                 <Text> — {r.recordCount} records imported</Text>
-                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' }}>
+                <div className={styles.badgeRow}>
                   {Object.entries(r.types).map(([type, count]) => (
                     <Badge key={type} appearance="outline">{type}: {count}</Badge>
                   ))}
                 </div>
                 {r.errors.length > 0 && (
-                  <MessageBar intent="warning" style={{ marginTop: '4px' }}>
+                  <MessageBar intent="warning" className={styles.importWarning}>
                     <MessageBarBody>{r.errors.length} error(s) during import</MessageBarBody>
                   </MessageBar>
                 )}

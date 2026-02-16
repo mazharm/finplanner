@@ -14,6 +14,16 @@ const useStyles = makeStyles({
   },
   statValue: { fontSize: tokens.fontSizeBase600, fontWeight: tokens.fontWeightBold },
   statLabel: { color: tokens.colorNeutralForeground3 },
+  badgeRow: {
+    display: 'flex',
+    gap: tokens.spacingHorizontalS,
+    marginBottom: tokens.spacingVerticalXS,
+  },
+  statusColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalXS,
+  },
 });
 
 function formatCurrency(value: number): string {
@@ -63,7 +73,7 @@ export function DashboardPage() {
           <CardHeader header={<Text weight="semibold">Tax Status</Text>} />
           {taxYears.length > 0 ? (
             <>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
+              <div className={styles.badgeRow}>
                 {draftTaxYears > 0 && (
                   <Badge appearance="filled" color="warning">
                     {draftTaxYears} draft
@@ -107,7 +117,7 @@ export function DashboardPage() {
         </Card>
         <Card>
           <CardHeader header={<Text weight="semibold">System Status</Text>} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div className={styles.statusColumn}>
             <Text>
               Claude API: <Badge appearance="filled" color={hasApiKey ? 'success' : 'warning'}>{hasApiKey ? 'Configured' : 'Not Set'}</Badge>
             </Text>

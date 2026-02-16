@@ -1,8 +1,12 @@
 import { FluentProvider, webLightTheme, webDarkTheme } from '@fluentui/react-components';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { AppShell } from './layout/AppShell.js';
 import { useSettingsStore } from './stores/settings-store.js';
+import { useSharedStore } from './stores/shared-store.js';
+import { useTaxStore } from './stores/tax-store.js';
+import { useRetirementStore } from './stores/retirement-store.js';
 import { DashboardPage } from './pages/DashboardPage.js';
 import { HouseholdPage } from './pages/HouseholdPage.js';
 import { AccountsPage } from './pages/AccountsPage.js';
@@ -23,16 +27,19 @@ import { RetirementAdvicePage } from './pages/retirement/RetirementAdvicePage.js
 
 export function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const initFromIndexedDB = useSettingsStore((s) => s.initFromIndexedDB);
 
   useEffect(() => {
-    initFromIndexedDB();
-  }, [initFromIndexedDB]);
+    useSettingsStore.getState().initFromIndexedDB();
+    useSharedStore.getState().initFromIndexedDB();
+    useTaxStore.getState().initFromIndexedDB();
+    useRetirementStore.getState().initFromIndexedDB();
+  }, []);
 
   const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'));
 
   return (
     <FluentProvider theme={theme === 'light' ? webLightTheme : webDarkTheme}>
+      <ErrorBoundary>
       <BrowserRouter>
         <AppShell theme={theme} onToggleTheme={toggleTheme}>
           <Routes>
@@ -56,6 +63,7 @@ export function App() {
           </Routes>
         </AppShell>
       </BrowserRouter>
+      </ErrorBoundary>
     </FluentProvider>
   );
 }

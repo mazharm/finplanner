@@ -5,7 +5,7 @@ import {
   EXTRA_DEDUCTION_MFJ_65_PLUS_PER_PERSON,
 } from '@finplanner/domain';
 import type { SimulationState, YearContext } from '../types.js';
-import { getCumulativeInflation } from '../helpers/inflation.js';
+import { getCumulativeInflationCached } from '../helpers/inflation.js';
 
 /**
  * Step 4: Inflate Standard Deduction
@@ -29,9 +29,11 @@ export function inflateDeduction(
   const { plan, yearIndex, scenarioInflation } = state;
   const { filingStatus, agePrimary, ageSpouse, primaryAlive, spouseAlive } = yearContext;
 
-  // Compute cumulative inflation multiplier
+  // Compute cumulative inflation multiplier — O(1) cached lookup
   // yearIndex 0 = year 1, exponent = 0, so multiplier = 1.0
-  const inflationMultiplier = getCumulativeInflation(yearIndex, plan, scenarioInflation);
+  const inflationMultiplier = getCumulativeInflationCached(
+    yearIndex, state.cumulativeInflationByYear, plan, scenarioInflation
+  );
 
   let baseDeduction: number;
 

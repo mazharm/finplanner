@@ -121,7 +121,7 @@ export function detectAnomalies(request: AnomalyDetectionRequest): AnomalyDetect
 
     const pctChange = priorVal !== 0 ? ((currentVal - priorVal) / priorVal) * 100 : 0;
 
-    // Anomaly: both thresholds exceeded (AND logic)
+    // Anomaly: both thresholds must be exceeded (AND logic per spec)
     if (Math.abs(pctChange) > thresholdPct && Math.abs(absoluteChange) > thresholdAbsolute) {
       const severity = determineSeverity(pctChange, absoluteChange, thresholdPct, thresholdAbsolute);
       anomalies.push({

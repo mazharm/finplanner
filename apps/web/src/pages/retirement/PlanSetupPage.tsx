@@ -14,7 +14,7 @@ import {
   MessageBarBody,
 } from '@fluentui/react-components';
 import { CalculatorRegular, SaveRegular } from '@fluentui/react-icons';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRetirementStore } from '../../stores/retirement-store.js';
 import type { SpendingPlan, StrategyConfig } from '@finplanner/domain';
 
@@ -31,12 +31,20 @@ export function PlanSetupPage() {
   const [draftSpending, setDraftSpending] = useState<SpendingPlan>({ ...spending });
   const [draftStrategy, setDraftStrategy] = useState<StrategyConfig>({ ...strategy });
   const [saved, setSaved] = useState(false);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(savedTimerRef.current);
+    };
+  }, []);
 
   const handleSave = useCallback(() => {
     setSpending(draftSpending);
     setStrategy(draftStrategy);
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
   }, [draftSpending, draftStrategy, setSpending, setStrategy]);
 
   return (

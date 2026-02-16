@@ -1,11 +1,16 @@
 import { create } from 'zustand';
 import type { TaxYearRecord, TaxDocument, ChecklistItem, Anomaly, TaxYearStatus } from '@finplanner/domain';
+import { getAppState, setAppState } from '../services/indexeddb.js';
 
 interface TaxState {
   taxYears: TaxYearRecord[];
   documents: TaxDocument[];
   checklistItems: ChecklistItem[];
   anomalies: Anomaly[];
+  initialized: boolean;
+
+  // Lifecycle
+  initFromIndexedDB: () => Promise<void>;
 
   // Tax year actions
   addTaxYear: (record: TaxYearRecord) => void;
@@ -26,45 +31,117 @@ interface TaxState {
   setAnomalies: (anomalies: Anomaly[]) => void;
 }
 
-export const useTaxStore = create<TaxState>((set) => ({
+function persistTax(state: Pick<TaxState, 'taxYears' | 'documents' | 'checklistItems' | 'anomalies'>) {
+  setAppState('tax', {
+    taxYears: state.taxYears,
+    documents: state.documents,
+    checklistItems: state.checklistItems,
+    anomalies: state.anomalies,
+  }).catch(() => {});
+}
+
+export const useTaxStore = create<TaxState>((set, get) => ({
   taxYears: [],
   documents: [],
   checklistItems: [],
   anomalies: [],
+  initialized: false,
 
-  addTaxYear: (record) =>
-    set((state) => ({ taxYears: [...state.taxYears, record] })),
-  updateTaxYear: (taxYear, partial) =>
-    set((state) => ({
-      taxYears: state.taxYears.map((ty) =>
+  initFromIndexedDB: async () => {
+    try {
+      const saved = await getAppState<{
+        taxYears: TaxYearRecord[];
+        documents: TaxDocument[];
+        checklistItems: ChecklistItem[];
+        anomalies: Anomaly[];
+      }>('tax');
+      if (saved) {
+        set({
+          taxYears: saved.taxYears ?? [],
+          documents: saved.documents ?? [],
+          checklistItems: saved.checklistItems ?? [],
+          anomalies: saved.anomalies ?? [],
+          initialized: true,
+        });
+      } else {
+        set({ initialized: true });
+      }
+    } catch {
+      set({ initialized: true });
+    }
+  },
+
+  addTaxYear: (record) => {
+    set((state) => {
+      const taxYears = [...state.taxYears, record];
+      persistTax({ ...state, taxYears });
+      return { taxYears };
+    });
+  },
+  updateTaxYear: (taxYear, partial) => {
+    set((state) => {
+      const taxYears = state.taxYears.map((ty) =>
         ty.taxYear === taxYear ? { ...ty, ...partial } : ty,
-      ),
-    })),
-  removeTaxYear: (taxYear) =>
-    set((state) => ({ taxYears: state.taxYears.filter((ty) => ty.taxYear !== taxYear) })),
-  setTaxYearStatus: (taxYear, status) =>
-    set((state) => ({
-      taxYears: state.taxYears.map((ty) =>
+      );
+      persistTax({ ...state, taxYears });
+      return { taxYears };
+    });
+  },
+  removeTaxYear: (taxYear) => {
+    set((state) => {
+      const taxYears = state.taxYears.filter((ty) => ty.taxYear !== taxYear);
+      persistTax({ ...state, taxYears });
+      return { taxYears };
+    });
+  },
+  setTaxYearStatus: (taxYear, status) => {
+    set((state) => {
+      const taxYears = state.taxYears.map((ty) =>
         ty.taxYear === taxYear ? { ...ty, status } : ty,
-      ),
-    })),
+      );
+      persistTax({ ...state, taxYears });
+      return { taxYears };
+    });
+  },
 
-  addDocument: (doc) =>
-    set((state) => ({ documents: [...state.documents, doc] })),
-  updateDocument: (id, partial) =>
-    set((state) => ({
-      documents: state.documents.map((d) => (d.id === id ? { ...d, ...partial } : d)),
-    })),
-  removeDocument: (id) =>
-    set((state) => ({ documents: state.documents.filter((d) => d.id !== id) })),
+  addDocument: (doc) => {
+    set((state) => {
+      const documents = [...state.documents, doc];
+      persistTax({ ...state, documents });
+      return { documents };
+    });
+  },
+  updateDocument: (id, partial) => {
+    set((state) => {
+      const documents = state.documents.map((d) => (d.id === id ? { ...d, ...partial } : d));
+      persistTax({ ...state, documents });
+      return { documents };
+    });
+  },
+  removeDocument: (id) => {
+    set((state) => {
+      const documents = state.documents.filter((d) => d.id !== id);
+      persistTax({ ...state, documents });
+      return { documents };
+    });
+  },
 
-  setChecklistItems: (items) => set({ checklistItems: items }),
-  updateChecklistItem: (id, partial) =>
-    set((state) => ({
-      checklistItems: state.checklistItems.map((ci) =>
+  setChecklistItems: (items) => {
+    set({ checklistItems: items });
+    persistTax({ ...get(), checklistItems: items });
+  },
+  updateChecklistItem: (id, partial) => {
+    set((state) => {
+      const checklistItems = state.checklistItems.map((ci) =>
         ci.id === id ? { ...ci, ...partial } : ci,
-      ),
-    })),
+      );
+      persistTax({ ...state, checklistItems });
+      return { checklistItems };
+    });
+  },
 
-  setAnomalies: (anomalies) => set({ anomalies }),
+  setAnomalies: (anomalies) => {
+    set({ anomalies });
+    persistTax({ ...get(), anomalies });
+  },
 }));

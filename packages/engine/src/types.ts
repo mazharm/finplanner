@@ -36,6 +36,12 @@ export interface SimulationState {
   baselineReturn: number;
   survivorTransitioned: boolean;
   firstSurvivorYearIndex: number;
+  /**
+   * Precomputed cumulative inflation multipliers, built incrementally.
+   * cumulativeInflationByYear[i] = product of (1 + rate_j/100) for j in 0..i-1
+   * So index 0 = 1.0, index 1 = (1 + rate_0/100), etc.
+   */
+  cumulativeInflationByYear: number[];
 }
 
 export interface MandatoryIncome {

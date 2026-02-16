@@ -5,10 +5,11 @@
  * - apiKey: Claude API key (single entry, key "claude")
  * - files: Cached OneDrive file content with ETags
  * - syncQueue: Pending writes during offline mode
+ * - appState: Persisted store state (shared, tax, retirement)
  */
 
 const DB_NAME = 'finplanner';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export interface CachedFile {
   path: string;
@@ -26,8 +27,15 @@ export interface SyncQueueEntry {
   retries: number;
 }
 
+/** Singleton DB connection to avoid race conditions */
+let dbInstance: IDBDatabase | null = null;
+let dbPromise: Promise<IDBDatabase> | null = null;
+
 function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+  if (dbInstance) return Promise.resolve(dbInstance);
+  if (dbPromise) return dbPromise;
+
+  dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onupgradeneeded = () => {
@@ -41,11 +49,23 @@ function openDb(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('syncQueue')) {
         db.createObjectStore('syncQueue', { keyPath: 'id' });
       }
+      if (!db.objectStoreNames.contains('appState')) {
+        db.createObjectStore('appState');
+      }
     };
 
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      dbInstance = request.result;
+      dbInstance.onclose = () => { dbInstance = null; dbPromise = null; };
+      resolve(dbInstance);
+    };
+    request.onerror = () => {
+      dbPromise = null;
+      reject(request.error);
+    };
   });
+
+  return dbPromise;
 }
 
 function txGet<T>(db: IDBDatabase, store: string, key: IDBValidKey): Promise<T | undefined> {
@@ -90,94 +110,66 @@ function txGetAll<T>(db: IDBDatabase, store: string): Promise<T[]> {
 
 export async function getApiKey(): Promise<string | undefined> {
   const db = await openDb();
-  try {
-    return await txGet<string>(db, 'apiKey', 'claude');
-  } finally {
-    db.close();
-  }
+  return txGet<string>(db, 'apiKey', 'claude');
 }
 
 export async function setApiKey(key: string): Promise<void> {
   const db = await openDb();
-  try {
-    await txPut(db, 'apiKey', key, 'claude');
-  } finally {
-    db.close();
-  }
+  await txPut(db, 'apiKey', key, 'claude');
 }
 
 export async function clearApiKey(): Promise<void> {
   const db = await openDb();
-  try {
-    await txDelete(db, 'apiKey', 'claude');
-  } finally {
-    db.close();
-  }
+  await txDelete(db, 'apiKey', 'claude');
 }
 
 // --- File Cache ---
 
 export async function getCachedFile(path: string): Promise<CachedFile | undefined> {
   const db = await openDb();
-  try {
-    return await txGet<CachedFile>(db, 'files', path);
-  } finally {
-    db.close();
-  }
+  return txGet<CachedFile>(db, 'files', path);
 }
 
 export async function setCachedFile(file: CachedFile): Promise<void> {
   const db = await openDb();
-  try {
-    await txPut(db, 'files', file);
-  } finally {
-    db.close();
-  }
+  await txPut(db, 'files', file);
 }
 
 export async function removeCachedFile(path: string): Promise<void> {
   const db = await openDb();
-  try {
-    await txDelete(db, 'files', path);
-  } finally {
-    db.close();
-  }
+  await txDelete(db, 'files', path);
 }
 
 export async function getAllCachedFiles(): Promise<CachedFile[]> {
   const db = await openDb();
-  try {
-    return await txGetAll<CachedFile>(db, 'files');
-  } finally {
-    db.close();
-  }
+  return txGetAll<CachedFile>(db, 'files');
 }
 
 // --- Sync Queue ---
 
 export async function addToSyncQueue(entry: SyncQueueEntry): Promise<void> {
   const db = await openDb();
-  try {
-    await txPut(db, 'syncQueue', entry);
-  } finally {
-    db.close();
-  }
+  await txPut(db, 'syncQueue', entry);
 }
 
 export async function removeFromSyncQueue(id: string): Promise<void> {
   const db = await openDb();
-  try {
-    await txDelete(db, 'syncQueue', id);
-  } finally {
-    db.close();
-  }
+  await txDelete(db, 'syncQueue', id);
 }
 
 export async function getSyncQueue(): Promise<SyncQueueEntry[]> {
   const db = await openDb();
-  try {
-    return await txGetAll<SyncQueueEntry>(db, 'syncQueue');
-  } finally {
-    db.close();
-  }
+  return txGetAll<SyncQueueEntry>(db, 'syncQueue');
+}
+
+// --- App State Persistence ---
+
+export async function getAppState<T>(key: string): Promise<T | undefined> {
+  const db = await openDb();
+  return txGet<T>(db, 'appState', key);
+}
+
+export async function setAppState(key: string, value: unknown): Promise<void> {
+  const db = await openDb();
+  await txPut(db, 'appState', value, key);
 }

@@ -18,7 +18,7 @@ import {
 } from '@fluentui/react-components';
 import { CalendarRegular, SaveRegular } from '@fluentui/react-icons';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useTaxStore } from '../../stores/tax-store.js';
 import type { TaxYearRecord, TaxYearStatus, TaxYearIncome, TaxYearDeductions, TaxYearCredits, TaxYearPayments } from '@finplanner/domain';
 
@@ -28,6 +28,7 @@ const useStyles = makeStyles({
   form: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM, maxWidth: '700px' },
   row: { display: 'flex', gap: tokens.spacingHorizontalL },
   actions: { display: 'flex', gap: tokens.spacingHorizontalM, paddingTop: tokens.spacingVerticalM },
+  statusSelect: { width: '120px' },
 });
 
 function CurrencyField({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
@@ -51,6 +52,13 @@ export function TaxYearDetailPage() {
   const updateTaxYear = useTaxStore((s) => s.updateTaxYear);
   const [activeTab, setActiveTab] = useState('income');
   const [saved, setSaved] = useState(false);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(savedTimerRef.current);
+    };
+  }, []);
 
   const [draft, setDraft] = useState<TaxYearRecord | null>(taxYear ?? null);
 
@@ -74,7 +82,8 @@ export function TaxYearDetailPage() {
     if (!draft) return;
     updateTaxYear(yearNum, draft);
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
   }, [draft, yearNum, updateTaxYear]);
 
   if (!draft) {
@@ -98,7 +107,7 @@ export function TaxYearDetailPage() {
         <Select
           value={draft.status}
           onChange={(_, data) => setDraft((d) => d ? { ...d, status: data.value as TaxYearStatus } : null)}
-          style={{ width: '120px' }}
+          className={styles.statusSelect}
         >
           <option value="draft">Draft</option>
           <option value="ready">Ready</option>

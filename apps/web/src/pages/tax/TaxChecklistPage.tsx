@@ -25,6 +25,9 @@ const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
   controls: { display: 'flex', gap: tokens.spacingHorizontalM, alignItems: 'flex-end' },
   progress: { display: 'flex', gap: tokens.spacingHorizontalM, alignItems: 'center' },
+  progressBar: { flex: 1 },
+  statusSelect: { minWidth: '130px' },
+  emptyText: { padding: tokens.spacingVerticalL, textAlign: 'center' as const },
 });
 
 const statusColors: Record<ChecklistItemStatus, 'success' | 'warning' | 'informative' | 'subtle'> = {
@@ -68,7 +71,7 @@ export function TaxChecklistPage() {
       {selectedYear && (
         <>
           <div className={styles.progress}>
-            <ProgressBar value={completionPct} style={{ flex: 1 }} />
+            <ProgressBar value={completionPct} className={styles.progressBar} />
             <Text weight="semibold">{(completionPct * 100).toFixed(0)}%</Text>
             <Text size={200}>({completedCount}/{yearItems.length} items)</Text>
           </div>
@@ -104,7 +107,7 @@ export function TaxChecklistPage() {
                         <Select
                           value={ci.status}
                           onChange={(_, data) => updateChecklistItem(ci.id, { status: data.value as ChecklistItemStatus })}
-                          style={{ minWidth: '130px' }}
+                          className={styles.statusSelect}
                         >
                           <option value="pending">Pending</option>
                           <option value="received">Received</option>
@@ -123,7 +126,7 @@ export function TaxChecklistPage() {
       {!selectedYear && (
         <Card>
           <CardHeader header={<Text weight="semibold">Checklist Items</Text>} />
-          <Text italic style={{ padding: tokens.spacingVerticalL, textAlign: 'center' }}>
+          <Text italic className={styles.emptyText}>
             Select a tax year to view its filing checklist.
           </Text>
         </Card>

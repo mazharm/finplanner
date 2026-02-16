@@ -1,6 +1,7 @@
 {
   "name": "finplanner",
   "private": true,
+  "packageManager": "pnpm@10.29.3",
   "scripts": {
     "build": "turbo run build",
     "test": "turbo run test",

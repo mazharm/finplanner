@@ -19,7 +19,8 @@ export async function getTaxStrategyAdvice(
   let raw: string;
   try {
     raw = await client.sendMessage(system, user);
-  } catch {
+  } catch (error) {
+    console.warn('[FinPlanner] Tax advice LLM call failed:', error instanceof Error ? error.message : String(error));
     return getTaxFallbackAdvice(request);
   }
 
@@ -33,7 +34,8 @@ export async function getTaxStrategyAdvice(
   let retryRaw: string;
   try {
     retryRaw = await client.sendMessage(system, retryUser);
-  } catch {
+  } catch (error) {
+    console.warn('[FinPlanner] Tax advice LLM retry failed:', error instanceof Error ? error.message : String(error));
     return getTaxFallbackAdvice(request);
   }
 

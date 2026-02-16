@@ -1,11 +1,16 @@
 import { create } from 'zustand';
 import type { HouseholdProfile, Account, IncomeStream, Adjustment, FilingStatus } from '@finplanner/domain';
+import { getAppState, setAppState } from '../services/indexeddb.js';
 
 interface SharedState {
   household: HouseholdProfile;
   accounts: Account[];
   incomeStreams: IncomeStream[];
   adjustments: Adjustment[];
+  initialized: boolean;
+
+  // Lifecycle
+  initFromIndexedDB: () => Promise<void>;
 
   // Household actions
   setHousehold: (household: HouseholdProfile) => void;
@@ -40,44 +45,125 @@ const defaultHousehold: HouseholdProfile = {
   },
 };
 
-export const useSharedStore = create<SharedState>((set) => ({
+function persistShared(state: Pick<SharedState, 'household' | 'accounts' | 'incomeStreams' | 'adjustments'>) {
+  setAppState('shared', {
+    household: state.household,
+    accounts: state.accounts,
+    incomeStreams: state.incomeStreams,
+    adjustments: state.adjustments,
+  }).catch(() => {});
+}
+
+export const useSharedStore = create<SharedState>((set, get) => ({
   household: defaultHousehold,
   accounts: [],
   incomeStreams: [],
   adjustments: [],
+  initialized: false,
 
-  setHousehold: (household) => set({ household }),
-  updateHousehold: (partial) =>
-    set((state) => ({ household: { ...state.household, ...partial } })),
+  initFromIndexedDB: async () => {
+    try {
+      const saved = await getAppState<{
+        household: HouseholdProfile;
+        accounts: Account[];
+        incomeStreams: IncomeStream[];
+        adjustments: Adjustment[];
+      }>('shared');
+      if (saved) {
+        set({
+          household: saved.household ?? defaultHousehold,
+          accounts: saved.accounts ?? [],
+          incomeStreams: saved.incomeStreams ?? [],
+          adjustments: saved.adjustments ?? [],
+          initialized: true,
+        });
+      } else {
+        set({ initialized: true });
+      }
+    } catch {
+      set({ initialized: true });
+    }
+  },
 
-  addAccount: (account) =>
-    set((state) => ({ accounts: [...state.accounts, account] })),
-  updateAccount: (id, partial) =>
-    set((state) => ({
-      accounts: state.accounts.map((a) => (a.id === id ? { ...a, ...partial } : a)),
-    })),
-  removeAccount: (id) =>
-    set((state) => ({ accounts: state.accounts.filter((a) => a.id !== id) })),
+  setHousehold: (household) => {
+    set({ household });
+    persistShared({ ...get(), household });
+  },
+  updateHousehold: (partial) => {
+    set((state) => {
+      const household = { ...state.household, ...partial };
+      persistShared({ ...state, household });
+      return { household };
+    });
+  },
 
-  addIncomeStream: (stream) =>
-    set((state) => ({ incomeStreams: [...state.incomeStreams, stream] })),
-  updateIncomeStream: (id, partial) =>
-    set((state) => ({
-      incomeStreams: state.incomeStreams.map((s) =>
+  addAccount: (account) => {
+    set((state) => {
+      const accounts = [...state.accounts, account];
+      persistShared({ ...state, accounts });
+      return { accounts };
+    });
+  },
+  updateAccount: (id, partial) => {
+    set((state) => {
+      const accounts = state.accounts.map((a) => (a.id === id ? { ...a, ...partial } : a));
+      persistShared({ ...state, accounts });
+      return { accounts };
+    });
+  },
+  removeAccount: (id) => {
+    set((state) => {
+      const accounts = state.accounts.filter((a) => a.id !== id);
+      persistShared({ ...state, accounts });
+      return { accounts };
+    });
+  },
+
+  addIncomeStream: (stream) => {
+    set((state) => {
+      const incomeStreams = [...state.incomeStreams, stream];
+      persistShared({ ...state, incomeStreams });
+      return { incomeStreams };
+    });
+  },
+  updateIncomeStream: (id, partial) => {
+    set((state) => {
+      const incomeStreams = state.incomeStreams.map((s) =>
         s.id === id ? { ...s, ...partial } : s,
-      ),
-    })),
-  removeIncomeStream: (id) =>
-    set((state) => ({ incomeStreams: state.incomeStreams.filter((s) => s.id !== id) })),
+      );
+      persistShared({ ...state, incomeStreams });
+      return { incomeStreams };
+    });
+  },
+  removeIncomeStream: (id) => {
+    set((state) => {
+      const incomeStreams = state.incomeStreams.filter((s) => s.id !== id);
+      persistShared({ ...state, incomeStreams });
+      return { incomeStreams };
+    });
+  },
 
-  addAdjustment: (adj) =>
-    set((state) => ({ adjustments: [...state.adjustments, adj] })),
-  updateAdjustment: (id, partial) =>
-    set((state) => ({
-      adjustments: state.adjustments.map((a) =>
+  addAdjustment: (adj) => {
+    set((state) => {
+      const adjustments = [...state.adjustments, adj];
+      persistShared({ ...state, adjustments });
+      return { adjustments };
+    });
+  },
+  updateAdjustment: (id, partial) => {
+    set((state) => {
+      const adjustments = state.adjustments.map((a) =>
         a.id === id ? { ...a, ...partial } : a,
-      ),
-    })),
-  removeAdjustment: (id) =>
-    set((state) => ({ adjustments: state.adjustments.filter((a) => a.id !== id) })),
+      );
+      persistShared({ ...state, adjustments });
+      return { adjustments };
+    });
+  },
+  removeAdjustment: (id) => {
+    set((state) => {
+      const adjustments = state.adjustments.filter((a) => a.id !== id);
+      persistShared({ ...state, adjustments });
+      return { adjustments };
+    });
+  },
 }));

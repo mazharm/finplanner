@@ -19,7 +19,9 @@ import {
 import { DocumentRegular, ArrowImportRegular, CheckmarkRegular } from '@fluentui/react-icons';
 import { useRef, useCallback, useState } from 'react';
 import { useTaxStore } from '../../stores/tax-store.js';
-import type { TaxDocument, TaxFormType } from '@finplanner/domain';
+import type { TaxDocument } from '@finplanner/domain';
+import { extractPdfFields } from '@finplanner/tax-extraction';
+import { createPdfTextExtractor } from '../../services/pdf-extractor.js';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
@@ -59,30 +61,44 @@ export function DocumentImportPage() {
 
   const handlePdfImport = useCallback(
     async (files: FileList) => {
+      const extractor = createPdfTextExtractor();
+
       for (const file of Array.from(files)) {
         if (!file.name.toLowerCase().endsWith('.pdf')) {
           setImportMessage(`Skipped ${file.name}: not a PDF file.`);
           continue;
         }
 
-        // In production, this would use pdf.js to extract text and then identify the form.
-        // For now, create a placeholder document entry.
-        const doc: TaxDocument = {
-          id: generateId(),
-          taxYear: new Date().getFullYear(),
-          formType: 'other' as TaxFormType,
-          issuerName: file.name.replace('.pdf', ''),
-          sourceFileName: file.name,
-          extractedFields: {},
-          fieldConfidence: {},
-          extractionConfidence: 0,
-          lowConfidenceFields: [],
-          confirmedByUser: false,
-          importedAt: new Date().toISOString(),
-        };
+        try {
+          const taxYear = new Date().getFullYear();
+          const result = await extractPdfFields(file, taxYear, extractor);
 
-        addDocument(doc);
-        setImportMessage(`Imported ${file.name}. Review extracted data and confirm.`);
+          const doc: TaxDocument = {
+            id: generateId(),
+            taxYear,
+            formType: result.formType,
+            issuerName: result.issuerName,
+            sourceFileName: file.name,
+            extractedFields: result.extractedFields,
+            fieldConfidence: result.fieldConfidence,
+            extractionConfidence: result.extractionConfidence,
+            lowConfidenceFields: result.lowConfidenceFields,
+            confirmedByUser: false,
+            importedAt: new Date().toISOString(),
+          };
+
+          addDocument(doc);
+          setImportMessage(`Extracted ${result.formType} from ${file.name} (${(result.extractionConfidence * 100).toFixed(0)}% confidence). Review and confirm.`);
+        } catch (err) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          if (errMsg === 'PDF_FORM_UNRECOGNIZED') {
+            setImportMessage(`Could not identify tax form type in ${file.name}. Manual entry may be needed.`);
+          } else if (errMsg === 'PDF_PARSE_FAILED') {
+            setImportMessage(`Could not read text from ${file.name}. The PDF may be image-based.`);
+          } else {
+            setImportMessage(`Error processing ${file.name}: ${errMsg}`);
+          }
+        }
       }
     },
     [addDocument],
@@ -116,10 +132,14 @@ export function DocumentImportPage() {
         />
         <div
           className={`${styles.dropZone} ${dragActive ? styles.dropZoneActive : ''}`}
+          role="button"
+          tabIndex={0}
+          aria-label="Drop zone for PDF tax documents. Click or drag and drop files here."
           onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
           onDragLeave={() => setDragActive(false)}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
         >
           <ArrowImportRegular fontSize={48} />
           <Text>{dragActive ? 'Drop PDF files here...' : 'Drag and drop PDF tax documents here, or click to browse.'}</Text>
@@ -132,6 +152,7 @@ export function DocumentImportPage() {
             type="file"
             accept=".pdf"
             multiple
+            aria-label="Upload PDF tax documents"
             style={{ display: 'none' }}
             onChange={(e) => { if (e.target.files) handlePdfImport(e.target.files); }}
           />

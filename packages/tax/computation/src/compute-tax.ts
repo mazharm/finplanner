@@ -24,8 +24,14 @@ export function computeTaxYearTaxes(
   const deduction = computeDeduction(record.deductions);
 
   const taxableOrdinary = Math.max(0, ordinary - deduction);
-  const netCapGains = Math.max(0, record.income.capitalGains - record.income.capitalLosses);
-  const preferentialIncome = netCapGains + record.income.qualifiedDividends;
+
+  // IRS caps net capital loss deduction at $3,000/year ($1,500 MFS)
+  const CAPITAL_LOSS_CAP = 3000;
+  const rawNetCapGains = record.income.capitalGains - record.income.capitalLosses;
+  const netCapGains = rawNetCapGains >= 0
+    ? rawNetCapGains
+    : Math.max(-CAPITAL_LOSS_CAP, rawNetCapGains); // loss capped at -$3,000
+  const preferentialIncome = Math.max(0, netCapGains) + record.income.qualifiedDividends;
 
   const totalCredits = record.credits.childTaxCredit + record.credits.educationCredits +
     record.credits.foreignTaxCredit + record.credits.otherCredits;
