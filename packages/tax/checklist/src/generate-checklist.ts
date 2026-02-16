@@ -1,0 +1,123 @@
+import type { ChecklistItem, TaxChecklist } from '@finplanner/domain';
+import type { ChecklistRequest } from './types.js';
+
+export function generateChecklist(request: ChecklistRequest): TaxChecklist {
+  const items: ChecklistItem[] = [];
+  let index = 0;
+
+  const makeId = () => `checklist-${request.taxYear}-${index++}`;
+
+  // Rule 1: Prior-year document match
+  for (const priorDoc of request.priorYearDocuments) {
+    const matchingCurrent = request.currentYearDocuments.find(
+      d => d.formType === priorDoc.formType && d.issuerName === priorDoc.issuerName
+    );
+
+    items.push({
+      id: makeId(),
+      taxYear: request.taxYear,
+      category: 'document',
+      description: `${priorDoc.formType} from ${priorDoc.issuerName}`,
+      status: matchingCurrent ? 'received' : 'pending',
+      sourceReasoning: `Prior year (${priorDoc.taxYear}) included ${priorDoc.formType} from ${priorDoc.issuerName}`,
+      linkedDocumentId: matchingCurrent?.id,
+    });
+  }
+
+  // Rule 2: Corpus account income
+  for (const account of request.sharedCorpus.accounts) {
+    if (account.type === 'taxable' && account.currentBalance > 0) {
+      items.push({
+        id: makeId(),
+        taxYear: request.taxYear,
+        category: 'income',
+        description: `1099-INT/1099-DIV expected from ${account.name}`,
+        status: 'pending',
+        sourceReasoning: `Taxable account "${account.name}" has balance > $0`,
+      });
+    }
+  }
+
+  // Rule 3: Corpus income stream
+  for (const stream of request.sharedCorpus.incomeStreams) {
+    if (stream.startYear <= request.taxYear && (!stream.endYear || stream.endYear >= request.taxYear)) {
+      items.push({
+        id: makeId(),
+        taxYear: request.taxYear,
+        category: 'income',
+        description: `${stream.name} income expected`,
+        status: 'pending',
+        sourceReasoning: `Income stream "${stream.name}" active in ${request.taxYear}`,
+      });
+    }
+  }
+
+  // Rule 4: Prior-year deduction carryover
+  if (request.priorYearRecord?.deductions.useItemized && request.priorYearRecord.deductions.itemizedDeductions) {
+    const itemized = request.priorYearRecord.deductions.itemizedDeductions;
+    const deductionTypes: Array<{ key: keyof typeof itemized; label: string }> = [
+      { key: 'mortgageInterest', label: 'mortgage interest' },
+      { key: 'stateAndLocalTaxes', label: 'state and local taxes' },
+      { key: 'charitableContributions', label: 'charitable contributions' },
+      { key: 'medicalExpenses', label: 'medical expenses' },
+      { key: 'other', label: 'other' },
+    ];
+    for (const dt of deductionTypes) {
+      if (itemized[dt.key] > 0) {
+        items.push({
+          id: makeId(),
+          taxYear: request.taxYear,
+          category: 'deduction',
+          description: `Review ${dt.label} deduction`,
+          status: 'pending',
+          sourceReasoning: `Prior year (${request.priorYearRecord.taxYear}) had $${itemized[dt.key].toLocaleString()} in ${dt.label}`,
+        });
+      }
+    }
+  }
+
+  // Rule 5: Filing status change
+  if (request.priorYearRecord && request.priorYearRecord.filingStatus !== request.currentYearRecord.filingStatus) {
+    items.push({
+      id: makeId(),
+      taxYear: request.taxYear,
+      category: 'life_event',
+      description: 'Filing status changed -- verify',
+      status: 'pending',
+      sourceReasoning: `Filing status changed from "${request.priorYearRecord.filingStatus}" to "${request.currentYearRecord.filingStatus}"`,
+    });
+  }
+
+  // Rule 6: State change
+  if (request.priorYearRecord && request.priorYearRecord.stateOfResidence !== request.currentYearRecord.stateOfResidence) {
+    items.push({
+      id: makeId(),
+      taxYear: request.taxYear,
+      category: 'life_event',
+      description: 'State changed -- review',
+      status: 'pending',
+      sourceReasoning: `State changed from "${request.priorYearRecord.stateOfResidence}" to "${request.currentYearRecord.stateOfResidence}"`,
+    });
+  }
+
+  // Rule 7: Filing deadline (always)
+  items.push({
+    id: makeId(),
+    taxYear: request.taxYear,
+    category: 'deadline',
+    description: `Federal filing deadline: April 15, ${request.taxYear + 1}`,
+    status: 'pending',
+    sourceReasoning: 'Standard federal filing deadline',
+  });
+
+  // Compute completionPct
+  const completedCount = items.filter(i => i.status !== 'pending').length;
+  const completionPct = items.length > 0 ? (completedCount / items.length) * 100 : 100;
+
+  return {
+    taxYear: request.taxYear,
+    generatedAt: new Date().toISOString(),
+    items,
+    completionPct,
+  };
+}

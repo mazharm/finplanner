@@ -1,5 +1,5 @@
 {
-  "name": "@finplanner/tax-checklist",
+  "name": "@finplanner/tax-computation",
   "version": "0.0.1",
   "private": true,
   "type": "module",

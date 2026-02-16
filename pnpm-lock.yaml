@@ -98,6 +98,12 @@ importers:
       '@finplanner/domain':
         specifier: workspace:*
         version: link:../domain
+      '@finplanner/validation':
+        specifier: workspace:*
+        version: link:../validation
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
     devDependencies:
       typescript:
         specifier: ^5.4.0
@@ -132,11 +138,27 @@ importers:
         specifier: ^1.6.0
         version: 1.6.1
 
+  packages/tax/computation:
+    dependencies:
+      '@finplanner/domain':
+        specifier: workspace:*
+        version: link:../../domain
+    devDependencies:
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1
+
   packages/tax/extraction:
     dependencies:
       '@finplanner/domain':
         specifier: workspace:*
         version: link:../../domain
+      '@finplanner/validation':
+        specifier: workspace:*
+        version: link:../../validation
     devDependencies:
       typescript:
         specifier: ^5.4.0

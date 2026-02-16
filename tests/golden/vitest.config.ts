@@ -12,6 +12,11 @@ export default defineConfig({
       '@finplanner/validation': path.resolve(__dirname, '../../packages/validation/src'),
       '@finplanner/engine': path.resolve(__dirname, '../../packages/engine/src'),
       '@finplanner/scenarios': path.resolve(__dirname, '../../packages/scenarios/src'),
+      '@finplanner/tax-computation': path.resolve(__dirname, '../../packages/tax/computation/src'),
+      '@finplanner/tax-extraction': path.resolve(__dirname, '../../packages/tax/extraction/src'),
+      '@finplanner/tax-checklist': path.resolve(__dirname, '../../packages/tax/checklist/src'),
+      '@finplanner/tax-anomaly': path.resolve(__dirname, '../../packages/tax/anomaly/src'),
+      '@finplanner/storage': path.resolve(__dirname, '../../packages/storage/src'),
     },
   },
 });
