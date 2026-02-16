@@ -1,0 +1,14 @@
+{
+  "formType": "1099-NEC",
+  "formIdentifiers": ["1099-NEC", "Nonemployee Compensation", "Form 1099-NEC"],
+  "fields": [
+    {
+      "key": "nonemployeeCompensation",
+      "label": "Nonemployee compensation",
+      "boxNumber": "1",
+      "labelPatterns": ["nonemployee\\s*compensation", "box\\s*1\\b"],
+      "valueType": "currency",
+      "required": true
+    }
+  ]
+}

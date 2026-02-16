@@ -1,0 +1,8 @@
+{
+  "id": "gfc_2008",
+  "name": "Global Financial Crisis (2007–2011)",
+  "startYear": 2007,
+  "endYear": 2011,
+  "returns": [5.5, -37.0, 26.5, 15.1, 2.1],
+  "inflation": [2.8, 3.8, -0.4, 1.6, 3.2]
+}

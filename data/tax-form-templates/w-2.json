@@ -1,0 +1,54 @@
+{
+  "formType": "W-2",
+  "formIdentifiers": ["W-2", "Wage and Tax Statement", "Form W-2"],
+  "fields": [
+    {
+      "key": "wages",
+      "label": "Wages, tips, other compensation",
+      "boxNumber": "1",
+      "labelPatterns": ["wages,?\\s*tips", "box\\s*1\\b", "compensation"],
+      "valueType": "currency",
+      "required": true
+    },
+    {
+      "key": "federalTaxWithheld",
+      "label": "Federal income tax withheld",
+      "boxNumber": "2",
+      "labelPatterns": ["federal\\s*(income)?\\s*tax\\s*withheld", "box\\s*2\\b"],
+      "valueType": "currency",
+      "required": true
+    },
+    {
+      "key": "ssWages",
+      "label": "Social security wages",
+      "boxNumber": "3",
+      "labelPatterns": ["social\\s*security\\s*wages", "box\\s*3\\b"],
+      "valueType": "currency",
+      "required": false
+    },
+    {
+      "key": "medicareWages",
+      "label": "Medicare wages and tips",
+      "boxNumber": "5",
+      "labelPatterns": ["medicare\\s*wages", "box\\s*5\\b"],
+      "valueType": "currency",
+      "required": false
+    },
+    {
+      "key": "stateWages",
+      "label": "State wages, tips, etc.",
+      "boxNumber": "16",
+      "labelPatterns": ["state\\s*wages", "box\\s*16\\b"],
+      "valueType": "currency",
+      "required": false
+    },
+    {
+      "key": "stateTaxWithheld",
+      "label": "State income tax",
+      "boxNumber": "17",
+      "labelPatterns": ["state\\s*(income)?\\s*tax", "box\\s*17\\b"],
+      "valueType": "currency",
+      "required": false
+    }
+  ]
+}

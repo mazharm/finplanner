@@ -1,0 +1,30 @@
+{
+  "formType": "1099-R",
+  "formIdentifiers": ["1099-R", "Distributions From Pensions", "Distributions From Pensions, Annuities, Retirement", "Form 1099-R"],
+  "fields": [
+    {
+      "key": "grossDistribution",
+      "label": "Gross distribution",
+      "boxNumber": "1",
+      "labelPatterns": ["gross\\s*distribution", "box\\s*1\\b"],
+      "valueType": "currency",
+      "required": true
+    },
+    {
+      "key": "taxableAmount",
+      "label": "Taxable amount",
+      "boxNumber": "2a",
+      "labelPatterns": ["taxable\\s*amount", "box\\s*2a\\b"],
+      "valueType": "currency",
+      "required": true
+    },
+    {
+      "key": "distributionCode",
+      "label": "Distribution code(s)",
+      "boxNumber": "7",
+      "labelPatterns": ["distribution\\s*code", "box\\s*7\\b"],
+      "valueType": "code",
+      "required": false
+    }
+  ]
+}

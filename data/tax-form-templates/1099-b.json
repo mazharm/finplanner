@@ -1,0 +1,30 @@
+{
+  "formType": "1099-B",
+  "formIdentifiers": ["1099-B", "Proceeds From Broker", "Proceeds From Broker and Barter Exchange Transactions", "Form 1099-B"],
+  "fields": [
+    {
+      "key": "proceeds",
+      "label": "Proceeds",
+      "boxNumber": "1d",
+      "labelPatterns": ["proceeds", "sales\\s*price", "box\\s*1d\\b"],
+      "valueType": "currency",
+      "required": true
+    },
+    {
+      "key": "costBasis",
+      "label": "Cost or other basis",
+      "boxNumber": "1e",
+      "labelPatterns": ["cost\\s*(or\\s*other)?\\s*basis", "box\\s*1e\\b"],
+      "valueType": "currency",
+      "required": true
+    },
+    {
+      "key": "gainLoss",
+      "label": "Gain or (loss)",
+      "boxNumber": "1g",
+      "labelPatterns": ["gain\\s*(or)?\\s*\\(?loss\\)?", "box\\s*1g\\b"],
+      "valueType": "currency",
+      "required": false
+    }
+  ]
+}

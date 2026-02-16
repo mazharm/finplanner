@@ -1,0 +1,30 @@
+{
+  "formType": "1099-DIV",
+  "formIdentifiers": ["1099-DIV", "Dividends and Distributions", "Form 1099-DIV"],
+  "fields": [
+    {
+      "key": "ordinaryDividends",
+      "label": "Total ordinary dividends",
+      "boxNumber": "1a",
+      "labelPatterns": ["total\\s*ordinary\\s*dividends", "box\\s*1a\\b", "ordinary\\s*dividends"],
+      "valueType": "currency",
+      "required": true
+    },
+    {
+      "key": "qualifiedDividends",
+      "label": "Qualified dividends",
+      "boxNumber": "1b",
+      "labelPatterns": ["qualified\\s*dividends", "box\\s*1b\\b"],
+      "valueType": "currency",
+      "required": false
+    },
+    {
+      "key": "capitalGainDistributions",
+      "label": "Total capital gain distr.",
+      "boxNumber": "2a",
+      "labelPatterns": ["total\\s*capital\\s*gain", "capital\\s*gain\\s*distr", "box\\s*2a\\b"],
+      "valueType": "currency",
+      "required": false
+    }
+  ]
+}

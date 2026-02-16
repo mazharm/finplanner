@@ -1,0 +1,22 @@
+{
+  "formType": "1099-INT",
+  "formIdentifiers": ["1099-INT", "Interest Income", "Form 1099-INT"],
+  "fields": [
+    {
+      "key": "interestIncome",
+      "label": "Interest income",
+      "boxNumber": "1",
+      "labelPatterns": ["interest\\s*income", "box\\s*1\\b"],
+      "valueType": "currency",
+      "required": true
+    },
+    {
+      "key": "taxExemptInterest",
+      "label": "Tax-exempt interest",
+      "boxNumber": "8",
+      "labelPatterns": ["tax[\\s-]*exempt\\s*interest", "box\\s*8\\b"],
+      "valueType": "currency",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "formType": "1099-MISC",
+  "formIdentifiers": ["1099-MISC", "Miscellaneous Income", "Miscellaneous Information", "Form 1099-MISC"],
+  "fields": [
+    {
+      "key": "rents",
+      "label": "Rents",
+      "boxNumber": "1",
+      "labelPatterns": ["rents", "box\\s*1\\b"],
+      "valueType": "currency",
+      "required": false
+    },
+    {
+      "key": "royalties",
+      "label": "Royalties",
+      "boxNumber": "2",
+      "labelPatterns": ["royalties", "box\\s*2\\b"],
+      "valueType": "currency",
+      "required": false
+    },
+    {
+      "key": "otherIncome",
+      "label": "Other income",
+      "boxNumber": "3",
+      "labelPatterns": ["other\\s*income", "box\\s*3\\b"],
+      "valueType": "currency",
+      "required": false
+    },
+    {
+      "key": "federalTaxWithheld",
+      "label": "Federal income tax withheld",
+      "boxNumber": "4",
+      "labelPatterns": ["federal\\s*(income)?\\s*tax\\s*withheld", "box\\s*4\\b"],
+      "valueType": "currency",
+      "required": false
+    }
+  ]
+}

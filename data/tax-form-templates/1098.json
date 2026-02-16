@@ -1,0 +1,22 @@
+{
+  "formType": "1098",
+  "formIdentifiers": ["1098", "Mortgage Interest Statement", "Form 1098"],
+  "fields": [
+    {
+      "key": "mortgageInterest",
+      "label": "Mortgage interest received from payer(s)/borrower(s)",
+      "boxNumber": "1",
+      "labelPatterns": ["mortgage\\s*interest", "box\\s*1\\b"],
+      "valueType": "currency",
+      "required": true
+    },
+    {
+      "key": "propertyTax",
+      "label": "Real estate tax",
+      "boxNumber": "10",
+      "labelPatterns": ["real\\s*estate\\s*tax", "property\\s*tax", "box\\s*10\\b"],
+      "valueType": "currency",
+      "required": false
+    }
+  ]
+}

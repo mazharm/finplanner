@@ -1,0 +1,8 @@
+{
+  "id": "high_inflation_decade",
+  "name": "High Inflation Decade (1973–1982)",
+  "startYear": 1973,
+  "endYear": 1982,
+  "returns": [-14.7, -26.5, 37.2, 23.8, -7.2, 6.6, 18.4, 32.4, -4.9, 21.5],
+  "inflation": [6.2, 11.0, 9.1, 5.8, 6.5, 7.6, 11.3, 13.5, 10.3, 6.2]
+}

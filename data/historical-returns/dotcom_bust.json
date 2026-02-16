@@ -1,0 +1,8 @@
+{
+  "id": "dotcom_bust",
+  "name": "Dot-Com Bust (2000–2004)",
+  "startYear": 2000,
+  "endYear": 2004,
+  "returns": [-9.1, -11.9, -22.1, 28.7, 10.9],
+  "inflation": [3.4, 2.8, 1.6, 2.3, 2.7]
+}
