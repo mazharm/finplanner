@@ -96,17 +96,25 @@ export function simulate(planInput: PlanInput): PlanResult {
  * Initialize simulation state from plan input.
  */
 function initializeState(planInput: PlanInput): SimulationState {
-  const accounts: AccountState[] = planInput.accounts.map(account => ({
-    id: account.id,
-    type: account.type,
-    owner: account.owner,
-    balance: account.currentBalance,
-    costBasis: account.costBasis ?? account.currentBalance,
-    expectedReturnPct: account.expectedReturnPct,
-    feePct: account.feePct,
-    targetAllocationPct: account.targetAllocationPct,
-    deferredCompSchedule: account.deferredCompSchedule,
-  }));
+  const accounts: AccountState[] = planInput.accounts.map(account => {
+    if (account.type === 'taxable' && account.costBasis === undefined && account.currentBalance > 0) {
+      console.warn(
+        `[FinPlanner] Account "${account.name}" has no cost basis; defaulting to current balance ($${account.currentBalance}). ` +
+        `Tax projections may understate gains for accounts with significant unrealized appreciation.`
+      );
+    }
+    return {
+      id: account.id,
+      type: account.type,
+      owner: account.owner,
+      balance: account.currentBalance,
+      costBasis: account.costBasis ?? account.currentBalance,
+      expectedReturnPct: account.expectedReturnPct,
+      feePct: account.feePct,
+      targetAllocationPct: account.targetAllocationPct,
+      deferredCompSchedule: account.deferredCompSchedule,
+    };
+  });
 
   // Determine scenario returns/inflation if applicable
   let scenarioReturns: number[] | undefined;

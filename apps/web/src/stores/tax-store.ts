@@ -42,7 +42,7 @@ function persistTax(state: Pick<TaxState, 'taxYears' | 'documents' | 'checklistI
     checklistItems: state.checklistItems,
     anomalies: state.anomalies,
   }).catch((err) => {
-    console.error('[FinPlanner] IndexedDB operation failed:', err);
+    console.error('[FinPlanner] IndexedDB operation failed:', err instanceof Error ? err.message : 'Unknown error');
     _setTax?.({ persistError: 'Failed to save tax data. Changes may be lost on page refresh.' });
   });
 }

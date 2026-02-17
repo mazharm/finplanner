@@ -41,7 +41,7 @@ const defaultHousehold: HouseholdProfile = {
   primary: {
     id: 'primary',
     birthYear: 1990,
-    currentAge: 35,
+    currentAge: new Date().getFullYear() - 1990,
     retirementAge: 65,
     lifeExpectancy: 90,
   },
@@ -57,7 +57,7 @@ function persistShared(state: Pick<SharedState, 'household' | 'accounts' | 'inco
     incomeStreams: state.incomeStreams,
     adjustments: state.adjustments,
   }).catch((err) => {
-    console.error('[FinPlanner] IndexedDB operation failed:', err);
+    console.error('[FinPlanner] IndexedDB operation failed:', err instanceof Error ? err.message : 'Unknown error');
     _setShared?.({ persistError: 'Failed to save data. Changes may be lost on page refresh.' });
   });
 }

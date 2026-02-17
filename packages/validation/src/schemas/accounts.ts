@@ -30,4 +30,12 @@ export const accountSchema = z.object({
 ).refine(
   (data) => data.deferredCompSchedule === undefined || data.type === 'deferredComp',
   { message: 'deferredCompSchedule is only valid for deferredComp accounts', path: ['deferredCompSchedule'] }
+).refine(
+  (data) => {
+    // Warn-level check: if volatility is provided, expected return should be
+    // plausible relative to risk. A return > 3x volatility is unrealistic.
+    if (data.volatilityPct === undefined || data.volatilityPct === 0) return true;
+    return Math.abs(data.expectedReturnPct) <= data.volatilityPct * 3;
+  },
+  { message: 'expectedReturnPct appears unrealistic relative to volatilityPct (return > 3x volatility)', path: ['expectedReturnPct'] }
 );

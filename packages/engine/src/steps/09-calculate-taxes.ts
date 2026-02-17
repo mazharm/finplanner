@@ -134,9 +134,13 @@ function computeStateTax(
     // 'no': SS is fully taxable at state level
   }
 
-  // Use approximate state standard deduction (varies by state, roughly 50% of federal on average)
-  // States without income tax (rate=0) won't typically reach this code path with meaningful amounts
+  // Use state-specific standard deduction from lookup data; fall back to 50% of federal
+  // for unknown states. All 50 states + DC are in the lookup table, so this fallback
+  // should only trigger for unrecognized state codes.
   const stateDeduction = stateInfo?.stateStandardDeduction ?? Math.round(standardDeduction * 0.5);
+  if (stateInfo && stateInfo.stateStandardDeduction === undefined && stateIncomeRate > 0) {
+    console.warn(`[FinPlanner] No state standard deduction data for "${stateCode}"; using 50% of federal ($${stateDeduction}).`);
+  }
   const stateTaxableOrdinary = Math.max(0, stateOrdinaryIncome - stateDeduction);
 
   const stateOrdinaryTax = stateTaxableOrdinary * (stateIncomeRate / 100);

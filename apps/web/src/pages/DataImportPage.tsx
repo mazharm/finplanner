@@ -229,9 +229,20 @@ export function DataImportPage() {
   );
 
   const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
+  const MAX_FILE_COUNT = 20;
 
   const handleFiles = useCallback(
     async (files: FileList) => {
+      if (files.length > MAX_FILE_COUNT) {
+        setResults([{
+          fileName: `(${files.length} files selected)`,
+          recordCount: 0,
+          types: {},
+          errors: [`Too many files selected. Maximum is ${MAX_FILE_COUNT} files per import.`],
+          duplicatesSkipped: 0,
+        }]);
+        return;
+      }
       setImporting(true);
       setProgress(0);
       const importResults: ImportResult[] = [];

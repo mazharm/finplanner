@@ -24,8 +24,11 @@ export function computeTaxableSS(
   // (which match 'mfj' for the first 2 years; after that the caller transitions
   // filingStatus to 'single'). Falls back to 'single' (more conservative) for
   // any unrecognized status, consistent with tax/computation module.
-  const thresholds = SS_PROVISIONAL_INCOME_THRESHOLDS[filingStatus as keyof typeof SS_PROVISIONAL_INCOME_THRESHOLDS]
-    ?? SS_PROVISIONAL_INCOME_THRESHOLDS.single;
+  const directLookup = SS_PROVISIONAL_INCOME_THRESHOLDS[filingStatus as keyof typeof SS_PROVISIONAL_INCOME_THRESHOLDS];
+  if (!directLookup) {
+    console.warn(`[FinPlanner] Unrecognized filing status "${filingStatus}" for SS taxation; falling back to "single" thresholds.`);
+  }
+  const thresholds = directLookup ?? SS_PROVISIONAL_INCOME_THRESHOLDS.single;
 
   if (provisionalIncome <= thresholds.lower) {
     return 0;

@@ -80,7 +80,7 @@ function persistRetirement(state: PersistableRetirement) {
     scenarios: state.scenarios,
     activeScenarioId: state.activeScenarioId,
   }).catch((err) => {
-    console.error('[FinPlanner] IndexedDB operation failed:', err);
+    console.error('[FinPlanner] IndexedDB operation failed:', err instanceof Error ? err.message : 'Unknown error');
     _setRetirement?.({ persistError: 'Failed to save retirement data. Changes may be lost on page refresh.' });
   });
 }

@@ -26,11 +26,13 @@ export const personProfileSchema = z.object({
   { message: 'lifeExpectancy must be >= retirementAge', path: ['lifeExpectancy'] }
 ).refine(
   (data) => {
+    // Tolerance of ±2 accounts for: (1) birthday not yet reached this year,
+    // and (2) data created near year boundary then loaded in the next year.
     const currentYear = new Date().getFullYear();
     const impliedAge = currentYear - data.birthYear;
-    return Math.abs(impliedAge - data.currentAge) <= 1;
+    return Math.abs(impliedAge - data.currentAge) <= 2;
   },
-  { message: 'currentAge must be consistent with birthYear (within 1 year)', path: ['currentAge'] }
+  { message: 'currentAge must be consistent with birthYear (within 2 years)', path: ['currentAge'] }
 );
 
 export const householdProfileSchema = z.object({

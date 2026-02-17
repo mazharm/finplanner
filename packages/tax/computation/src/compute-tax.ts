@@ -16,6 +16,7 @@ export function computeTaxYearTaxes(
       effectiveStateRate: record.computedEffectiveStateRate,
       refundOrBalanceDueFederal: record.refundOrBalanceDueFederal ?? 0,
       refundOrBalanceDueState: record.refundOrBalanceDueState ?? 0,
+      excessCapitalLosses: Math.max(0, record.income.capitalLosses - record.income.capitalGains),
     };
   }
 
@@ -28,6 +29,7 @@ export function computeTaxYearTaxes(
   // Per spec §8.4 step 5 and §19.1 item 5: excess capital losses do NOT offset
   // ordinary income, do NOT offset qualified dividends, and are NOT carried forward.
   const netCapGains = Math.max(0, record.income.capitalGains - record.income.capitalLosses);
+  const excessCapitalLosses = Math.max(0, record.income.capitalLosses - record.income.capitalGains);
 
   const preferentialIncome = netCapGains + record.income.qualifiedDividends;
 
@@ -96,5 +98,6 @@ export function computeTaxYearTaxes(
     effectiveStateRate,
     refundOrBalanceDueFederal: totalFederalPaid - federalTax,
     refundOrBalanceDueState: totalStatePaid - stateTax,
+    excessCapitalLosses,
   };
 }

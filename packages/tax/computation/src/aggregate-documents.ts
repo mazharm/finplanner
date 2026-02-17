@@ -7,7 +7,19 @@ export interface AggregatedDocumentData {
 
 function getNum(fields: Record<string, number | string>, key: string): number {
   const val = fields[key];
-  return typeof val === 'number' ? val : 0;
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') {
+    // Attempt to parse numeric strings (e.g., "$1,000.00", "1000", "1,234.56")
+    const cleaned = val.replace(/[$,\s]/g, '');
+    if (cleaned.length > 0) {
+      const parsed = Number(cleaned);
+      if (!Number.isNaN(parsed)) return parsed;
+    }
+    if (val.trim().length > 0) {
+      console.warn(`[FinPlanner] Non-numeric string value for field "${key}": "${val.slice(0, 40)}"`);
+    }
+  }
+  return 0;
 }
 
 export function aggregateDocumentsToIncome(documents: TaxDocument[]): AggregatedDocumentData {

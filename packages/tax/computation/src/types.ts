@@ -17,4 +17,6 @@ export interface TaxComputationResult {
   effectiveStateRate: number;
   refundOrBalanceDueFederal: number;
   refundOrBalanceDueState: number;
+  /** Capital losses that exceeded gains and were not applied (loss carryforward not modeled in v1). */
+  excessCapitalLosses: number;
 }

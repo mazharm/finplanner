@@ -3,9 +3,14 @@ import type { AnonymizedPortfolioContext, AnonymizedTaxContext } from './types.j
 
 /**
  * Sanitize a string value for LLM consumption by redacting PII patterns:
- *  - SSNs (XXX-XX-XXXX, XXXXXXXXX, or XXX XX XXXX)
+ *  - SSNs (XXX-XX-XXXX or XXX XX XXXX formatted patterns)
  *  - EINs (XX-XXXXXXX)
- *  - Bank/routing account numbers (sequences of 8+ digits)
+ *  - Bank/routing account numbers (sequences of 10+ digits)
+ *
+ * Note: Unformatted 9-digit SSNs (e.g., "123456789") are NOT redacted here
+ * to avoid false positives with ZIP+4 codes and financial amounts. Use
+ * sanitizeExtractedFields() for tax document fields where 9-digit sequences
+ * are more likely to be SSNs.
  */
 export function sanitizeForLlm(text: string): string {
   let result = text;
@@ -27,6 +32,8 @@ export function sanitizeForLlm(text: string): string {
 
 /**
  * Sanitize extractedFields record: redact PII from string values, pass numbers through.
+ * Applies stricter redaction than sanitizeForLlm() — also catches unformatted 9-digit
+ * SSN sequences, which are common in tax document extracted fields.
  */
 function sanitizeExtractedFields(
   fields: Record<string, number | string>,
@@ -34,7 +41,10 @@ function sanitizeExtractedFields(
   const sanitized: Record<string, number | string> = {};
   for (const [key, value] of Object.entries(fields)) {
     if (typeof value === 'string') {
-      sanitized[key] = sanitizeForLlm(value);
+      let result = sanitizeForLlm(value);
+      // In tax document fields, unformatted 9-digit sequences are likely SSNs/TINs
+      result = result.replace(/\b\d{9}\b/g, '[SSN_REDACTED]');
+      sanitized[key] = result;
     } else {
       sanitized[key] = value;
     }
