@@ -7,6 +7,8 @@ import {
   Title3,
   Button,
   Badge,
+  Field,
+  Input,
   Table,
   TableHeader,
   TableRow,
@@ -23,6 +25,7 @@ import type { TaxDocument } from '@finplanner/domain';
 import { extractPdfFields } from '@finplanner/tax-extraction';
 import { createPdfTextExtractor } from '../../services/pdf-extractor.js';
 import { generateId } from '../../utils/id.js';
+import { safeParseNumber } from '../../utils/parse-number.js';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
@@ -38,7 +41,7 @@ const useStyles = makeStyles({
     cursor: 'pointer',
   },
   dropZoneActive: {
-    borderColor: tokens.colorBrandStroke1,
+    border: `2px dashed ${tokens.colorBrandStroke1}`,
     backgroundColor: tokens.colorBrandBackground2,
   },
 });
@@ -56,6 +59,7 @@ export function DocumentImportPage() {
   const [dragActive, setDragActive] = useState(false);
   const { documents, addDocument, updateDocument } = useTaxStore();
   const [importMessage, setImportMessage] = useState('');
+  const [importTaxYear, setImportTaxYear] = useState(new Date().getFullYear() - 1);
 
   // Cleanup: abort any in-flight PDF imports on unmount
   useEffect(() => {
@@ -89,7 +93,7 @@ export function DocumentImportPage() {
         }
 
         try {
-          const taxYear = new Date().getFullYear();
+          const taxYear = importTaxYear;
           const result = await extractPdfFields(file, taxYear, extractor);
 
           if (abortController.signal.aborted) return;
@@ -129,7 +133,7 @@ export function DocumentImportPage() {
         fileInputRef.current.value = '';
       }
     },
-    [addDocument],
+    [addDocument, importTaxYear],
   );
 
   const handleDrop = useCallback(
@@ -158,6 +162,14 @@ export function DocumentImportPage() {
           header={<Text weight="semibold">Import Tax Documents (PDF)</Text>}
           description="Upload W-2s, 1099s, and other tax forms. Data is extracted client-side using pdf.js."
         />
+        <Field label="Tax Year for Imported Documents">
+          <Input
+            type="number"
+            value={String(importTaxYear)}
+            onChange={(_, d) => setImportTaxYear(safeParseNumber(d.value, new Date().getFullYear() - 1, 1900, 2200))}
+            style={{ maxWidth: '120px' }}
+          />
+        </Field>
         <div
           className={`${styles.dropZone} ${dragActive ? styles.dropZoneActive : ''}`}
           role="button"

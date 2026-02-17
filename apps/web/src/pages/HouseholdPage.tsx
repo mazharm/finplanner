@@ -153,14 +153,14 @@ export function HouseholdPage() {
               <Input
                 type="number"
                 value={String(draft.primary.birthYear)}
-                onChange={(_, data) => updatePrimary('birthYear', safeParseNumber(data.value))}
+                onChange={(_, data) => updatePrimary('birthYear', safeParseNumber(data.value, 1990, 1900, 2100))}
               />
             </Field>
             <Field label="Current Age">
               <Input
                 type="number"
                 value={String(draft.primary.currentAge)}
-                onChange={(_, data) => updatePrimary('currentAge', safeParseNumber(data.value))}
+                onChange={(_, data) => updatePrimary('currentAge', safeParseNumber(data.value, 35, 0, 120))}
               />
             </Field>
           </div>
@@ -169,14 +169,14 @@ export function HouseholdPage() {
               <Input
                 type="number"
                 value={String(draft.primary.retirementAge)}
-                onChange={(_, data) => updatePrimary('retirementAge', safeParseNumber(data.value))}
+                onChange={(_, data) => updatePrimary('retirementAge', safeParseNumber(data.value, 65, 0, 120))}
               />
             </Field>
             <Field label="Life Expectancy">
               <Input
                 type="number"
                 value={String(draft.primary.lifeExpectancy)}
-                onChange={(_, data) => updatePrimary('lifeExpectancy', safeParseNumber(data.value))}
+                onChange={(_, data) => updatePrimary('lifeExpectancy', safeParseNumber(data.value, 90, 1, 120))}
               />
             </Field>
           </div>
@@ -191,14 +191,14 @@ export function HouseholdPage() {
                 <Input
                   type="number"
                   value={String(draft.spouse.birthYear)}
-                  onChange={(_, data) => updateSpouse('birthYear', safeParseNumber(data.value))}
+                  onChange={(_, data) => updateSpouse('birthYear', safeParseNumber(data.value, 1990, 1900, 2100))}
                 />
               </Field>
               <Field label="Current Age">
                 <Input
                   type="number"
                   value={String(draft.spouse.currentAge)}
-                  onChange={(_, data) => updateSpouse('currentAge', safeParseNumber(data.value))}
+                  onChange={(_, data) => updateSpouse('currentAge', safeParseNumber(data.value, 35, 0, 120))}
                 />
               </Field>
             </div>
@@ -207,14 +207,14 @@ export function HouseholdPage() {
                 <Input
                   type="number"
                   value={String(draft.spouse.retirementAge)}
-                  onChange={(_, data) => updateSpouse('retirementAge', safeParseNumber(data.value))}
+                  onChange={(_, data) => updateSpouse('retirementAge', safeParseNumber(data.value, 65, 0, 120))}
                 />
               </Field>
               <Field label="Life Expectancy">
                 <Input
                   type="number"
                   value={String(draft.spouse.lifeExpectancy)}
-                  onChange={(_, data) => updateSpouse('lifeExpectancy', safeParseNumber(data.value))}
+                  onChange={(_, data) => updateSpouse('lifeExpectancy', safeParseNumber(data.value, 90, 1, 120))}
                 />
               </Field>
             </div>

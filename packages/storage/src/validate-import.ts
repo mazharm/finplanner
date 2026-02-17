@@ -102,7 +102,7 @@ export function validateImport(ndjsonContent: string): ImportValidationResult {
     // Skip nested headers (from consolidated files)
     if (type === 'header') continue;
 
-    const schema = getSchemaForType(type);
+    const schema = getSchemaForType(type as import('@finplanner/domain').NdjsonRecordType);
     if (!schema) {
       // Unknown record types are preserved by generateBackup for forward
       // compatibility.  Rejecting them here would break round-trip fidelity,

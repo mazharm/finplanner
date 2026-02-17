@@ -135,7 +135,7 @@ export function TaxAdvicePage() {
       </Title3>
       <MessageBar intent="info">
         <MessageBarBody>
-          Tax advice is generated using {hasApiKey ? 'Claude AI' : 'rule-based analysis (fallback mode)'}. No personally identifiable information is sent to the API.
+          Tax advice is generated using {hasApiKey ? 'Claude AI' : 'rule-based analysis (fallback mode)'}. Names and SSNs are removed before sending. Financial data (income, deductions, filing status) is sent to generate advice.
         </MessageBarBody>
       </MessageBar>
       <Card>

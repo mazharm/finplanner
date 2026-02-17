@@ -70,7 +70,9 @@ export function computeRmds(
 
     // Compute RMD using prior year-end balance (IRS requirement) if available
     const rmdBasis = priorYearEndBalances?.get(account.id) ?? account.balance;
-    const rmd = rmdBasis / distributionPeriod;
+    // Cap at the current account balance to prevent negative balances
+    // (can occur if the account lost significant value since prior year-end)
+    const rmd = Math.min(rmdBasis / distributionPeriod, account.balance);
 
     // Withdraw the RMD from the account
     account.balance -= rmd;

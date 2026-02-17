@@ -126,20 +126,28 @@ export const useRetirementStore = create<RetirementState>((set, get) => {
   },
 
   setSpending: (spending) => {
-    set({ spending });
-    persistRetirement({ ...get(), spending });
+    set((state) => {
+      persistRetirement({ ...state, spending });
+      return { spending };
+    });
   },
   setTaxes: (taxes) => {
-    set({ taxes });
-    persistRetirement({ ...get(), taxes });
+    set((state) => {
+      persistRetirement({ ...state, taxes });
+      return { taxes };
+    });
   },
   setMarket: (market) => {
-    set({ market });
-    persistRetirement({ ...get(), market });
+    set((state) => {
+      persistRetirement({ ...state, market });
+      return { market };
+    });
   },
   setStrategy: (strategy) => {
-    set({ strategy });
-    persistRetirement({ ...get(), strategy });
+    set((state) => {
+      persistRetirement({ ...state, strategy });
+      return { strategy };
+    });
   },
   addScenario: (scenario) => {
     set((state) => {
@@ -163,8 +171,10 @@ export const useRetirementStore = create<RetirementState>((set, get) => {
     });
   },
   setActiveScenario: (id) => {
-    set({ activeScenarioId: id });
-    persistRetirement({ ...get(), activeScenarioId: id });
+    set((state) => {
+      persistRetirement({ ...state, activeScenarioId: id });
+      return { activeScenarioId: id };
+    });
   },
   setLatestResult: (result) => set({ latestResult: result }),
 };

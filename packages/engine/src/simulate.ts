@@ -137,7 +137,10 @@ function initializeState(planInput: PlanInput): SimulationState {
     survivorTransitioned: false,
     firstSurvivorYearIndex: -1,
     cumulativeInflationByYear: [1],
-    priorYearEndBalances: new Map(),
+    // Seed with initial balances so the first-year RMD uses the correct
+    // prior-Dec-31 basis (the user's input balance) rather than the
+    // post-return balance computed in step 2.
+    priorYearEndBalances: new Map(accounts.map(a => [a.id, a.balance])),
   };
 }
 

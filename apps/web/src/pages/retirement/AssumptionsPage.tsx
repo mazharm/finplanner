@@ -39,6 +39,10 @@ export function AssumptionsPage() {
     };
   }, []);
 
+  // Sync drafts when store changes externally (e.g., import, sync)
+  useEffect(() => { setDraftTaxes({ ...taxes }); }, [taxes]);
+  useEffect(() => { setDraftMarket({ ...market }); }, [market]);
+
   const handleSave = useCallback(() => {
     setTaxes(draftTaxes);
     setMarket(draftMarket);
@@ -77,14 +81,14 @@ export function AssumptionsPage() {
                 <Input
                   type="number"
                   value={String(draftMarket.deterministicReturnPct ?? 7)}
-                  onChange={(_, d) => setDraftMarket((m) => ({ ...m, deterministicReturnPct: safeParseNumber(d.value) }))}
+                  onChange={(_, d) => setDraftMarket((m) => ({ ...m, deterministicReturnPct: safeParseNumber(d.value, 7, -100, 100) }))}
                 />
               </Field>
               <Field label="Inflation (%)">
                 <Input
                   type="number"
                   value={String(draftMarket.deterministicInflationPct ?? 2.5)}
-                  onChange={(_, d) => setDraftMarket((m) => ({ ...m, deterministicInflationPct: safeParseNumber(d.value) }))}
+                  onChange={(_, d) => setDraftMarket((m) => ({ ...m, deterministicInflationPct: safeParseNumber(d.value, 2.5, -100, 100) }))}
                 />
               </Field>
             </div>
@@ -129,14 +133,14 @@ export function AssumptionsPage() {
               <Input
                 type="number"
                 value={String(draftTaxes.federalEffectiveRatePct ?? 22)}
-                onChange={(_, d) => setDraftTaxes((t) => ({ ...t, federalEffectiveRatePct: safeParseNumber(d.value) }))}
+                onChange={(_, d) => setDraftTaxes((t) => ({ ...t, federalEffectiveRatePct: safeParseNumber(d.value, 22, 0, 100) }))}
               />
             </Field>
             <Field label="State Effective Rate (%)">
               <Input
                 type="number"
                 value={String(draftTaxes.stateEffectiveRatePct ?? 0)}
-                onChange={(_, d) => setDraftTaxes((t) => ({ ...t, stateEffectiveRatePct: safeParseNumber(d.value) }))}
+                onChange={(_, d) => setDraftTaxes((t) => ({ ...t, stateEffectiveRatePct: safeParseNumber(d.value, 0, 0, 100) }))}
               />
             </Field>
           </div>
@@ -144,7 +148,7 @@ export function AssumptionsPage() {
             <Input
               type="number"
               value={String(draftTaxes.capGainsRatePct ?? 15)}
-              onChange={(_, d) => setDraftTaxes((t) => ({ ...t, capGainsRatePct: safeParseNumber(d.value) }))}
+              onChange={(_, d) => setDraftTaxes((t) => ({ ...t, capGainsRatePct: safeParseNumber(d.value, 15, 0, 100) }))}
             />
           </Field>
         </div>

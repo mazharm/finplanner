@@ -35,7 +35,8 @@ export function createPdfTextExtractor(): PdfTextExtractor {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
         const pageText = content.items
-          .map((item: { str?: string }) => item.str ?? '')
+          .filter((item) => 'str' in item)
+          .map((item) => (item as { str: string }).str)
           .join(' ');
         textParts.push(pageText);
       }

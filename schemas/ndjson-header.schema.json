@@ -7,7 +7,7 @@
   "required": ["_type", "schemaVersion", "savedAt", "modules"],
   "properties": {
     "_type": { "const": "header" },
-    "schemaVersion": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "schemaVersion": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.]+)?$" },
     "savedAt": { "type": "string", "format": "date-time" },
     "modules": {
       "type": "array",

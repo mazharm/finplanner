@@ -164,8 +164,10 @@ describe('Agent Template Generation', () => {
       expect(summary).toContain('filed');
       expect(summary).toContain('2025');
       expect(summary).toContain('draft');
-      expect(summary).toContain('Fidelity Brokerage');
-      expect(summary).toContain('Corporate Pension');
+      // Account and income stream names are replaced with generic labels to avoid PII
+      expect(summary).toContain('Account 1');
+      expect(summary).toContain('Account 2');
+      expect(summary).toContain('Income Stream 1');
       expect(summary).toContain('w2-employer.pdf');
     });
 

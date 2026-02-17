@@ -176,7 +176,7 @@ export function AccountsPage() {
                       type="number"
                       value={String(draft.expectedReturnPct)}
                       onChange={(_, data) =>
-                        setDraft((d) => ({ ...d, expectedReturnPct: safeParseNumber(data.value) }))
+                        setDraft((d) => ({ ...d, expectedReturnPct: safeParseNumber(data.value, 7, -100, 100) }))
                       }
                     />
                   </Field>
@@ -184,7 +184,7 @@ export function AccountsPage() {
                     <Input
                       type="number"
                       value={String(draft.feePct)}
-                      onChange={(_, data) => setDraft((d) => ({ ...d, feePct: safeParseNumber(data.value) }))}
+                      onChange={(_, data) => setDraft((d) => ({ ...d, feePct: safeParseNumber(data.value, 0.1, 0, 100) }))}
                     />
                   </Field>
                 </div>

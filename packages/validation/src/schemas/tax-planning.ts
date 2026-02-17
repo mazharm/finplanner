@@ -3,13 +3,13 @@ import { filingStatusSchema, taxYearStatusSchema, taxFormTypeSchema, checklistIt
 import { VALID_STATE_CODES } from '@finplanner/domain';
 
 export const taxDocumentSchema = z.object({
-  id: z.string().min(1),
-  taxYear: z.number().int(),
+  id: z.string().min(1).max(100),
+  taxYear: z.number().int().min(1900).max(2200),
   formType: taxFormTypeSchema,
-  issuerName: z.string().min(1),
-  sourceFileName: z.string().optional(),
-  oneDrivePath: z.string().optional(),
-  extractedFields: z.record(z.string(), z.union([z.number(), z.string()])),
+  issuerName: z.string().min(1).max(500),
+  sourceFileName: z.string().max(500).optional(),
+  oneDrivePath: z.string().max(1000).optional(),
+  extractedFields: z.record(z.string().max(200), z.union([z.number(), z.string().max(1000)])),
   fieldConfidence: z.record(z.string(), z.number().min(0).max(1)),
   extractionConfidence: z.number().min(0).max(1),
   lowConfidenceFields: z.array(z.string()),
@@ -19,7 +19,7 @@ export const taxDocumentSchema = z.object({
 
 export const taxYearIncomeSchema = z.object({
   wages: z.number().min(0),
-  selfEmploymentIncome: z.number().min(0),
+  selfEmploymentIncome: z.number(), // Can be negative (net loss)
   interestIncome: z.number().min(0),
   dividendIncome: z.number().min(0),
   qualifiedDividends: z.number().min(0),
@@ -65,7 +65,7 @@ export const taxYearPaymentsSchema = z.object({
 });
 
 export const taxYearRecordSchema = z.object({
-  taxYear: z.number().int(),
+  taxYear: z.number().int().min(1900).max(2200),
   status: taxYearStatusSchema,
   filingStatus: filingStatusSchema,
   stateOfResidence: z.string().refine(
@@ -82,32 +82,32 @@ export const taxYearRecordSchema = z.object({
   computedEffectiveStateRate: z.number(),
   refundOrBalanceDueFederal: z.number().optional(),
   refundOrBalanceDueState: z.number().optional(),
-  documentIds: z.array(z.string()),
-  notes: z.string().optional(),
+  documentIds: z.array(z.string().max(100)),
+  notes: z.string().max(5000).optional(),
 });
 
 export const checklistItemSchema = z.object({
-  id: z.string().min(1),
-  taxYear: z.number().int(),
+  id: z.string().min(1).max(100),
+  taxYear: z.number().int().min(1900).max(2200),
   category: z.enum(['document', 'income', 'deduction', 'life_event', 'deadline']),
-  description: z.string(),
+  description: z.string().max(2000),
   status: checklistItemStatusSchema,
-  sourceReasoning: z.string(),
-  relatedPriorYearItem: z.string().optional(),
-  linkedDocumentId: z.string().optional(),
+  sourceReasoning: z.string().max(2000),
+  relatedPriorYearItem: z.string().max(100).optional(),
+  linkedDocumentId: z.string().max(100).optional(),
 });
 
 export const anomalySchema = z.object({
-  id: z.string().min(1),
-  taxYear: z.number().int(),
-  comparisonYear: z.number().int(),
+  id: z.string().min(1).max(100),
+  taxYear: z.number().int().min(1900).max(2200),
+  comparisonYear: z.number().int().min(1900).max(2200),
   category: z.enum(['omission', 'anomaly', 'pattern_break']),
   severity: anomalySeveritySchema,
-  field: z.string(),
-  description: z.string(),
-  priorValue: z.union([z.number(), z.string()]).optional(),
-  currentValue: z.union([z.number(), z.string()]).optional(),
+  field: z.string().max(200),
+  description: z.string().max(2000),
+  priorValue: z.union([z.number(), z.string().max(500)]).optional(),
+  currentValue: z.union([z.number(), z.string().max(500)]).optional(),
   percentChange: z.number().optional(),
-  suggestedAction: z.string(),
-  llmAnalysis: z.string().optional(),
+  suggestedAction: z.string().max(2000),
+  llmAnalysis: z.string().max(5000).optional(),
 });

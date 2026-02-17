@@ -59,7 +59,7 @@ export function YearOverYearPage() {
         inc.retirementDistributions + inc.socialSecurityIncome + inc.otherIncome;
       const totalIncomeCurrent = computeGross(current.income);
       const totalIncomePrior = computeGross(prior.income);
-      const incomeChange = totalIncomePrior !== 0 ? ((totalIncomeCurrent - totalIncomePrior) / totalIncomePrior) * 100 : 0;
+      const incomeChange = totalIncomePrior !== 0 ? ((totalIncomeCurrent - totalIncomePrior) / totalIncomePrior) * 100 : null;
       return {
         current: current.taxYear,
         prior: prior.taxYear,
@@ -101,7 +101,7 @@ export function YearOverYearPage() {
               <Card key={`${comp.prior}-${comp.current}`}>
                 <CardHeader header={<Text weight="semibold">{comp.prior} → {comp.current}</Text>} />
                 <div className={styles.anomalyCard}>
-                  <Text>Income: {formatCurrency(comp.totalIncomePrior)} → {formatCurrency(comp.totalIncomeCurrent)} ({comp.incomeChange >= 0 ? '+' : ''}{comp.incomeChange.toFixed(1)}%)</Text>
+                  <Text>Income: {formatCurrency(comp.totalIncomePrior)} → {formatCurrency(comp.totalIncomeCurrent)} ({comp.incomeChange !== null ? `${comp.incomeChange >= 0 ? '+' : ''}${comp.incomeChange.toFixed(1)}%` : 'N/A'})</Text>
                   <Text>Federal Tax: {formatCurrency(comp.fedTaxPrior)} → {formatCurrency(comp.fedTaxCurrent)}</Text>
                   <Text>Effective Rate: {comp.effectiveRatePrior.toFixed(1)}% → {comp.effectiveRateCurrent.toFixed(1)}%</Text>
                 </div>

@@ -103,8 +103,10 @@ export const useSharedStore = create<SharedState>((set, get) => {
   },
 
   setHousehold: (household) => {
-    set({ household });
-    persistShared({ ...get(), household });
+    set((state) => {
+      persistShared({ ...state, household });
+      return { household };
+    });
   },
   updateHousehold: (partial) => {
     set((state) => {

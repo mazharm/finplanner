@@ -40,6 +40,10 @@ export function PlanSetupPage() {
     };
   }, []);
 
+  // Sync drafts when store changes externally (e.g., import, sync)
+  useEffect(() => { setDraftSpending({ ...spending }); }, [spending]);
+  useEffect(() => { setDraftStrategy({ ...strategy }); }, [strategy]);
+
   const handleSave = useCallback(() => {
     setSpending(draftSpending);
     setStrategy(draftStrategy);
@@ -73,7 +77,7 @@ export function PlanSetupPage() {
               <Input
                 type="number"
                 value={String(draftSpending.inflationPct)}
-                onChange={(_, d) => setDraftSpending((s) => ({ ...s, inflationPct: safeParseNumber(d.value) }))}
+                onChange={(_, d) => setDraftSpending((s) => ({ ...s, inflationPct: safeParseNumber(d.value, 2.5, -10, 30) }))}
               />
             </Field>
           </div>
@@ -97,7 +101,7 @@ export function PlanSetupPage() {
             <Input
               type="number"
               value={String(draftSpending.survivorSpendingAdjustmentPct)}
-              onChange={(_, d) => setDraftSpending((s) => ({ ...s, survivorSpendingAdjustmentPct: safeParseNumber(d.value) }))}
+              onChange={(_, d) => setDraftSpending((s) => ({ ...s, survivorSpendingAdjustmentPct: safeParseNumber(d.value, 70, 0, 100) }))}
             />
           </Field>
         </div>

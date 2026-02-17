@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { ownerSchema } from './common.js';
 
 export const incomeStreamSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
+  id: z.string().min(1).max(100),
+  name: z.string().min(1).max(200),
   owner: ownerSchema,
   startYear: z.number().int().min(1900).max(2200),
   endYear: z.number().int().min(1900).max(2200).optional(),
@@ -17,8 +17,8 @@ export const incomeStreamSchema = z.object({
 );
 
 export const adjustmentSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
+  id: z.string().min(1).max(100),
+  name: z.string().min(1).max(200),
   year: z.number().int().min(1900).max(2200),
   endYear: z.number().int().min(1900).max(2200).optional(),
   amount: z.number(),

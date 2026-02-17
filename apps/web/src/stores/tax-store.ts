@@ -139,8 +139,10 @@ export const useTaxStore = create<TaxState>((set, get) => {
   },
 
   setChecklistItems: (items) => {
-    set({ checklistItems: items });
-    persistTax({ ...get(), checklistItems: items });
+    set((state) => {
+      persistTax({ ...state, checklistItems: items });
+      return { checklistItems: items };
+    });
   },
   updateChecklistItem: (id, partial) => {
     set((state) => {
@@ -153,8 +155,10 @@ export const useTaxStore = create<TaxState>((set, get) => {
   },
 
   setAnomalies: (anomalies) => {
-    set({ anomalies });
-    persistTax({ ...get(), anomalies });
+    set((state) => {
+      persistTax({ ...state, anomalies });
+      return { anomalies };
+    });
   },
 };
 });

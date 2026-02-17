@@ -10,13 +10,13 @@
     "taxYear": { "type": "integer" },
     "status": { "type": "string", "enum": ["draft", "ready", "filed", "amended"] },
     "filingStatus": { "type": "string", "enum": ["single", "mfj", "survivor"] },
-    "stateOfResidence": { "type": "string", "minLength": 2, "maxLength": 2 },
+    "stateOfResidence": { "type": "string", "enum": ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"] },
     "income": {
       "type": "object",
       "required": ["wages", "selfEmploymentIncome", "interestIncome", "dividendIncome", "qualifiedDividends", "capitalGains", "capitalLosses", "rentalIncome", "nqdcDistributions", "retirementDistributions", "socialSecurityIncome", "otherIncome"],
       "properties": {
         "wages": { "type": "number", "minimum": 0 },
-        "selfEmploymentIncome": { "type": "number", "minimum": 0 },
+        "selfEmploymentIncome": { "type": "number", "description": "Can be negative (net loss)" },
         "interestIncome": { "type": "number", "minimum": 0 },
         "dividendIncome": { "type": "number", "minimum": 0 },
         "qualifiedDividends": { "type": "number", "minimum": 0, "description": "Must be <= dividendIncome (qualified dividends are a subset of total dividends)" },

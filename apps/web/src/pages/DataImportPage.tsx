@@ -40,7 +40,7 @@ const useStyles = makeStyles({
     cursor: 'pointer',
   },
   dropZoneActive: {
-    borderColor: tokens.colorBrandStroke1,
+    border: `2px dashed ${tokens.colorBrandStroke1}`,
     backgroundColor: tokens.colorBrandBackground2,
   },
   results: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalS },

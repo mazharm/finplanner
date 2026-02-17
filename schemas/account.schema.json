@@ -22,7 +22,7 @@
       "required": ["startYear", "endYear", "frequency", "amount", "inflationAdjusted"],
       "properties": {
         "startYear": { "type": "integer", "minimum": 1900, "maximum": 2200 },
-        "endYear": { "type": "integer", "minimum": 1900, "maximum": 2200 },
+        "endYear": { "type": "integer", "minimum": 1900, "maximum": 2200, "description": "Must be >= startYear" },
         "frequency": { "type": "string", "enum": ["annual", "monthly"] },
         "amount": { "type": "number", "minimum": 0 },
         "inflationAdjusted": { "type": "boolean" }

@@ -164,7 +164,7 @@ export function TaxYearsPage() {
                   <Input
                     type="number"
                     value={String(newYear)}
-                    onChange={(_, data) => setNewYear(safeParseNumber(data.value, new Date().getFullYear()))}
+                    onChange={(_, data) => setNewYear(safeParseNumber(data.value, new Date().getFullYear(), 1900, 2200))}
                   />
                 </Field>
                 {taxYears.some((ty) => ty.taxYear === newYear) && (

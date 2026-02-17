@@ -1,4 +1,4 @@
-import { Component, type ReactNode } from 'react';
+import React, { Component, type ReactNode } from 'react';
 import {
   makeStyles,
   Card,
@@ -28,6 +28,7 @@ interface State {
 
 function ErrorFallback({ error, onReset }: { error: Error | null; onReset: () => void }) {
   const styles = useStyles();
+  const isDev = import.meta.env.DEV;
   return (
     <div className={styles.container}>
       <Title3>Something went wrong</Title3>
@@ -38,6 +39,11 @@ function ErrorFallback({ error, onReset }: { error: Error | null; onReset: () =>
             An unexpected error occurred. Please try refreshing the page.
           </MessageBarBody>
         </MessageBar>
+        {isDev && error && (
+          <Text size={200} style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', marginTop: '8px' }}>
+            {error.message}
+          </Text>
+        )}
         <div className={styles.actions}>
           <Button appearance="primary" onClick={onReset}>
             Try Again
@@ -56,6 +62,10 @@ export class ErrorBoundary extends Component<Props, State> {
 
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('[FinPlanner] Uncaught error:', error.message, errorInfo.componentStack);
   }
 
   handleReset = () => {

@@ -643,10 +643,10 @@ Schema Version: ${SCHEMA_VERSION}
   if (input.accounts.length === 0) {
     doc += '| (none) | — |\n';
   } else {
-    for (const a of input.accounts) {
-      // Escape pipe characters in account names to prevent markdown table corruption
-      const safeName = a.name.replace(/\|/g, '\\|').replace(/\[/g, '\\[');
-      doc += `| ${safeName} | ${a.type} |\n`;
+    for (let i = 0; i < input.accounts.length; i++) {
+      const a = input.accounts[i];
+      // Use generic label instead of account name to avoid PII leakage
+      doc += `| Account ${i + 1} | ${a.type} |\n`;
     }
   }
 
@@ -658,9 +658,9 @@ Schema Version: ${SCHEMA_VERSION}
   if (input.incomeStreams.length === 0) {
     doc += '(none)\n';
   } else {
-    for (const s of input.incomeStreams) {
-      const safeName = s.name.replace(/\[/g, '\\[');
-      doc += `- ${safeName}\n`;
+    for (let i = 0; i < input.incomeStreams.length; i++) {
+      // Use generic label instead of income stream name to avoid PII leakage
+      doc += `- Income Stream ${i + 1}\n`;
     }
   }
 

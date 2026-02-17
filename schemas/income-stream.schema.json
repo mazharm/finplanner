@@ -17,5 +17,6 @@
     "taxable": { "type": "boolean" },
     "survivorContinues": { "type": "boolean" }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "description": "When endYear is present, it must be >= startYear. This is enforced by the Zod schema at runtime."
 }

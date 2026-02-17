@@ -40,6 +40,8 @@ export function ScenariosPage() {
   const { spending, taxes, market, strategy, scenarios, addScenario, removeScenario, setActiveScenario } = useRetirementStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [scenarioName, setScenarioName] = useState('');
+  const [deleteScenarioId, setDeleteScenarioId] = useState<string | null>(null);
+  const deleteScenario = scenarios.find((s) => s.id === deleteScenarioId);
 
   const handleCreate = useCallback(() => {
     addScenario({
@@ -123,7 +125,7 @@ export function ScenariosPage() {
                       icon={<DeleteRegular />}
                       size="small"
                       aria-label={`Delete scenario ${scen.name}`}
-                      onClick={() => removeScenario(scen.id)}
+                      onClick={() => setDeleteScenarioId(scen.id)}
                     />
                   </TableCell>
                 </TableRow>
@@ -132,6 +134,25 @@ export function ScenariosPage() {
           </TableBody>
         </Table>
       </Card>
+
+      <Dialog open={deleteScenarioId !== null} onOpenChange={(_, data) => { if (!data.open) setDeleteScenarioId(null); }}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Delete Scenario</DialogTitle>
+            <DialogContent>
+              Are you sure you want to delete scenario &quot;{deleteScenario?.name}&quot;? This cannot be undone.
+            </DialogContent>
+            <DialogActions>
+              <DialogTrigger disableButtonEnhancement>
+                <Button appearance="secondary">Cancel</Button>
+              </DialogTrigger>
+              <Button appearance="primary" onClick={() => { removeScenario(deleteScenarioId!); setDeleteScenarioId(null); }}>
+                Delete
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={(_, data) => setDialogOpen(data.open)}>
         <DialogSurface>

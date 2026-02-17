@@ -114,7 +114,7 @@ describe('stripPortfolioPii', () => {
     const request = makePortfolioRequest();
     request.planInput.household.maritalStatus = 'single';
     request.planInput.household.filingStatus = 'single';
-    delete (request.planInput.household as Record<string, unknown>).spouse;
+    delete (request.planInput.household as unknown as Record<string, unknown>).spouse;
     const result = stripPortfolioPii(request);
     expect(result.household.spouse).toBeUndefined();
   });

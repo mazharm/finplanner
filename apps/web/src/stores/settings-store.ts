@@ -66,6 +66,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     try {
       await clearAllDataIdb();
       set({ hasApiKey: false, oneDriveConnected: false, syncStatus: 'offline' });
+      // Force page reload to reset all in-memory store state
+      window.location.reload();
     } catch (err) {
       console.error('[FinPlanner] Failed to clear all data:', err instanceof Error ? err.message : 'Unknown error');
       throw err;

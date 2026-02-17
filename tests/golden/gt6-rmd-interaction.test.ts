@@ -94,11 +94,11 @@ describe('GT6: RMD Interaction', () => {
       expect(yr1.agePrimary).toBe(74);
     });
 
-    it('should have RMD of approximately $123,529', () => {
-      // RMD uses post-return balance: $3,000,000 * 1.05 = $3,150,000
+    it('should have RMD of approximately $117,647', () => {
+      // RMD uses prior year-end balance (the input balance): $3,000,000
       // Divisor for age 74 = 25.5
-      // RMD = 3,150,000 / 25.5 = 123,529.41
-      expect(yr1.rmdTotal).toBeCloseTo(123_529, 0);
+      // RMD = 3,000,000 / 25.5 = 117,647.06
+      expect(yr1.rmdTotal).toBeCloseTo(117_647, 0);
     });
 
     it('should have RMD exceeding spending target ($80,000)', () => {

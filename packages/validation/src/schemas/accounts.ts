@@ -13,8 +13,8 @@ export const deferredCompScheduleSchema = z.object({
 );
 
 export const accountSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
+  id: z.string().min(1).max(100),
+  name: z.string().min(1).max(200),
   type: accountTypeSchema,
   owner: ownerSchema,
   currentBalance: z.number().min(0),

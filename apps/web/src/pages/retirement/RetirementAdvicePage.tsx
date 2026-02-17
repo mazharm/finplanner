@@ -77,6 +77,7 @@ export function RetirementAdvicePage() {
 
       const request: PortfolioAdviceRequest = {
         planInput: {
+          schemaVersion: '3.0.0',
           household,
           accounts,
           otherIncome: incomeStreams,
@@ -90,12 +91,6 @@ export function RetirementAdvicePage() {
           successProbability: 0,
           medianTerminalValue: 0,
           worstCaseShortfall: 0,
-          medianShortfallYear: null,
-          percentile10: 0,
-          percentile25: 0,
-          percentile50: 0,
-          percentile75: 0,
-          percentile90: 0,
         },
         userPreferences: {
           riskTolerance: 'moderate',
@@ -134,7 +129,7 @@ export function RetirementAdvicePage() {
       </Title3>
       <MessageBar intent="info">
         <MessageBarBody>
-          Retirement advice is generated using {hasApiKey ? 'Claude AI' : 'rule-based analysis (fallback mode)'}. No personally identifiable information is sent to the API.
+          Retirement advice is generated using {hasApiKey ? 'Claude AI' : 'rule-based analysis (fallback mode)'}. Names and SSNs are removed before sending. Financial data (balances, income, ages) is sent to generate advice.
         </MessageBarBody>
       </MessageBar>
       <Card>

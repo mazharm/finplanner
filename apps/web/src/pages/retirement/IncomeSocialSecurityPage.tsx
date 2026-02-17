@@ -52,6 +52,8 @@ export function IncomeSocialSecurityPage() {
   const { incomeStreams, addIncomeStream, removeIncomeStream } = useSharedStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [draft, setDraft] = useState<Omit<IncomeStream, 'id'>>(emptyStream);
+  const [deleteStreamId, setDeleteStreamId] = useState<string | null>(null);
+  const deleteStream = incomeStreams.find((s) => s.id === deleteStreamId);
 
   const handleAdd = useCallback(() => {
     addIncomeStream({ ...draft, id: generateId('inc') });
@@ -110,7 +112,7 @@ export function IncomeSocialSecurityPage() {
                       icon={<DeleteRegular />}
                       size="small"
                       aria-label={`Delete income stream ${s.name}`}
-                      onClick={() => removeIncomeStream(s.id)}
+                      onClick={() => setDeleteStreamId(s.id)}
                     />
                   </TableCell>
                 </TableRow>
@@ -119,6 +121,25 @@ export function IncomeSocialSecurityPage() {
           </TableBody>
         </Table>
       </Card>
+
+      <Dialog open={deleteStreamId !== null} onOpenChange={(_, data) => { if (!data.open) setDeleteStreamId(null); }}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Delete Income Stream</DialogTitle>
+            <DialogContent>
+              Are you sure you want to delete income stream &quot;{deleteStream?.name}&quot;? This cannot be undone.
+            </DialogContent>
+            <DialogActions>
+              <DialogTrigger disableButtonEnhancement>
+                <Button appearance="secondary">Cancel</Button>
+              </DialogTrigger>
+              <Button appearance="primary" onClick={() => { removeIncomeStream(deleteStreamId!); setDeleteStreamId(null); }}>
+                Delete
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={(_, data) => setDialogOpen(data.open)}>
         <DialogSurface>
@@ -195,7 +216,7 @@ export function IncomeSocialSecurityPage() {
               <DialogTrigger disableButtonEnhancement>
                 <Button appearance="secondary">Cancel</Button>
               </DialogTrigger>
-              <Button appearance="primary" onClick={handleAdd} disabled={!draft.name}>
+              <Button appearance="primary" onClick={handleAdd} disabled={!draft.name.trim()}>
                 Add
               </Button>
             </DialogActions>
