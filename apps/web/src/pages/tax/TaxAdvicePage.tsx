@@ -14,13 +14,14 @@ import {
   MessageBarBody,
 } from '@fluentui/react-components';
 import { LightbulbRegular } from '@fluentui/react-icons';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { getTaxStrategyAdvice } from '@finplanner/claude';
 import type { TaxStrategyAdviceRequest } from '@finplanner/domain';
 import { useTaxStore } from '../../stores/tax-store.js';
 import { useSharedStore } from '../../stores/shared-store.js';
 import { useSettingsStore } from '../../stores/settings-store.js';
 import { createLlmClient } from '../../services/llm-client.js';
+import { getApiKey } from '../../services/indexeddb.js';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
@@ -57,8 +58,23 @@ export function TaxAdvicePage() {
   const [disclaimer, setDisclaimer] = useState('');
   const [error, setError] = useState('');
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
   const handleGetAdvice = useCallback(async () => {
     if (!selectedYear) return;
+
+    // Abort any in-flight request
+    abortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     setLoading(true);
     setError('');
 
@@ -70,7 +86,9 @@ export function TaxAdvicePage() {
       }
 
       const priorYear = taxYears.find((ty) => ty.taxYear === selectedYear - 1) ?? null;
-      const { claudeApiKey } = useSettingsStore.getState();
+      const apiKey = await getApiKey();
+
+      if (abortController.signal.aborted) return;
 
       const request: TaxStrategyAdviceRequest = {
         taxYear: selectedYear,
@@ -86,8 +104,10 @@ export function TaxAdvicePage() {
         },
       };
 
-      const client = claudeApiKey ? createLlmClient(claudeApiKey) : undefined;
+      const client = apiKey ? createLlmClient(apiKey) : undefined;
       const response = await getTaxStrategyAdvice(request, client);
+
+      if (abortController.signal.aborted) return;
 
       setRecommendations(
         response.recommendations.map((r) => ({
@@ -98,9 +118,12 @@ export function TaxAdvicePage() {
       );
       setDisclaimer(response.disclaimer);
     } catch (err) {
+      if (abortController.signal.aborted) return;
       setError(`Failed to get tax advice: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
-      setLoading(false);
+      if (!abortController.signal.aborted) {
+        setLoading(false);
+      }
     }
   }, [selectedYear, taxYears, household, accounts, incomeStreams]);
 

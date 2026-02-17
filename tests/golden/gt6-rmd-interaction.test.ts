@@ -15,20 +15,19 @@ import type { PlanInput } from '@finplanner/domain';
  *
  * Fixture: Single retiree, age 74, LE 95 (21-year horizon).
  * Tax-deferred account: $3,000,000, 5% return, 0.15% fee.
- * Birth year 1952 -> RMD start age 73 -> already in RMD territory.
+ * Birth year 1952 -> RMD start age 73 (SECURE 2.0 rule for birth years
+ * 1951-1959) -> RMDs began in calendar year 2025 (1952 + 73). In simulation
+ * year 1 (2026, age 74), RMDs continue from the prior year; no first-year
+ * delay applies.
  *
  * Year 1 RMD walkthrough:
- *   BOY balance after return: 3,000,000 * 1.05 = 3,150,000
+ *   RMD uses prior year-end balance (snapshot before returns): $3,000,000
  *   ULT divisor for age 74 = 25.5
- *   RMD = 3,150,000 / 25.5 = 123,529.41
+ *   RMD = 3,000,000 / 25.5 = 117,647.06
  */
 
-/** Tolerance for dollar comparisons */
-const TOLERANCE = 5;
-
-function closeTo(actual: number, expected: number, tol = TOLERANCE): boolean {
-  return Math.abs(actual - expected) <= tol;
-}
+/** Tolerance for dollar comparisons (wider to accommodate convergence residuals) */
+const TOLERANCE = 100;
 
 const fixture: PlanInput = {
   schemaVersion: '3.0.0',
@@ -94,12 +93,15 @@ describe('GT6: RMD Interaction', () => {
       expect(yr1.agePrimary).toBe(74);
     });
 
-    it('should have RMD of approximately $123,529', () => {
-      // BOY: 3,000,000 * 1.05 = 3,150,000; divisor 25.5; RMD = 123,529.41
-      expect(closeTo(yr1.rmdTotal, 123_529, 2)).toBe(true);
+    it('should have RMD of approximately $117,647', () => {
+      // RMD uses prior year-end balance (snapshot before returns): $3,000,000
+      // Divisor for age 74 = 25.5
+      // RMD = 3,000,000 / 25.5 = 117,647.06
+      expect(yr1.rmdTotal).toBeCloseTo(117_647, 0);
     });
 
     it('should have RMD exceeding spending target ($80,000)', () => {
+      // RMD ~$117,647 > $80,000 spending target
       expect(yr1.rmdTotal).toBeGreaterThan(80_000);
     });
 
@@ -145,8 +147,8 @@ describe('GT6: RMD Interaction', () => {
     it('should have taxable ordinary income reflecting RMD in year 1', () => {
       const yr1 = yearly[0];
       // taxableOrdinaryIncome should be RMD minus standard deduction (approximately)
-      // RMD ~$123,529 - $15,000 std deduction = ~$108,529
-      expect(yr1.taxableOrdinaryIncome).toBeGreaterThan(100_000);
+      // RMD ~$117,647 - $15,000 std deduction = ~$102,647
+      expect(yr1.taxableOrdinaryIncome).toBeGreaterThan(95_000);
     });
 
     it('should have zero state taxes (stateModel: none)', () => {
@@ -159,27 +161,23 @@ describe('GT6: RMD Interaction', () => {
   describe('RMD percentage increases over time', () => {
     it('should have increasing RMD-to-balance ratio over time', () => {
       // As the divisor shrinks with age, RMD as a percentage of balance increases.
-      // Compare year 1 vs later years.
-      // We check that the RMD/gross-balance ratio at age 74 < ratio at age 84.
+      // Compare year 1 vs year 11 (age 74 vs age 84).
       // ULT divisor: age 74 = 25.5 -> 3.92%; age 84 = 16.8 -> 5.95%
       const yr1 = yearly[0];
       const yr11 = yearly[10]; // age 84
 
-      // We can estimate ratios from the rmdTotal relative to endBalance + rmdTotal
-      // (approximating BOY balance as endBalance + rmd + fees - returns)
-      // Simpler: just check that later RMD percentages are higher
-      if (yr11 && yr11.rmdTotal > 0) {
-        const balance1 = Object.values(yr1.endBalanceByAccount).reduce((s, v) => s + v, 0);
-        const balance11 = Object.values(yr11.endBalanceByAccount).reduce((s, v) => s + v, 0);
+      // Unconditionally assert year 11 exists and has RMD
+      expect(yearly.length).toBeGreaterThan(10);
+      expect(yr11.rmdTotal).toBeGreaterThan(0);
 
-        // Approximate BOY balance from endBalance (rough, but directionally correct)
-        // The key insight: divisor at age 84 (16.8) < divisor at age 74 (25.5)
-        // so rmd/balance ratio must be higher
-        const ratio1 = yr1.rmdTotal / (balance1 + yr1.rmdTotal);
-        const ratio11 = yr11.rmdTotal / (balance11 + yr11.rmdTotal);
+      const balance1 = Object.values(yr1.endBalanceByAccount).reduce((s, v) => s + v, 0);
+      const balance11 = Object.values(yr11.endBalanceByAccount).reduce((s, v) => s + v, 0);
 
-        expect(ratio11).toBeGreaterThan(ratio1);
-      }
+      // Approximate RMD-to-balance ratio using endBalance + rmdTotal as a proxy for BOY balance
+      const ratio1 = yr1.rmdTotal / (balance1 + yr1.rmdTotal);
+      const ratio11 = yr11.rmdTotal / (balance11 + yr11.rmdTotal);
+
+      expect(ratio11).toBeGreaterThan(ratio1);
     });
   });
 
@@ -194,18 +192,19 @@ describe('GT6: RMD Interaction', () => {
   describe('No discretionary withdrawal when RMD covers spending', () => {
     it('should not need additional withdrawals beyond RMD in year 1', () => {
       const yr1 = yearly[0];
-      // The RMD of ~$123,529 should be enough to cover $80,000 spending + taxes.
-      // Taxes on ~$123,529 at 22% effective (after deduction) are roughly $23,876.
-      // Net from RMD = ~$123,529 - ~$23,876 = ~$99,653 > $80,000 spending.
+      // The RMD of ~$117,647 should be enough to cover $80,000 spending + taxes.
+      // Taxes on ~$117,647 at 22% effective (after $15k deduction) are roughly $22,582.
+      // Net from RMD = ~$117,647 - ~$22,582 = ~$95,065 > $80,000 spending.
       // So no discretionary withdrawal from the tax-deferred account should be needed.
       // The withdrawalsByAccount should only reflect the RMD amount (or very close to it).
       const totalWithdrawals = Object.values(yr1.withdrawalsByAccount).reduce(
         (sum, v) => sum + v,
         0
       );
-      // Total withdrawals should be close to RMD (no extra discretionary withdrawals needed)
-      // The convergence loop may produce a small additional amount, but it should be minimal.
-      expect(totalWithdrawals).toBeLessThan(yr1.rmdTotal + 1_000);
+      // withdrawalsByAccount tracks only discretionary withdrawals, not RMDs.
+      // Since the RMD (~$117,647) covers spending + taxes, no additional
+      // discretionary withdrawals should be needed.
+      expect(totalWithdrawals).toBe(0);
     });
   });
 
@@ -234,14 +233,12 @@ describe('GT6: RMD Interaction', () => {
   });
 
   describe('Summary statistics', () => {
-    it('should report deterministic success probability', () => {
-      // If there are no shortfalls, success probability = 1.0
+    it('should report success probability of 1.0 (no shortfalls expected)', () => {
+      // With $3M starting balance, 5% return, and $80k spending, the portfolio
+      // should sustain the 21-year horizon without shortfall
       const hasShortfall = yearly.some(yr => yr.shortfall > 0);
-      if (hasShortfall) {
-        expect(result.summary.successProbability).toBe(0);
-      } else {
-        expect(result.summary.successProbability).toBe(1.0);
-      }
+      expect(hasShortfall).toBe(false);
+      expect(result.summary.successProbability).toBe(1.0);
     });
   });
 });

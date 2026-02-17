@@ -74,9 +74,25 @@ export function TaxYearDetailPage() {
     setDraft((d) => d ? { ...d, income: { ...d.income, [field]: value } } : null);
   }, []);
 
+  const defaultItemized = useMemo(() => ({
+    mortgageInterest: 0,
+    stateAndLocalTaxes: 0,
+    charitableContributions: 0,
+    medicalExpenses: 0,
+    other: 0,
+  }), []);
+
   const updateDeductions = useCallback((field: keyof TaxYearDeductions, value: number | boolean) => {
-    setDraft((d) => d ? { ...d, deductions: { ...d.deductions, [field]: value } } : null);
-  }, []);
+    setDraft((d) => {
+      if (!d) return null;
+      const updated = { ...d, deductions: { ...d.deductions, [field]: value } };
+      // When toggling useItemized on, ensure itemizedDeductions is initialized
+      if (field === 'useItemized' && value === true && !updated.deductions.itemizedDeductions) {
+        updated.deductions = { ...updated.deductions, itemizedDeductions: { ...defaultItemized } };
+      }
+      return updated;
+    });
+  }, [defaultItemized]);
 
   const updateCredits = useCallback((field: keyof TaxYearCredits, value: number) => {
     setDraft((d) => d ? { ...d, credits: { ...d.credits, [field]: value } } : null);
@@ -103,7 +119,12 @@ export function TaxYearDetailPage() {
     );
   }
 
-  const totalIncome = Object.values(draft.income).reduce((s, v) => s + v, 0) - draft.income.capitalLosses;
+  const totalIncome = draft.income.wages + draft.income.selfEmploymentIncome +
+    draft.income.interestIncome + draft.income.dividendIncome +
+    draft.income.capitalGains - draft.income.capitalLosses +
+    draft.income.rentalIncome + draft.income.nqdcDistributions +
+    draft.income.retirementDistributions + draft.income.socialSecurityIncome +
+    draft.income.otherIncome;
 
   return (
     <div className={styles.root}>
@@ -178,15 +199,20 @@ export function TaxYearDetailPage() {
               checked={draft.deductions.useItemized}
               onChange={(_, data) => updateDeductions('useItemized', data.checked)}
             />
-            {draft.deductions.useItemized && draft.deductions.itemizedDeductions && (
-              <>
-                <CurrencyField label="Mortgage Interest" value={draft.deductions.itemizedDeductions.mortgageInterest} onChange={(v) => setDraft((d) => d ? { ...d, deductions: { ...d.deductions, itemizedDeductions: { ...d.deductions.itemizedDeductions!, mortgageInterest: v } } } : null)} />
-                <CurrencyField label="State & Local Taxes (SALT)" value={draft.deductions.itemizedDeductions.stateAndLocalTaxes} onChange={(v) => setDraft((d) => d ? { ...d, deductions: { ...d.deductions, itemizedDeductions: { ...d.deductions.itemizedDeductions!, stateAndLocalTaxes: v } } } : null)} />
-                <CurrencyField label="Charitable Contributions" value={draft.deductions.itemizedDeductions.charitableContributions} onChange={(v) => setDraft((d) => d ? { ...d, deductions: { ...d.deductions, itemizedDeductions: { ...d.deductions.itemizedDeductions!, charitableContributions: v } } } : null)} />
-                <CurrencyField label="Medical Expenses" value={draft.deductions.itemizedDeductions.medicalExpenses} onChange={(v) => setDraft((d) => d ? { ...d, deductions: { ...d.deductions, itemizedDeductions: { ...d.deductions.itemizedDeductions!, medicalExpenses: v } } } : null)} />
-                <CurrencyField label="Other Itemized" value={draft.deductions.itemizedDeductions.other} onChange={(v) => setDraft((d) => d ? { ...d, deductions: { ...d.deductions, itemizedDeductions: { ...d.deductions.itemizedDeductions!, other: v } } } : null)} />
-              </>
-            )}
+            {draft.deductions.useItemized && (() => {
+              const itemized = draft.deductions.itemizedDeductions ?? defaultItemized;
+              const updateItemized = (field: string, v: number) =>
+                setDraft((d) => d ? { ...d, deductions: { ...d.deductions, itemizedDeductions: { ...defaultItemized, ...d.deductions.itemizedDeductions, [field]: v } } } : null);
+              return (
+                <>
+                  <CurrencyField label="Mortgage Interest" value={itemized.mortgageInterest ?? 0} onChange={(v) => updateItemized('mortgageInterest', v)} />
+                  <CurrencyField label="State & Local Taxes (SALT)" value={itemized.stateAndLocalTaxes ?? 0} onChange={(v) => updateItemized('stateAndLocalTaxes', v)} />
+                  <CurrencyField label="Charitable Contributions" value={itemized.charitableContributions ?? 0} onChange={(v) => updateItemized('charitableContributions', v)} />
+                  <CurrencyField label="Medical Expenses" value={itemized.medicalExpenses ?? 0} onChange={(v) => updateItemized('medicalExpenses', v)} />
+                  <CurrencyField label="Other Itemized" value={itemized.other ?? 0} onChange={(v) => updateItemized('other', v)} />
+                </>
+              );
+            })()}
           </div>
         </Card>
       )}

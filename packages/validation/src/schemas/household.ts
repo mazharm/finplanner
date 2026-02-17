@@ -15,21 +15,53 @@ export const personProfileSchema = z.object({
   retirementAge: z.number().int().min(0).max(120),
   lifeExpectancy: z.number().int().min(1).max(120),
   socialSecurity: socialSecuritySchema.optional(),
-});
+}).refine(
+  (data) => data.lifeExpectancy >= data.currentAge,
+  { message: 'lifeExpectancy must be >= currentAge', path: ['lifeExpectancy'] }
+).refine(
+  (data) => data.lifeExpectancy >= data.retirementAge,
+  { message: 'lifeExpectancy must be >= retirementAge', path: ['lifeExpectancy'] }
+);
 
 export const householdProfileSchema = z.object({
   maritalStatus: z.enum(['single', 'married']),
   filingStatus: filingStatusSchema,
-  stateOfResidence: z.string().length(2),
+  stateOfResidence: z.string().regex(/^[A-Z]{2}$/, 'Must be a 2-letter uppercase state code'),
   primary: personProfileSchema,
   spouse: personProfileSchema.optional(),
-}).refine(
-  (data) => data.maritalStatus !== 'single' || data.spouse === undefined,
-  { message: 'Single households cannot have a spouse', path: ['spouse'] }
-).refine(
-  (data) => data.maritalStatus !== 'married' || data.spouse !== undefined,
-  { message: 'Married households must have a spouse', path: ['spouse'] }
-).refine(
-  (data) => data.filingStatus !== 'mfj' || data.maritalStatus === 'married',
-  { message: 'MFJ filing status requires married marital status', path: ['filingStatus'] }
-);
+}).superRefine((data, ctx) => {
+  // Single households cannot have a spouse
+  if (data.maritalStatus === 'single' && data.spouse !== undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Single households cannot have a spouse',
+      path: ['spouse'],
+    });
+  }
+  // Married households must have a spouse
+  if (data.maritalStatus === 'married' && data.spouse === undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Married households must have a spouse',
+      path: ['spouse'],
+    });
+  }
+  // MFJ filing status requires married marital status
+  if (data.filingStatus === 'mfj' && data.maritalStatus !== 'married') {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'MFJ filing status requires married marital status',
+      path: ['filingStatus'],
+    });
+  }
+  // MFJ filing status requires spouse
+  if (data.filingStatus === 'mfj' && data.spouse === undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Married filing jointly requires a spouse profile',
+      path: ['spouse'],
+    });
+  }
+  // Survivor filing status is valid (no rejection) — it implies married status
+  // with a deceased spouse, so spouse profile is optional for survivor
+});

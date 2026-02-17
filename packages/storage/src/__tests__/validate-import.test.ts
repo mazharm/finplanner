@@ -7,7 +7,7 @@ describe('validateImport', () => {
   it('validates a well-formed NDJSON file', () => {
     const content = [
       VALID_HEADER,
-      '{"_type":"household","maritalStatus":"married","filingStatus":"mfj","stateOfResidence":"WA","primary":{"id":"primary","birthYear":1980,"currentAge":45,"retirementAge":65,"lifeExpectancy":90}}',
+      '{"_type":"household","maritalStatus":"married","filingStatus":"mfj","stateOfResidence":"WA","primary":{"id":"primary","birthYear":1980,"currentAge":45,"retirementAge":65,"lifeExpectancy":90},"spouse":{"id":"spouse","birthYear":1982,"currentAge":43,"retirementAge":65,"lifeExpectancy":88}}',
     ].join('\n');
     const result = validateImport(content);
     expect(result.valid).toBe(true);
@@ -50,7 +50,7 @@ describe('validateImport', () => {
   it('counts records by type', () => {
     const content = [
       VALID_HEADER,
-      '{"_type":"household","maritalStatus":"married","filingStatus":"mfj","stateOfResidence":"WA","primary":{"id":"primary","birthYear":1980,"currentAge":45,"retirementAge":65,"lifeExpectancy":90}}',
+      '{"_type":"household","maritalStatus":"married","filingStatus":"mfj","stateOfResidence":"WA","primary":{"id":"primary","birthYear":1980,"currentAge":45,"retirementAge":65,"lifeExpectancy":90},"spouse":{"id":"spouse","birthYear":1982,"currentAge":43,"retirementAge":65,"lifeExpectancy":88}}',
       '{"_type":"household","maritalStatus":"single","filingStatus":"single","stateOfResidence":"CA","primary":{"id":"primary","birthYear":1990,"currentAge":35,"retirementAge":67,"lifeExpectancy":88}}',
     ].join('\n');
     const result = validateImport(content);

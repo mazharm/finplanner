@@ -1,4 +1,3 @@
-import type { PlanInput } from '@finplanner/domain';
 import { planInputSchema } from '../schemas/plan-input.js';
 
 export interface ValidationResult {

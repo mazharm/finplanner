@@ -14,7 +14,8 @@ import { getRmdStartAge, lookupDistributionPeriod } from '../helpers/rmd-table.j
  */
 export function computeRmds(
   state: SimulationState,
-  yearContext: YearContext
+  yearContext: YearContext,
+  priorYearEndBalances?: Map<string, number>
 ): RmdResult {
   const { accounts, plan } = state;
   const { agePrimary, ageSpouse, primaryAlive, spouseAlive, isSurvivorPhase, survivorId } = yearContext;
@@ -67,8 +68,9 @@ export function computeRmds(
     const distributionPeriod = lookupDistributionPeriod(ownerAge);
     if (distributionPeriod <= 0) continue;
 
-    // Compute RMD
-    const rmd = account.balance / distributionPeriod;
+    // Compute RMD using prior year-end balance (IRS requirement) if available
+    const rmdBasis = priorYearEndBalances?.get(account.id) ?? account.balance;
+    const rmd = rmdBasis / distributionPeriod;
 
     // Withdraw the RMD from the account
     account.balance -= rmd;

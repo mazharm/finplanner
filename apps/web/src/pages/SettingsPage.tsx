@@ -45,20 +45,28 @@ export function SettingsPage() {
     };
   }, []);
 
-  const handleSaveKey = useCallback(() => {
+  const handleSaveKey = useCallback(async () => {
     if (apiKeyInput.trim()) {
-      setClaudeApiKey(apiKeyInput.trim());
-      setApiKeyInput('');
-      setSaved(true);
-      clearTimeout(savedTimerRef.current);
-      savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
+      try {
+        await setClaudeApiKey(apiKeyInput.trim());
+        setApiKeyInput('');
+        setSaved(true);
+        clearTimeout(savedTimerRef.current);
+        savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
+      } catch {
+        // Error already logged in the store action
+      }
     }
   }, [apiKeyInput, setClaudeApiKey]);
 
-  const handleClearKey = useCallback(() => {
-    clearClaudeApiKey();
-    setSaved(false);
-    setConfirmClear(false);
+  const handleClearKey = useCallback(async () => {
+    try {
+      await clearClaudeApiKey();
+      setSaved(false);
+      setConfirmClear(false);
+    } catch {
+      // Error already logged in the store action
+    }
   }, [clearClaudeApiKey]);
 
   return (

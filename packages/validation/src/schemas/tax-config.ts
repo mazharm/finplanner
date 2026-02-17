@@ -11,4 +11,7 @@ export const taxConfigSchema = z.object({
 }).refine(
   (data) => data.federalModel !== 'effective' || data.federalEffectiveRatePct !== undefined,
   { message: 'federalEffectiveRatePct is required when federalModel is "effective"', path: ['federalEffectiveRatePct'] }
+).refine(
+  (data) => data.stateModel !== 'effective' || data.stateEffectiveRatePct !== undefined,
+  { message: 'stateEffectiveRatePct is required when stateModel is "effective"', path: ['stateEffectiveRatePct'] }
 );

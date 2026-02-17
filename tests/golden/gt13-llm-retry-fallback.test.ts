@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getPortfolioAdvice } from '@finplanner/claude';
 import { getTaxStrategyAdvice } from '@finplanner/claude';
 import type { LlmClient } from '@finplanner/claude';
@@ -95,6 +95,14 @@ const validTaxResponse: TaxStrategyAdviceResponse = {
 // ── GT13: Portfolio Advisor ──
 
 describe('GT13: LLM Advice Retry & Fallback — Portfolio', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('valid LLM response → advice with source "llm"', async () => {
     const client: LlmClient = {
       sendMessage: vi.fn().mockResolvedValue(JSON.stringify(validPortfolioResponse)),
@@ -143,6 +151,14 @@ describe('GT13: LLM Advice Retry & Fallback — Portfolio', () => {
 // ── GT13: Tax Advisor ──
 
 describe('GT13: LLM Advice Retry & Fallback — Tax', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('valid LLM response → advice with source "llm"', async () => {
     const client: LlmClient = {
       sendMessage: vi.fn().mockResolvedValue(JSON.stringify(validTaxResponse)),

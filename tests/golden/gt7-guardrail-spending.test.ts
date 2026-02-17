@@ -28,10 +28,6 @@ import type { PlanInput } from '@finplanner/domain';
 /** Tolerance for dollar comparisons */
 const TOLERANCE = 5;
 
-function closeTo(actual: number, expected: number, tol = TOLERANCE): boolean {
-  return Math.abs(actual - expected) <= tol;
-}
-
 const baseFixture: PlanInput = {
   schemaVersion: '3.0.0',
   household: {
@@ -134,7 +130,7 @@ describe('GT7: Guardrail Spending', () => {
       // Early years: portfolio is large enough that withdrawal rate < 6%
       for (let i = 0; i < 20; i++) {
         const yr = guardrailYearly[i];
-        expect(closeTo(yr.actualSpend, yr.targetSpend)).toBe(true);
+        expect(Math.abs(yr.actualSpend - yr.targetSpend)).toBeLessThanOrEqual(TOLERANCE);
       }
     });
 
@@ -162,7 +158,7 @@ describe('GT7: Guardrail Spending', () => {
   describe('Control run: guardrails disabled', () => {
     it('should have actualSpend == targetSpend every year when guardrails are off', () => {
       for (const yr of controlYearly) {
-        expect(closeTo(yr.actualSpend, yr.targetSpend)).toBe(true);
+        expect(Math.abs(yr.actualSpend - yr.targetSpend)).toBeLessThanOrEqual(TOLERANCE);
       }
     });
   });
@@ -180,6 +176,7 @@ describe('GT7: Guardrail Spending', () => {
     });
 
     it('should never go below the inflation-adjusted floor (when portfolio has funds)', () => {
+      let checkedCount = 0;
       for (let i = 0; i < guardrailYearly.length; i++) {
         const yr = guardrailYearly[i];
         const inflationMultiplier = Math.pow(1.02, i);
@@ -192,26 +189,29 @@ describe('GT7: Guardrail Spending', () => {
         );
         if (totalBalance > inflatedFloor && yr.shortfall === 0) {
           expect(yr.actualSpend).toBeGreaterThanOrEqual(inflatedFloor - TOLERANCE);
+          checkedCount++;
         }
       }
+      // Ensure we actually checked the floor condition in at least some years
+      expect(checkedCount).toBeGreaterThan(0);
     });
   });
 
   describe('Spending inflation over time', () => {
     it('should have year 1 target spend equal to base ($100,000)', () => {
       // Year 0 (yearIndex 0): inflationMultiplier = 1.0 -> target = $100,000
-      expect(closeTo(guardrailYearly[0].targetSpend, 100_000)).toBe(true);
+      expect(Math.abs(guardrailYearly[0].targetSpend - 100_000)).toBeLessThanOrEqual(TOLERANCE);
     });
 
     it('should have year 2 target spend inflated by 2%', () => {
       // Year 1 (yearIndex 1): inflationMultiplier = 1.02 -> target = $102,000
-      expect(closeTo(guardrailYearly[1].targetSpend, 102_000)).toBe(true);
+      expect(Math.abs(guardrailYearly[1].targetSpend - 102_000)).toBeLessThanOrEqual(TOLERANCE);
     });
 
     it('should have year 5 target spend inflated to ~$108,243', () => {
       // Year 4 (yearIndex 4): inflationMultiplier = 1.02^4 = 1.08243... -> target = $108,243
       const expected = 100_000 * Math.pow(1.02, 4);
-      expect(closeTo(guardrailYearly[4].targetSpend, expected, 10)).toBe(true);
+      expect(Math.abs(guardrailYearly[4].targetSpend - expected)).toBeLessThanOrEqual(10);
     });
   });
 
@@ -267,8 +267,8 @@ describe('GT7: Guardrail Spending', () => {
       // Target spend is always the same regardless of guardrails; only actualSpend differs
       for (let i = 0; i < guardrailYearly.length; i++) {
         expect(
-          closeTo(guardrailYearly[i].targetSpend, controlYearly[i].targetSpend)
-        ).toBe(true);
+          Math.abs(guardrailYearly[i].targetSpend - controlYearly[i].targetSpend)
+        ).toBeLessThanOrEqual(TOLERANCE);
       }
     });
   });

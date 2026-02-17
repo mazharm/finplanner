@@ -14,51 +14,106 @@ const DEFAULT_MAX_TOKENS = 4096;
 
 const MAX_RETRIES = 3;
 const INITIAL_DELAY_MS = 1000;
-const REQUEST_TIMEOUT_MS = 30_000;
+const REQUEST_TIMEOUT_MS = 90_000;
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 529]);
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+interface RetryInfo {
+  retryAfterMs: number | null;
 }
 
-function getRetryDelay(attempt: number, retryAfterHeader: string | null): number {
-  const exponentialDelay = INITIAL_DELAY_MS * Math.pow(2, attempt);
-  if (retryAfterHeader) {
-    const retryAfterSeconds = Number(retryAfterHeader);
-    if (!Number.isNaN(retryAfterSeconds) && retryAfterSeconds > 0) {
-      return Math.max(retryAfterSeconds * 1000, exponentialDelay);
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'));
+      return;
     }
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener('abort', () => {
+      clearTimeout(timer);
+      reject(new DOMException('Aborted', 'AbortError'));
+    }, { once: true });
+  });
+}
+
+function getRetryDelay(attempt: number, retryInfo: RetryInfo): number {
+  const jitter = Math.random() * 500;
+  const exponentialDelay = INITIAL_DELAY_MS * Math.pow(2, attempt) + jitter;
+  if (retryInfo.retryAfterMs !== null && retryInfo.retryAfterMs > 0) {
+    return Math.max(retryInfo.retryAfterMs, exponentialDelay);
   }
   return exponentialDelay;
 }
 
-export function createLlmClient(apiKey: string): LlmClient {
+function parseRetryAfterHeader(header: string | null): number | null {
+  if (!header) return null;
+
+  // Try parsing as seconds (integer)
+  const seconds = Number(header);
+  if (!Number.isNaN(seconds) && seconds > 0) {
+    return seconds * 1000;
+  }
+
+  // Try parsing as HTTP-date
+  const date = Date.parse(header);
+  if (!Number.isNaN(date)) {
+    const delayMs = date - Date.now();
+    return delayMs > 0 ? delayMs : null;
+  }
+
+  return null;
+}
+
+/**
+ * Create an LLM client for the Anthropic API.
+ *
+ * @param apiKey - The Anthropic API key
+ * @param modelId - Optional model ID override
+ * @param externalSignal - Optional AbortSignal for caller-initiated cancellation
+ */
+export function createLlmClient(apiKey: string, modelId?: string, externalSignal?: AbortSignal): LlmClient {
+  if (!apiKey || apiKey.trim().length === 0) {
+    throw new Error('API key is required');
+  }
+  if (!apiKey.startsWith('sk-ant-')) {
+    console.warn('[FinPlanner] API key does not match expected format (sk-ant-...). Proceeding anyway.');
+  }
   return {
     async sendMessage(systemPrompt: string, userMessage: string): Promise<string> {
       const requestBody = JSON.stringify({
-        model: DEFAULT_MODEL,
+        model: modelId || DEFAULT_MODEL,
         max_tokens: DEFAULT_MAX_TOKENS,
         system: systemPrompt,
         messages: [{ role: 'user', content: userMessage }],
       });
 
       let lastError: Error | undefined;
+      let lastRetryInfo: RetryInfo = { retryAfterMs: null };
 
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-        if (attempt > 0) {
-          const delay = getRetryDelay(attempt - 1, lastError?.cause as string | null);
-          await sleep(delay);
+        // Check for external cancellation before each attempt
+        if (externalSignal?.aborted) {
+          throw new DOMException('Aborted', 'AbortError');
         }
 
+        if (attempt > 0) {
+          const delay = getRetryDelay(attempt - 1, lastRetryInfo);
+          await sleep(delay, externalSignal);
+        }
+
+        // Create an internal AbortController for timeouts, chained to the external signal
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+        // If the external signal aborts, also abort this request
+        const onExternalAbort = () => controller.abort();
+        externalSignal?.addEventListener('abort', onExternalAbort, { once: true });
 
         let response: Response;
         try {
           response = await fetch(ANTHROPIC_API_URL, {
             method: 'POST',
             headers: {
-              'anthropic-api-key': apiKey,
+              'x-api-key': apiKey,
               'anthropic-version': ANTHROPIC_VERSION,
               'anthropic-dangerous-direct-browser-access': 'true',
               'content-type': 'application/json',
@@ -68,9 +123,17 @@ export function createLlmClient(apiKey: string): LlmClient {
           });
         } catch (err) {
           clearTimeout(timeout);
+          externalSignal?.removeEventListener('abort', onExternalAbort);
+
+          // If the external signal caused the abort, propagate as AbortError
+          if (externalSignal?.aborted) {
+            throw new DOMException('Aborted', 'AbortError');
+          }
+
           if (err instanceof DOMException && err.name === 'AbortError') {
             if (attempt < MAX_RETRIES) {
               lastError = new Error(`Anthropic API request timed out after ${REQUEST_TIMEOUT_MS}ms`);
+              lastRetryInfo = { retryAfterMs: null };
               continue;
             }
             throw new Error(`Anthropic API request timed out after ${REQUEST_TIMEOUT_MS}ms`);
@@ -78,17 +141,18 @@ export function createLlmClient(apiKey: string): LlmClient {
           throw err;
         } finally {
           clearTimeout(timeout);
+          externalSignal?.removeEventListener('abort', onExternalAbort);
         }
 
         if (!response.ok) {
           const errorBody = await response.text().catch(() => '');
 
           if (RETRYABLE_STATUS_CODES.has(response.status) && attempt < MAX_RETRIES) {
-            const retryAfter = response.headers.get('retry-after');
+            const retryAfterMs = parseRetryAfterHeader(response.headers.get('retry-after'));
             lastError = new Error(
               `Anthropic API error ${response.status}: ${errorBody}`,
-              { cause: retryAfter },
             );
+            lastRetryInfo = { retryAfterMs };
             continue;
           }
 

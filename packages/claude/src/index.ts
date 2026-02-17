@@ -1,5 +1,5 @@
 export type { LlmClient, AnonymizedPortfolioContext, AnonymizedTaxContext } from './types.js';
-export { stripPortfolioPii, stripTaxPii, stripDocumentsPii } from './pii-strip.js';
+export { stripPortfolioPii, stripTaxPii, stripDocumentsPii, sanitizeForLlm } from './pii-strip.js';
 export { buildPortfolioPrompt, buildTaxPrompt } from './prompt-builder.js';
 export { validatePortfolioResponse, validateTaxResponse } from './response-validator.js';
 export type { ValidationResult, ValidationSuccess, ValidationFailure } from './response-validator.js';

@@ -30,6 +30,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTaxStore } from '../../stores/tax-store.js';
 import { useSharedStore } from '../../stores/shared-store.js';
 import { safeParseNumber } from '../../utils/parse-number.js';
+import { formatCurrency } from '../../utils/format.js';
 import type { TaxYearRecord, TaxYearStatus, FilingStatus } from '@finplanner/domain';
 
 const useStyles = makeStyles({
@@ -38,10 +39,6 @@ const useStyles = makeStyles({
   form: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM },
   errorText: { color: tokens.colorPaletteRedForeground1 },
 });
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
-}
 
 const statusColors: Record<TaxYearStatus, 'success' | 'warning' | 'informative' | 'important'> = {
   filed: 'success',
@@ -75,8 +72,10 @@ function emptyTaxYear(year: number, filingStatus: FilingStatus, state: string): 
 export function TaxYearsPage() {
   const styles = useStyles();
   const navigate = useNavigate();
-  const { taxYears, addTaxYear, removeTaxYear } = useTaxStore();
-  const { household } = useSharedStore();
+  const taxYears = useTaxStore((s) => s.taxYears);
+  const addTaxYear = useTaxStore((s) => s.addTaxYear);
+  const removeTaxYear = useTaxStore((s) => s.removeTaxYear);
+  const household = useSharedStore((s) => s.household);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newYear, setNewYear] = useState(new Date().getFullYear());
   const [deleteYear, setDeleteYear] = useState<number | null>(null);

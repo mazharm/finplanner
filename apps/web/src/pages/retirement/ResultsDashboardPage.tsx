@@ -1,6 +1,7 @@
 import { makeStyles, tokens, Card, CardHeader, Text, Title3, Badge } from '@fluentui/react-components';
 import { ChartMultipleRegular } from '@fluentui/react-icons';
 import { useRetirementStore } from '../../stores/retirement-store.js';
+import { formatCurrency } from '../../utils/format.js';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
@@ -21,13 +22,11 @@ const useStyles = makeStyles({
   },
 });
 
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
-}
-
 export function ResultsDashboardPage() {
   const styles = useStyles();
-  const { latestResult, scenarios, activeScenarioId } = useRetirementStore();
+  const latestResult = useRetirementStore((s) => s.latestResult);
+  const scenarios = useRetirementStore((s) => s.scenarios);
+  const activeScenarioId = useRetirementStore((s) => s.activeScenarioId);
 
   const activeScenario = scenarios.find((s) => s.id === activeScenarioId);
   const result = activeScenario?.result ?? latestResult;
@@ -51,7 +50,7 @@ export function ResultsDashboardPage() {
             <Card>
               <CardHeader header={<Text weight="semibold">Success Probability</Text>} />
               <div className={styles.statValue}>
-                {(result.summary.successProbability * 100).toFixed(0)}%
+                {((result.summary.successProbability ?? 0) * 100).toFixed(0)}%
               </div>
               <div className={styles.statLabel}>
                 Percentage of simulations where portfolio lasts through retirement
@@ -60,14 +59,14 @@ export function ResultsDashboardPage() {
             <Card>
               <CardHeader header={<Text weight="semibold">Median Terminal Value</Text>} />
               <div className={styles.statValue}>
-                {formatCurrency(result.summary.medianTerminalValue)}
+                {formatCurrency(result.summary.medianTerminalValue ?? 0)}
               </div>
               <div className={styles.statLabel}>50th percentile ending portfolio value</div>
             </Card>
             <Card>
               <CardHeader header={<Text weight="semibold">Worst Case Shortfall</Text>} />
               <div className={styles.statValue}>
-                {formatCurrency(result.summary.worstCaseShortfall)}
+                {formatCurrency(result.summary.worstCaseShortfall ?? 0)}
               </div>
               <div className={styles.statLabel}>5th percentile cumulative spending gap</div>
             </Card>
@@ -80,10 +79,10 @@ export function ResultsDashboardPage() {
           </Card>
           <Card>
             <CardHeader header={<Text weight="semibold">Year-by-Year Breakdown</Text>} />
-            {result.yearResults.length > 0 ? (
+            {result.yearly.length > 0 ? (
               <Text size={200}>
-                {result.yearResults.length} years simulated
-                ({result.yearResults[0].year}–{result.yearResults[result.yearResults.length - 1].year})
+                {result.yearly.length} years simulated
+                ({result.yearly[0].year}–{result.yearly[result.yearly.length - 1].year})
               </Text>
             ) : (
               <Text>No year-by-year data available.</Text>

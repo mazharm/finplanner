@@ -6,5 +6,5 @@ export const appConfigSchema = z.object({
   anomalyThresholdPct: z.number().min(0).max(100),
   anomalyThresholdAbsolute: z.number().min(0),
   confidenceThreshold: z.number().min(0).max(1),
-  lastSyncTimestamp: z.string().optional(),
+  lastSyncTimestamp: z.string().datetime({ offset: true }).optional(),
 });

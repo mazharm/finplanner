@@ -29,6 +29,12 @@ import { produceYearResult } from './steps/13-produce-result.js';
 const BASE_CALENDAR_YEAR = 2026;
 
 /**
+ * Heuristic: ~50% of spending comes from taxable sources.
+ * Used for the initial tax estimate in year 1 (when no prior year data exists).
+ */
+const INITIAL_TAX_ESTIMATE_FRACTION = 0.5;
+
+/**
  * Main simulation entry point.
  *
  * Runs a deterministic year-by-year retirement simulation over the
@@ -104,7 +110,7 @@ function initializeState(planInput: PlanInput): SimulationState {
     plan: planInput,
     currentYear: BASE_CALENDAR_YEAR,
     yearIndex: 0,
-    priorYearEffectiveRate: 0,
+    priorYearTotalTaxDollars: 0,
     priorYearRebalanceGains: 0,
     scenarioReturns,
     scenarioInflation,
@@ -152,6 +158,14 @@ function simulateYear(state: SimulationState): YearResult {
   // Step 1: Determine phase (joint vs survivor), ages, filing status
   const yearContext = determinePhase(state);
 
+  // Snapshot prior year-end balances for RMD computation (IRS uses Dec 31 balance)
+  const priorYearEndBalances = new Map<string, number>();
+  for (const a of state.accounts) {
+    if (a.type === 'taxDeferred') {
+      priorYearEndBalances.set(a.id, a.balance);
+    }
+  }
+
   // Step 2: Apply beginning-of-year investment returns
   applyReturns(state);
 
@@ -161,8 +175,8 @@ function simulateYear(state: SimulationState): YearResult {
   // Step 4: Inflate standard deduction
   const standardDeduction = inflateDeduction(state, yearContext);
 
-  // Step 5: Compute and distribute RMDs
-  const rmdResult = computeRmds(state, yearContext);
+  // Step 5: Compute and distribute RMDs (using prior year-end balance per IRS rules)
+  const rmdResult = computeRmds(state, yearContext, priorYearEndBalances);
 
   // Step 6: Inflate spending target, apply guardrails
   const spending = inflateSpending(state, yearContext);
@@ -177,10 +191,10 @@ function simulateYear(state: SimulationState): YearResult {
   const capGainsRate =
     plan.taxes.capGainsRatePct ?? DEFAULT_CAP_GAINS_RATE_PCT;
 
-  // Initial tax estimate: use prior year's effective rate or a rough estimate
-  const initialTaxEstimate = state.priorYearEffectiveRate > 0
-    ? state.priorYearEffectiveRate
-    : spending.actualSpend * (federalEffectiveRate / 100) * 0.5;
+  // Initial tax estimate: use prior year's total tax dollars or a rough estimate
+  const initialTaxEstimate = state.priorYearTotalTaxDollars > 0
+    ? state.priorYearTotalTaxDollars
+    : spending.actualSpend * (federalEffectiveRate / 100) * INITIAL_TAX_ESTIMATE_FRACTION;
 
   // Steps 7-9: Convergence loop
   const convergenceResult = iterateUntilConverged(
@@ -237,7 +251,7 @@ function simulateYear(state: SimulationState): YearResult {
     );
   }
 
-  // Update prior year effective rate for next year's initial estimate
+  // Store this year's total tax dollars for next year's initial convergence estimate
   const totalIncome =
     mandatoryIncome.socialSecurityIncome +
     mandatoryIncome.nqdcDistributions +
@@ -246,7 +260,7 @@ function simulateYear(state: SimulationState): YearResult {
     rmdResult.rmdTotal +
     withdrawalResult.totalWithdrawn;
 
-  state.priorYearEffectiveRate = totalIncome > 0
+  state.priorYearTotalTaxDollars = totalIncome > 0
     ? (taxResult.taxesFederal + taxResult.taxesState)
     : 0;
 

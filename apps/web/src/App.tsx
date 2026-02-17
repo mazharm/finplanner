@@ -1,6 +1,6 @@
 import { FluentProvider, webLightTheme, webDarkTheme } from '@fluentui/react-components';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { StoreLoadingGate } from './components/StoreLoadingGate.js';
 import { AppShell } from './layout/AppShell.js';
@@ -28,12 +28,27 @@ import { RetirementAdvicePage } from './pages/retirement/RetirementAdvicePage.js
 
 export function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const initStarted = useRef(false);
 
   useEffect(() => {
-    useSettingsStore.getState().initFromIndexedDB();
-    useSharedStore.getState().initFromIndexedDB();
-    useTaxStore.getState().initFromIndexedDB();
-    useRetirementStore.getState().initFromIndexedDB();
+    // Guard against concurrent initialization (e.g., React Strict Mode double-mount)
+    if (initStarted.current) return;
+    initStarted.current = true;
+
+    const initStore = async (init: () => Promise<void>, name: string) => {
+      try {
+        await init();
+      } catch (err) {
+        console.error(`[FinPlanner] Failed to initialize ${name} store:`, err);
+      }
+    };
+
+    Promise.all([
+      initStore(() => useSettingsStore.getState().initFromIndexedDB(), 'settings'),
+      initStore(() => useSharedStore.getState().initFromIndexedDB(), 'shared'),
+      initStore(() => useTaxStore.getState().initFromIndexedDB(), 'tax'),
+      initStore(() => useRetirementStore.getState().initFromIndexedDB(), 'retirement'),
+    ]);
   }, []);
 
   const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'));
@@ -62,6 +77,7 @@ export function App() {
             <Route path="/retirement/scenarios" element={<ScenariosPage />} />
             <Route path="/retirement/results" element={<ResultsDashboardPage />} />
             <Route path="/retirement/advice" element={<RetirementAdvicePage />} />
+            <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </AppShell>
       </BrowserRouter>

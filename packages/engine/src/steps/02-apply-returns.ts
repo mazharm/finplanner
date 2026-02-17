@@ -30,9 +30,12 @@ export function applyReturns(state: SimulationState): void {
 
     account.balance *= (1 + returnPct / 100);
 
-    // Floor at zero: an account cannot go negative due to returns
+    // Floor at zero: an account cannot go negative due to returns.
+    // When balance drops to 0, cost basis is also zeroed out since there
+    // are no remaining shares to have a basis.
     if (account.balance < 0) {
       account.balance = 0;
+      account.costBasis = 0;
     }
   }
 }

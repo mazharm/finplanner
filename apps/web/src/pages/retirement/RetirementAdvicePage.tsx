@@ -12,13 +12,14 @@ import {
   MessageBarBody,
 } from '@fluentui/react-components';
 import { LightbulbRegular } from '@fluentui/react-icons';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { getPortfolioAdvice } from '@finplanner/claude';
 import type { PortfolioAdviceRequest } from '@finplanner/domain';
 import { useSharedStore } from '../../stores/shared-store.js';
 import { useRetirementStore } from '../../stores/retirement-store.js';
 import { useSettingsStore } from '../../stores/settings-store.js';
 import { createLlmClient } from '../../services/llm-client.js';
+import { getApiKey } from '../../services/indexeddb.js';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
@@ -49,13 +50,30 @@ export function RetirementAdvicePage() {
   const [disclaimer, setDisclaimer] = useState('');
   const [error, setError] = useState('');
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
   const handleGetAdvice = useCallback(async () => {
+    // Abort any in-flight request
+    abortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     setLoading(true);
     setError('');
 
     try {
-      const { claudeApiKey } = useSettingsStore.getState();
-      const client = claudeApiKey ? createLlmClient(claudeApiKey) : undefined;
+      const apiKey = await getApiKey();
+
+      if (abortController.signal.aborted) return;
+
+      const client = apiKey ? createLlmClient(apiKey) : undefined;
 
       const request: PortfolioAdviceRequest = {
         planInput: {
@@ -88,6 +106,8 @@ export function RetirementAdvicePage() {
 
       const response = await getPortfolioAdvice(request, client);
 
+      if (abortController.signal.aborted) return;
+
       const recs: Recommendation[] = response.recommendations.map((r) => ({
         title: r.title,
         description: r.rationale,
@@ -97,11 +117,14 @@ export function RetirementAdvicePage() {
       setRecommendations(recs);
       setDisclaimer(response.disclaimer);
     } catch (err) {
+      if (abortController.signal.aborted) return;
       setError(`Failed to get advice: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
-      setLoading(false);
+      if (!abortController.signal.aborted) {
+        setLoading(false);
+      }
     }
-  }, [household, accounts, incomeStreams, spending, taxes, market, strategy, latestResult, hasApiKey]);
+  }, [household, accounts, incomeStreams, spending, taxes, market, strategy, latestResult]);
 
   return (
     <div className={styles.root}>

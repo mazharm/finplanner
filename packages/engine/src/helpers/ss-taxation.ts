@@ -20,12 +20,12 @@ export function computeTaxableSS(
 
   const provisionalIncome = otherTaxableIncome + 0.5 * ssIncome;
 
-  // 'survivor' uses the same thresholds as 'mfj' for the first 2 years,
-  // then transitions to 'single'. The filing status passed in already
-  // reflects the correct status for the year.
-  const thresholds = filingStatus === 'single'
-    ? SS_PROVISIONAL_INCOME_THRESHOLDS.single
-    : SS_PROVISIONAL_INCOME_THRESHOLDS.mfj;
+  // Use direct filingStatus lookup so that 'survivor' maps to its own thresholds
+  // (which match 'mfj' for the first 2 years; after that the caller transitions
+  // filingStatus to 'single'). Falls back to 'single' (more conservative) for
+  // any unrecognized status, consistent with tax/computation module.
+  const thresholds = SS_PROVISIONAL_INCOME_THRESHOLDS[filingStatus as keyof typeof SS_PROVISIONAL_INCOME_THRESHOLDS]
+    ?? SS_PROVISIONAL_INCOME_THRESHOLDS.single;
 
   if (provisionalIncome <= thresholds.lower) {
     return 0;
@@ -41,6 +41,6 @@ export function computeTaxableSS(
   // Above upper threshold: up to 85% of SS is taxable
   return Math.min(
     0.85 * ssIncome,
-    0.85 * (provisionalIncome - thresholds.upper) + thresholds.midBandCap
+    0.85 * (provisionalIncome - thresholds.upper) + 0.50 * (thresholds.upper - thresholds.lower)
   );
 }

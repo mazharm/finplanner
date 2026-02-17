@@ -136,13 +136,13 @@ describe('GT2: Early Severe Downturn Case', () => {
         .filter(yr => yr.shortfall > 0)
         .map(yr => yr.shortfall);
 
-      if (shortfallYears.length >= 2) {
-        // After depletion, shortfall should track spending (which inflates),
-        // so later shortfalls should be >= earlier shortfalls
-        const lastShortfall = shortfallYears[shortfallYears.length - 1];
-        const firstShortfall = shortfallYears[0];
-        expect(lastShortfall).toBeGreaterThanOrEqual(firstShortfall);
-      }
+      // There must be at least 2 shortfall years for this comparison to be meaningful
+      expect(shortfallYears.length).toBeGreaterThanOrEqual(2);
+      // After depletion, shortfall should track spending (which inflates),
+      // so later shortfalls should be >= earlier shortfalls
+      const lastShortfall = shortfallYears[shortfallYears.length - 1];
+      const firstShortfall = shortfallYears[0];
+      expect(lastShortfall).toBeGreaterThanOrEqual(firstShortfall);
     });
 
     it('should have non-zero spending target even in shortfall years', () => {
@@ -163,19 +163,19 @@ describe('GT2: Early Severe Downturn Case', () => {
       expect(yr1.taxableCapitalGains).toBeGreaterThanOrEqual(0);
     });
 
-    it('should eventually have zero capital gains when basis >= balance', () => {
-      // As the portfolio shrinks and basis catches up (or balance goes to 0),
+    it('should eventually have zero capital gains when balance is depleted', () => {
+      // As the portfolio shrinks and balance goes to 0,
       // capital gains should drop to zero.
-      const lastYearWithBalance = result.yearly
+      const depletedYears = result.yearly
         .filter(yr => {
           const bal = Object.values(yr.endBalanceByAccount)
             .reduce((sum, v) => sum + v, 0);
           return bal <= 0;
         });
-      if (lastYearWithBalance.length > 0) {
-        const lastDepleted = lastYearWithBalance[lastYearWithBalance.length - 1];
-        expect(lastDepleted.taxableCapitalGains).toBe(0);
-      }
+      // There must be depleted years (portfolio runs out under -5% returns)
+      expect(depletedYears.length).toBeGreaterThan(0);
+      const lastDepleted = depletedYears[depletedYears.length - 1];
+      expect(lastDepleted.taxableCapitalGains).toBe(0);
     });
   });
 

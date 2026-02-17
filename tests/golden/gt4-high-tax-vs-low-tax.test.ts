@@ -19,6 +19,11 @@
  * NOTE: Both portfolios deplete before year 30. CA depletes around year 20,
  * WA around year 23. The key comparison is that WA lasts longer (fewer
  * shortfall-only years) and pays less total tax.
+ *
+ * Convergence note: The CA run has a combined tax rate of 31.3% (22% federal +
+ * 9.3% state), which can cause the tax-aware withdrawal solver's iterative
+ * convergence loop to settle with small residuals. Results are approximate
+ * within the $50 TOLERANCE constant used throughout these assertions.
  */
 import { describe, it, expect } from 'vitest';
 import { simulate } from '@finplanner/engine';
@@ -113,8 +118,15 @@ describe('GT4: High-Tax vs Low-Tax State Comparison', () => {
   });
 
   describe('Tax differentials', () => {
-    it('Run A (CA) should have state taxes > 0 in early years with significant withdrawals', () => {
-      // Check years 1-10 where withdrawals are well above the standard deduction
+    it('Run A (CA) should have state taxes > 0 in the first 10 years', () => {
+      // With $80k spending + taxes, early-year withdrawals should be well above $50k
+      // Verify at least one early year has significant withdrawals to validate the premise
+      const earlyYearsWithdrawn = resultCA.yearly.slice(0, 10).map(yr =>
+        Object.values(yr.withdrawalsByAccount).reduce((sum, v) => sum + v, 0)
+      );
+      expect(earlyYearsWithdrawn.filter(w => w > 50_000).length).toBeGreaterThan(0);
+
+      // All early years with significant withdrawals should have state taxes
       for (let i = 0; i < 10; i++) {
         const yr = resultCA.yearly[i];
         const totalWithdrawn = Object.values(yr.withdrawalsByAccount)
@@ -205,8 +217,8 @@ describe('GT4: High-Tax vs Low-Tax State Comparison', () => {
 
   describe('Federal taxes comparison', () => {
     it('both runs should have identical federal effective rates configured', () => {
-      expect(resultCA.assumptionsUsed.federalEffectiveRatePct).toBe(22);
-      expect(resultWA.assumptionsUsed.federalEffectiveRatePct).toBe(22);
+      expect((resultCA.assumptionsUsed as Record<string, number>).federalEffectiveRatePct).toBe(22);
+      expect((resultWA.assumptionsUsed as Record<string, number>).federalEffectiveRatePct).toBe(22);
     });
   });
 
@@ -224,16 +236,23 @@ describe('GT4: High-Tax vs Low-Tax State Comparison', () => {
       // yearIndex 13 -> age 75
       // CA may be depleted by year 20, WA by year 23
       // Check the first year of RMDs for both
-      const yr14CA = resultCA.yearly[13];
       const yr14WA = resultWA.yearly[13];
-      const balCA = Object.values(yr14CA.endBalanceByAccount).reduce((s,v)=>s+v,0);
-      const balWA = Object.values(yr14WA.endBalanceByAccount).reduce((s,v)=>s+v,0);
+      const balWA = Object.values(yr14WA.endBalanceByAccount).reduce((s, v) => s + v, 0);
 
+      // WA should definitely have balance and RMD at age 75 (lower tax drain)
+      expect(balWA).toBeGreaterThan(0);
+      expect(yr14WA.rmdTotal).toBeGreaterThan(0);
+
+      // CA: verify whether the account has balance at year 14 and assert accordingly
+      const yr14CA = resultCA.yearly[13];
+      const balCA = Object.values(yr14CA.endBalanceByAccount).reduce((s, v) => s + v, 0);
+      // CA portfolio may or may not be depleted by year 14; if it has balance, RMD must be nonzero
       if (balCA > 0) {
         expect(yr14CA.rmdTotal).toBeGreaterThan(0);
+      } else {
+        // If depleted, RMD should be zero (no balance to distribute)
+        expect(yr14CA.rmdTotal).toBe(0);
       }
-      expect(yr14WA.rmdTotal).toBeGreaterThan(0);
-      expect(balWA).toBeGreaterThan(0);
     });
   });
 

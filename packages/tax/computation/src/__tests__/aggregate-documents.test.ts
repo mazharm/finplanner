@@ -60,9 +60,17 @@ describe('aggregateDocumentsToIncome', () => {
     expect(result.income.capitalGains).toBe(3_000);
   });
 
-  it('returns empty partials for no documents', () => {
+  it('returns zeroed fields for no documents', () => {
     const result = aggregateDocumentsToIncome([]);
-    expect(result.income).toEqual({});
-    expect(result.payments).toEqual({});
+    expect(result.income.wages).toBe(0);
+    expect(result.income.selfEmploymentIncome).toBe(0);
+    expect(result.income.interestIncome).toBe(0);
+    expect(result.income.dividendIncome).toBe(0);
+    expect(result.income.capitalGains).toBe(0);
+    expect(result.income.capitalLosses).toBe(0);
+    expect(result.income.rentalIncome).toBe(0);
+    expect(result.income.otherIncome).toBe(0);
+    expect(result.payments.federalWithheld).toBe(0);
+    expect(result.payments.stateWithheld).toBe(0);
   });
 });

@@ -12,7 +12,7 @@ import {
   Badge,
 } from '@fluentui/react-components';
 import { ArrowImportRegular, DocumentRegular, ArrowExportRegular } from '@fluentui/react-icons';
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useSharedStore } from '../stores/shared-store.js';
 import { useTaxStore } from '../stores/tax-store.js';
 import {
@@ -80,6 +80,13 @@ export function DataImportPage() {
   const [results, setResults] = useState<ImportResult[]>([]);
   const [exportMsg, setExportMsg] = useState<string | null>(null);
 
+  // Auto-dismiss export success message after 5 seconds
+  useEffect(() => {
+    if (!exportMsg) return;
+    const timer = setTimeout(() => setExportMsg(null), 5000);
+    return () => clearTimeout(timer);
+  }, [exportMsg]);
+
   const { setHousehold, addAccount, addIncomeStream, addAdjustment } = useSharedStore();
   const { addTaxYear, addDocument } = useTaxStore();
 
@@ -133,10 +140,6 @@ export function DataImportPage() {
         duplicatesSkipped: 0,
       };
 
-      // Snapshot current store state for duplicate detection
-      const currentShared = useSharedStore.getState();
-      const currentTax = useTaxStore.getState();
-
       for (const line of lines) {
         const parsed = parseNdjsonLine(line);
         if (!parsed) {
@@ -144,7 +147,10 @@ export function DataImportPage() {
           continue;
         }
 
-        result.recordCount++;
+        // Don't count headers as imported records — they're metadata
+        if (parsed.type !== 'header') {
+          result.recordCount++;
+        }
         result.types[parsed.type] = (result.types[parsed.type] ?? 0) + 1;
 
         try {
@@ -159,7 +165,8 @@ export function DataImportPage() {
             case 'account': {
               const validated = accountSchema.safeParse(data);
               if (!validated.success) { result.errors.push(`Invalid account: ${validated.error.message}`); break; }
-              if (currentShared.accounts.some((a) => a.id === validated.data.id)) {
+              // Read fresh store state to avoid stale duplicate detection
+              if (useSharedStore.getState().accounts.some((a) => a.id === validated.data.id)) {
                 result.duplicatesSkipped++;
                 break;
               }
@@ -169,7 +176,7 @@ export function DataImportPage() {
             case 'incomeStream': {
               const validated = incomeStreamSchema.safeParse(data);
               if (!validated.success) { result.errors.push(`Invalid incomeStream: ${validated.error.message}`); break; }
-              if (currentShared.incomeStreams.some((s) => s.id === validated.data.id)) {
+              if (useSharedStore.getState().incomeStreams.some((s) => s.id === validated.data.id)) {
                 result.duplicatesSkipped++;
                 break;
               }
@@ -179,7 +186,7 @@ export function DataImportPage() {
             case 'adjustment': {
               const validated = adjustmentSchema.safeParse(data);
               if (!validated.success) { result.errors.push(`Invalid adjustment: ${validated.error.message}`); break; }
-              if (currentShared.adjustments.some((a) => a.id === validated.data.id)) {
+              if (useSharedStore.getState().adjustments.some((a) => a.id === validated.data.id)) {
                 result.duplicatesSkipped++;
                 break;
               }
@@ -189,7 +196,7 @@ export function DataImportPage() {
             case 'taxYear': {
               const validated = taxYearRecordSchema.safeParse(data);
               if (!validated.success) { result.errors.push(`Invalid taxYear: ${validated.error.message}`); break; }
-              if (currentTax.taxYears.some((ty) => ty.taxYear === validated.data.taxYear)) {
+              if (useTaxStore.getState().taxYears.some((ty) => ty.taxYear === validated.data.taxYear)) {
                 result.duplicatesSkipped++;
                 break;
               }
@@ -199,7 +206,7 @@ export function DataImportPage() {
             case 'taxDocument': {
               const validated = taxDocumentSchema.safeParse(data);
               if (!validated.success) { result.errors.push(`Invalid taxDocument: ${validated.error.message}`); break; }
-              if (currentTax.documents.some((d) => d.id === validated.data.id)) {
+              if (useTaxStore.getState().documents.some((d) => d.id === validated.data.id)) {
                 result.duplicatesSkipped++;
                 break;
               }
@@ -221,6 +228,8 @@ export function DataImportPage() {
     [setHousehold, addAccount, addIncomeStream, addAdjustment, addTaxYear, addDocument],
   );
 
+  const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
+
   const handleFiles = useCallback(
     async (files: FileList) => {
       setImporting(true);
@@ -228,6 +237,17 @@ export function DataImportPage() {
       const importResults: ImportResult[] = [];
 
       for (let i = 0; i < files.length; i++) {
+        if (files[i].size > MAX_FILE_SIZE_BYTES) {
+          importResults.push({
+            fileName: files[i].name,
+            recordCount: 0,
+            types: {},
+            errors: [`File exceeds maximum size of 50 MB (${(files[i].size / 1024 / 1024).toFixed(1)} MB)`],
+            duplicatesSkipped: 0,
+          });
+          setProgress((i + 1) / files.length);
+          continue;
+        }
         const result = await processFile(files[i]);
         importResults.push(result);
         setProgress((i + 1) / files.length);
@@ -235,6 +255,10 @@ export function DataImportPage() {
 
       setResults(importResults);
       setImporting(false);
+      // Reset file input so re-selecting the same file triggers onChange
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     },
     [processFile],
   );

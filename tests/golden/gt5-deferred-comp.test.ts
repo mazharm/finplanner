@@ -32,10 +32,6 @@ import type { PlanInput } from '@finplanner/domain';
 /** Tolerance for dollar comparisons */
 const TOLERANCE = 5;
 
-function closeTo(actual: number, expected: number, tol = TOLERANCE): boolean {
-  return Math.abs(actual - expected) <= tol;
-}
-
 const fixture: PlanInput = {
   schemaVersion: '3.0.0',
   household: {
@@ -129,14 +125,14 @@ describe('GT5: Deferred Comp Concentrated Payout', () => {
       // BOY return: 500,000 * 1.04 = 520,000; no scheduled distribution;
       // taxOptimized fills the $15,000 standard deduction from NQDC;
       // EOY = 520,000 - 15,000 = 505,000
-      expect(closeTo(yr1.endBalanceByAccount['nqdc-1'], 505_000)).toBe(true);
+      expect(Math.abs(yr1.endBalanceByAccount['nqdc-1'] - 505_000)).toBeLessThanOrEqual(TOLERANCE);
     });
 
     it('should withdraw from NQDC to fill the 0% tax bracket (standard deduction)', () => {
       // taxOptimized strategy: fills the $15,000 single standard deduction
       // from deferredComp/taxDeferred before going to taxable
       expect(yr1.withdrawalsByAccount['nqdc-1']).toBeGreaterThan(0);
-      expect(closeTo(yr1.withdrawalsByAccount['nqdc-1'], 15_000)).toBe(true);
+      expect(Math.abs(yr1.withdrawalsByAccount['nqdc-1'] - 15_000)).toBeLessThanOrEqual(TOLERANCE);
     });
   });
 
@@ -144,12 +140,12 @@ describe('GT5: Deferred Comp Concentrated Payout', () => {
     const yr2 = yearly[1];
 
     it('should have $120,000 NQDC distribution', () => {
-      expect(closeTo(yr2.nqdcDistributions, 120_000)).toBe(true);
+      expect(Math.abs(yr2.nqdcDistributions - 120_000)).toBeLessThanOrEqual(TOLERANCE);
     });
 
     it('should have NQDC end balance of ~$405,200', () => {
       // BOY: 505,000 * 1.04 = 525,200; scheduled dist $120,000; EOY = 405,200
-      expect(closeTo(yr2.endBalanceByAccount['nqdc-1'], 405_200)).toBe(true);
+      expect(Math.abs(yr2.endBalanceByAccount['nqdc-1'] - 405_200)).toBeLessThanOrEqual(TOLERANCE);
     });
   });
 
@@ -157,12 +153,12 @@ describe('GT5: Deferred Comp Concentrated Payout', () => {
     const yr3 = yearly[2];
 
     it('should have $120,000 NQDC distribution', () => {
-      expect(closeTo(yr3.nqdcDistributions, 120_000)).toBe(true);
+      expect(Math.abs(yr3.nqdcDistributions - 120_000)).toBeLessThanOrEqual(TOLERANCE);
     });
 
     it('should have NQDC end balance of ~$301,408', () => {
       // BOY: 405,200 * 1.04 = 421,408; dist $120,000; EOY = 301,408
-      expect(closeTo(yr3.endBalanceByAccount['nqdc-1'], 301_408)).toBe(true);
+      expect(Math.abs(yr3.endBalanceByAccount['nqdc-1'] - 301_408)).toBeLessThanOrEqual(TOLERANCE);
     });
   });
 
@@ -170,12 +166,12 @@ describe('GT5: Deferred Comp Concentrated Payout', () => {
     const yr4 = yearly[3];
 
     it('should have $120,000 NQDC distribution', () => {
-      expect(closeTo(yr4.nqdcDistributions, 120_000)).toBe(true);
+      expect(Math.abs(yr4.nqdcDistributions - 120_000)).toBeLessThanOrEqual(TOLERANCE);
     });
 
     it('should have NQDC end balance of ~$193,464', () => {
       // BOY: 301,408 * 1.04 = 313,464.32; dist $120,000; EOY = 193,464.32
-      expect(closeTo(yr4.endBalanceByAccount['nqdc-1'], 193_464, 10)).toBe(true);
+      expect(Math.abs(yr4.endBalanceByAccount['nqdc-1'] - 193_464)).toBeLessThanOrEqual(10);
     });
   });
 
@@ -183,12 +179,12 @@ describe('GT5: Deferred Comp Concentrated Payout', () => {
     const yr5 = yearly[4];
 
     it('should have $120,000 NQDC distribution', () => {
-      expect(closeTo(yr5.nqdcDistributions, 120_000)).toBe(true);
+      expect(Math.abs(yr5.nqdcDistributions - 120_000)).toBeLessThanOrEqual(TOLERANCE);
     });
 
     it('should have NQDC end balance of ~$81,203', () => {
       // BOY: 193,464.32 * 1.04 = 201,202.89; dist $120,000; EOY = 81,202.89
-      expect(closeTo(yr5.endBalanceByAccount['nqdc-1'], 81_203, 10)).toBe(true);
+      expect(Math.abs(yr5.endBalanceByAccount['nqdc-1'] - 81_203)).toBeLessThanOrEqual(10);
     });
   });
 
@@ -199,7 +195,7 @@ describe('GT5: Deferred Comp Concentrated Payout', () => {
       // BOY: 81,202.89 * 1.04 = 84,451.01; distribute min(120,000, 84,451) = 84,451
       expect(yr6.nqdcDistributions).toBeGreaterThan(80_000);
       expect(yr6.nqdcDistributions).toBeLessThan(120_000);
-      expect(closeTo(yr6.nqdcDistributions, 84_451, 10)).toBe(true);
+      expect(Math.abs(yr6.nqdcDistributions - 84_451)).toBeLessThanOrEqual(10);
     });
 
     it('should have NQDC end balance of $0', () => {
@@ -247,7 +243,7 @@ describe('GT5: Deferred Comp Concentrated Payout', () => {
   describe('Distribution schedule correctness', () => {
     it('NQDC scheduled distributions for years 2-5 should each be exactly $120,000', () => {
       for (let i = 1; i <= 4; i++) {
-        expect(closeTo(yearly[i].nqdcDistributions, 120_000)).toBe(true);
+        expect(Math.abs(yearly[i].nqdcDistributions - 120_000)).toBeLessThanOrEqual(TOLERANCE);
       }
     });
 

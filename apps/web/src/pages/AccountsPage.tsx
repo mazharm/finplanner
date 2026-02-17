@@ -27,6 +27,8 @@ import { WalletRegular, AddRegular, DeleteRegular } from '@fluentui/react-icons'
 import { useState, useCallback } from 'react';
 import { useSharedStore } from '../stores/shared-store.js';
 import { safeParseNumber } from '../utils/parse-number.js';
+import { formatCurrency } from '../utils/format.js';
+import { generateId } from '../utils/id.js';
 import type { Account, AccountType } from '@finplanner/domain';
 
 const useStyles = makeStyles({
@@ -36,14 +38,6 @@ const useStyles = makeStyles({
   row: { display: 'flex', gap: tokens.spacingHorizontalM },
   balance: { fontWeight: tokens.fontWeightSemibold },
 });
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
-}
-
-function generateId(): string {
-  return `acct_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-}
 
 const emptyAccount: Omit<Account, 'id'> = {
   name: '',
@@ -56,14 +50,16 @@ const emptyAccount: Omit<Account, 'id'> = {
 
 export function AccountsPage() {
   const styles = useStyles();
-  const { accounts, addAccount, removeAccount } = useSharedStore();
+  const accounts = useSharedStore((s) => s.accounts);
+  const addAccount = useSharedStore((s) => s.addAccount);
+  const removeAccount = useSharedStore((s) => s.removeAccount);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [draft, setDraft] = useState<Omit<Account, 'id'>>(emptyAccount);
   const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
   const deleteAccount = accounts.find((a) => a.id === deleteAccountId);
 
   const handleAdd = useCallback(() => {
-    addAccount({ ...draft, id: generateId() });
+    addAccount({ ...draft, name: draft.name.trim(), id: generateId('acct') });
     setDraft(emptyAccount);
     setDialogOpen(false);
   }, [draft, addAccount]);
@@ -198,7 +194,7 @@ export function AccountsPage() {
               <DialogTrigger disableButtonEnhancement>
                 <Button appearance="secondary">Cancel</Button>
               </DialogTrigger>
-              <Button appearance="primary" onClick={handleAdd} disabled={!draft.name}>
+              <Button appearance="primary" onClick={handleAdd} disabled={!draft.name.trim()}>
                 Add
               </Button>
             </DialogActions>

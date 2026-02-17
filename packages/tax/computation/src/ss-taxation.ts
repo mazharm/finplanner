@@ -8,12 +8,10 @@ export function computeTaxableSS(
 ): number {
   if (ssIncome <= 0) return 0;
   const provisionalIncome = otherTaxableIncome + 0.5 * ssIncome;
-  const thresholds = filingStatus === 'single'
-    ? SS_PROVISIONAL_INCOME_THRESHOLDS.single
-    : SS_PROVISIONAL_INCOME_THRESHOLDS.mfj;
+  const thresholds = SS_PROVISIONAL_INCOME_THRESHOLDS[filingStatus] ?? SS_PROVISIONAL_INCOME_THRESHOLDS.single;
   if (provisionalIncome <= thresholds.lower) return 0;
   if (provisionalIncome <= thresholds.upper) {
     return Math.min(0.50 * ssIncome, 0.50 * (provisionalIncome - thresholds.lower));
   }
-  return Math.min(0.85 * ssIncome, 0.85 * (provisionalIncome - thresholds.upper) + thresholds.midBandCap);
+  return Math.min(0.85 * ssIncome, 0.85 * (provisionalIncome - thresholds.upper) + 0.50 * (thresholds.upper - thresholds.lower));
 }

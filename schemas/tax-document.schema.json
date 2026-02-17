@@ -14,11 +14,11 @@
     "sourceFileName": { "type": "string" },
     "oneDrivePath": { "type": "string" },
     "extractedFields": { "type": "object", "additionalProperties": { "oneOf": [{ "type": "number" }, { "type": "string" }] } },
-    "fieldConfidence": { "type": "object", "additionalProperties": { "type": "number" } },
+    "fieldConfidence": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 } },
     "extractionConfidence": { "type": "number", "minimum": 0, "maximum": 1 },
     "lowConfidenceFields": { "type": "array", "items": { "type": "string" } },
     "confirmedByUser": { "type": "boolean" },
-    "importedAt": { "type": "string" }
+    "importedAt": { "type": "string", "format": "date-time" }
   },
   "additionalProperties": false
 }

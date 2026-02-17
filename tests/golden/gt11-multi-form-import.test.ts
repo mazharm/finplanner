@@ -47,7 +47,7 @@ function makeDocFromExtraction(
     extractionConfidence: extraction.extractionConfidence,
     lowConfidenceFields: extraction.lowConfidenceFields,
     confirmedByUser: true,
-    importedAt: new Date().toISOString(),
+    importedAt: '2025-04-01T12:00:00.000Z',
   };
 }
 

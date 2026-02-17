@@ -2,6 +2,37 @@ import type { Anomaly, AnomalySeverity, TaxYearRecord, TaxYearIncome, TaxDocumen
 import { DEFAULT_ANOMALY_THRESHOLD_PCT, DEFAULT_ANOMALY_THRESHOLD_ABSOLUTE } from '@finplanner/domain';
 import type { AnomalyDetectionRequest, AnomalyDetectionResult } from './types.js';
 
+// NOTE: normalizeIssuerName, tokenJaccardSimilarity, and issuerNamesMatch are
+// also used in packages/tax/checklist/src/generate-checklist.ts. Keep in sync.
+function normalizeIssuerName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[.,\-]/g, ' ')       // punctuation to spaces
+    .replace(/\b(inc|llc|corp|ltd|co|the)\b/gi, '') // remove common suffixes
+    .replace(/\s+/g, ' ')          // collapse whitespace
+    .trim();
+}
+
+function tokenJaccardSimilarity(a: string, b: string): number {
+  const tokensA = new Set(normalizeIssuerName(a).split(' ').filter(t => t.length > 0));
+  const tokensB = new Set(normalizeIssuerName(b).split(' ').filter(t => t.length > 0));
+  if (tokensA.size === 0 && tokensB.size === 0) return 1;
+  if (tokensA.size === 0 || tokensB.size === 0) return 0;
+  let intersection = 0;
+  for (const t of tokensA) {
+    if (tokensB.has(t)) intersection++;
+  }
+  const union = tokensA.size + tokensB.size - intersection;
+  return union > 0 ? intersection / union : 0;
+}
+
+function issuerNamesMatch(a: string, b: string): boolean {
+  // Primary check: exact match after normalization
+  if (normalizeIssuerName(a) === normalizeIssuerName(b)) return true;
+  // Fallback: token-overlap Jaccard similarity >= 0.5
+  return tokenJaccardSimilarity(a, b) >= 0.5;
+}
+
 const INCOME_FIELDS: Array<{ key: keyof TaxYearIncome; label: string }> = [
   { key: 'wages', label: 'Wages' },
   { key: 'selfEmploymentIncome', label: 'Self-employment income' },
@@ -26,7 +57,13 @@ function computeTotalIncome(income: TaxYearIncome): number {
 function computeTotalDeductions(record: TaxYearRecord): number {
   if (record.deductions.useItemized && record.deductions.itemizedDeductions) {
     const d = record.deductions.itemizedDeductions;
-    return d.mortgageInterest + d.stateAndLocalTaxes + d.charitableContributions + d.medicalExpenses + d.other;
+    // Apply SALT cap ($10,000) to state and local taxes
+    const saltCapped = Math.min(d.stateAndLocalTaxes, 10_000);
+    // Apply 7.5% AGI floor to medical expenses (use totalIncome as AGI approximation)
+    const totalIncome = computeTotalIncome(record.income);
+    const medicalFloor = totalIncome * 0.075;
+    const medicalDeductible = Math.max(0, d.medicalExpenses - medicalFloor);
+    return d.mortgageInterest + saltCapped + d.charitableContributions + medicalDeductible + d.other;
   }
   return record.deductions.standardDeduction;
 }
@@ -76,7 +113,7 @@ export function detectAnomalies(request: AnomalyDetectionRequest): AnomalyDetect
 
   for (const priorDoc of priorDocs) {
     const found = currentDocs.some(
-      d => d.formType === priorDoc.formType && d.issuerName === priorDoc.issuerName
+      d => d.formType === priorDoc.formType && issuerNamesMatch(d.issuerName, priorDoc.issuerName)
     );
     if (!found) {
       anomalies.push({
@@ -107,7 +144,7 @@ export function detectAnomalies(request: AnomalyDetectionRequest): AnomalyDetect
         category: 'anomaly',
         severity: 'info',
         field: key,
-        description: `New ${label}: $${currentVal.toLocaleString()} (was $0 in ${priorYear})`,
+        description: `New ${label}: $${currentVal.toLocaleString('en-US')} (was $0 in ${priorYear})`,
         priorValue: priorVal,
         currentValue: currentVal,
         percentChange: undefined,
@@ -131,7 +168,7 @@ export function detectAnomalies(request: AnomalyDetectionRequest): AnomalyDetect
         category: 'anomaly',
         severity,
         field: key,
-        description: `${label} changed by ${pctChange >= 0 ? '+' : ''}${pctChange.toFixed(1)}% ($${Math.abs(absoluteChange).toLocaleString()}) from ${priorYear} to ${request.currentYear}`,
+        description: `${label} changed by ${pctChange >= 0 ? '+' : ''}${pctChange.toFixed(1)}% ($${Math.abs(absoluteChange).toLocaleString('en-US')}) from ${priorYear} to ${request.currentYear}`,
         priorValue: priorVal,
         currentValue: currentVal,
         percentChange: pctChange,
@@ -154,9 +191,12 @@ export function detectAnomalies(request: AnomalyDetectionRequest): AnomalyDetect
         const diff2 = lastThree[2] - lastThree[1]; // current change
 
         // Pattern break: trend reversal with significant magnitude
+        // Uses thresholdPct / 2 intentionally: trend reversals are more noteworthy
+        // than simple YoY changes and warrant flagging at a lower percentage threshold
         if (diff1 !== 0 && diff2 !== 0 && Math.sign(diff1) !== Math.sign(diff2)) {
           const absChange = Math.abs(diff2);
-          if (absChange > thresholdAbsolute) {
+          const pctChangeFromPrior = lastThree[1] !== 0 ? (Math.abs(diff2) / Math.abs(lastThree[1])) * 100 : 0;
+          if (absChange > thresholdAbsolute && pctChangeFromPrior > thresholdPct / 2) {
             anomalies.push({
               id: makeId(),
               taxYear: request.currentYear,

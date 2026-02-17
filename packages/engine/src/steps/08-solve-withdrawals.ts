@@ -5,6 +5,11 @@ import { computeGainFraction, computeTaxableGain, reduceBasis } from '../helpers
 /**
  * Step 8: Solve Withdrawals
  *
+ * Note: The pro-rata strategy draws proportionally from all account types including
+ * Roth. This is an intentional simplification — in practice, Roth withdrawals are
+ * typically deferred as long as possible for tax-free growth. Users who want Roth-last
+ * behavior should use the taxableFirst or taxOptimized strategies.
+ *
  * Implements 4 withdrawal strategies to meet the withdrawal target:
  * - taxableFirst: Taxable -> TaxDeferred -> Roth
  * - taxDeferredFirst: TaxDeferred -> Taxable -> Roth
@@ -303,6 +308,13 @@ function applyWithdrawal(
       // Roth withdrawals are tax-free (assuming qualified distribution)
       result.rothWithdrawals += actualAmount;
       break;
+    default: {
+      // Compile-time exhaustiveness check: if a new account type is added,
+      // TypeScript will error here (unless the union doesn't narrow to never).
+      const _exhaustive: never = account.type;
+      console.warn(`[FinPlanner] Unknown account type in withdrawal: ${_exhaustive}`);
+      break;
+    }
   }
 
   // Reduce balance

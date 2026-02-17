@@ -85,21 +85,23 @@ export function HouseholdPage() {
         },
       }));
     } else {
+      // Keep spouse data in draft state (in case user toggles back) but update
+      // marital/filing status. Spouse is excluded on save when hasSpouse is false.
       setDraft((d) => ({
         ...d,
         maritalStatus: 'single' as const,
         filingStatus: 'single' as FilingStatus,
-        spouse: undefined,
       }));
     }
   }, []);
 
   const handleSave = useCallback(() => {
-    setHousehold(draft);
+    const toSave = hasSpouse ? draft : { ...draft, spouse: undefined };
+    setHousehold(toSave);
     setSaved(true);
     clearTimeout(savedTimerRef.current);
     savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
-  }, [draft, setHousehold]);
+  }, [draft, hasSpouse, setHousehold]);
 
   return (
     <div className={styles.root}>

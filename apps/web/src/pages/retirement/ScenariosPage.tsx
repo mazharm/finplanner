@@ -26,20 +26,14 @@ import {
 import { PlayRegular, AddRegular, DeleteRegular } from '@fluentui/react-icons';
 import { useState, useCallback } from 'react';
 import { useRetirementStore } from '../../stores/retirement-store.js';
+import { formatCurrency } from '../../utils/format.js';
+import { generateId } from '../../utils/id.js';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   form: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM },
 });
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
-}
-
-function generateId(): string {
-  return `scen_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-}
 
 export function ScenariosPage() {
   const styles = useStyles();
@@ -49,7 +43,7 @@ export function ScenariosPage() {
 
   const handleCreate = useCallback(() => {
     addScenario({
-      id: generateId(),
+      id: generateId('scen'),
       name: scenarioName || `Scenario ${scenarios.length + 1}`,
       spending: { ...spending },
       taxes: { ...taxes },
@@ -108,12 +102,12 @@ export function ScenariosPage() {
                   </TableCell>
                   <TableCell>
                     {scen.result
-                      ? `${(scen.result.summary.successProbability * 100).toFixed(0)}%`
+                      ? `${((scen.result.summary.successProbability ?? 0) * 100).toFixed(0)}%`
                       : '—'}
                   </TableCell>
                   <TableCell>
                     {scen.result
-                      ? formatCurrency(scen.result.summary.medianTerminalValue)
+                      ? formatCurrency(scen.result.summary.medianTerminalValue ?? 0)
                       : '—'}
                   </TableCell>
                   <TableCell>
@@ -128,6 +122,7 @@ export function ScenariosPage() {
                       appearance="subtle"
                       icon={<DeleteRegular />}
                       size="small"
+                      aria-label={`Delete scenario ${scen.name}`}
                       onClick={() => removeScenario(scen.id)}
                     />
                   </TableCell>

@@ -18,7 +18,12 @@ export function inflateSpending(
   yearContext: YearContext
 ): SpendingResult {
   const { plan, yearIndex, scenarioInflation } = state;
-  const { isSurvivorPhase } = yearContext;
+  const { isSurvivorPhase, bothDead } = yearContext;
+
+  // No spending after all parties have died
+  if (bothDead) {
+    return { targetSpend: 0, actualSpend: 0 };
+  }
 
   // Step 1: Base target inflated from year 1 — O(1) cached lookup
   const inflationMultiplier = getCumulativeInflationCached(
@@ -64,11 +69,13 @@ function applyGuardrails(
 ): number {
   const totalPortfolio = accounts.reduce((sum, a) => sum + a.balance, 0);
 
-  // Ceiling rule: if portfolio is very large relative to spending ceiling
+  // Ceiling rule (Guyton-Klinger): when portfolio is very large (> CEILING_MULTIPLIER * ceiling),
+  // the portfolio has grown significantly, so we raise spending up to the ceiling level.
+  // Use Math.max to ensure spending only goes UP (or stays same) — never decreases from this rule.
   if (ceiling !== undefined && ceiling > 0) {
     const inflatedCeiling = ceiling * inflationMultiplier;
     if (totalPortfolio > GUARDRAIL_PORTFOLIO_CEILING_MULTIPLIER * inflatedCeiling) {
-      return Math.min(targetSpend, inflatedCeiling);
+      return Math.max(targetSpend, inflatedCeiling);
     }
   }
 

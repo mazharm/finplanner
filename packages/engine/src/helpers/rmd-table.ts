@@ -79,5 +79,10 @@ export function getRmdStartAge(birthYear: number): number {
 export function lookupDistributionPeriod(age: number): number {
   if (age < 72) return 0;
   if (age > 120) return 2.0;
-  return rmdMap.get(age) ?? 2.0;
+  const period = rmdMap.get(age);
+  if (period === undefined) {
+    console.warn(`[FinPlanner] RMD table missing entry for age ${age}, using minimum period 2.0`);
+    return 2.0;
+  }
+  return period;
 }

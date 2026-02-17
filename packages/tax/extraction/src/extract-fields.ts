@@ -1,18 +1,23 @@
 import type { TaxFormField, TaxFormTemplate } from './types.js';
 import { DEFAULT_CONFIDENCE_THRESHOLD } from '@finplanner/domain';
 
-const CURRENCY_REGEX = /[-−]?\$?\s*([\d,]+\.?\d*)|\(\$?\s*([\d,]+\.?\d*)\)/;
-
 function parseCurrencyValue(text: string): number | null {
-  // Try parenthesized negative first: ($1,234.56) or (1,234.56)
+  // Try minus-before-parenthesis: -($1,234.56) or -(1,234.56)
+  const minusParenMatch = text.match(/[\u2013\u2212−-]\s*\(\$?\s*([\d,]+\.?\d*)\)/);
+  if (minusParenMatch) {
+    const cleaned = minusParenMatch[1].replace(/,/g, '');
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? null : -num;
+  }
+  // Try parenthesized negative: ($1,234.56) or (1,234.56)
   const parenMatch = text.match(/\(\$?\s*([\d,]+\.?\d*)\)/);
   if (parenMatch) {
     const cleaned = parenMatch[1].replace(/,/g, '');
     const num = parseFloat(cleaned);
     return isNaN(num) ? null : -num;
   }
-  // Try regular (possibly negative): -$1,234.56 or $1,234.56 or -1,234.56
-  const match = text.match(/([−-])?\$?\s*([\d,]+\.?\d*)/);
+  // Try regular (possibly negative): -$1,234.56 or $1,234.56 or -1,234.56 (includes en-dash \u2013 and minus sign \u2212)
+  const match = text.match(/([\u2013\u2212−-])?\$?\s*([\d,]+\.?\d*)/);
   if (!match) return null;
   const cleaned = match[2].replace(/,/g, '');
   const num = parseFloat(cleaned);
@@ -86,7 +91,7 @@ function extractSingleField(
           }
         }
         // Prefer values with explicit $ sign (higher confidence they're currency, not years)
-        const dollarMatch = afterMatch.match(/([−-])?\$\s*([\d,]+\.?\d*)/);
+        const dollarMatch = afterMatch.match(/([\u2013\u2212−-])?\$\s*([\d,]+\.?\d*)/);
         if (dollarMatch) {
           const cleaned = dollarMatch[2].replace(/,/g, '');
           const num = parseFloat(cleaned);

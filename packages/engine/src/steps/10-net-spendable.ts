@@ -62,14 +62,19 @@ export function computeNetSpendable(
 }
 
 /**
- * Deposit surplus into the first taxable account.
+ * Deposit surplus into the taxable account with the largest balance.
  * Both balance and costBasis increase (new money invested = new basis).
  */
 function depositSurplus(accounts: AccountState[], surplus: number): void {
-  const taxableAccount = accounts.find(a => a.type === 'taxable');
-  if (taxableAccount) {
-    taxableAccount.balance += surplus;
-    taxableAccount.costBasis += surplus;
+  const taxableAccounts = accounts.filter(a => a.type === 'taxable');
+  if (taxableAccounts.length === 0) {
+    // If no taxable account exists, the surplus is "spent" (consumed but not invested)
+    return;
   }
-  // If no taxable account exists, the surplus is "spent" (consumed but not invested)
+  // Pick the taxable account with the largest balance
+  const taxableAccount = taxableAccounts.reduce((best, a) =>
+    a.balance > best.balance ? a : best
+  );
+  taxableAccount.balance += surplus;
+  taxableAccount.costBasis += surplus;
 }

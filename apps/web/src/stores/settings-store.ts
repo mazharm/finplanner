@@ -8,7 +8,6 @@ import {
 type SyncStatus = 'offline' | 'syncing' | 'synced' | 'error';
 
 interface SettingsState {
-  claudeApiKey: string;
   hasApiKey: boolean;
   oneDriveConnected: boolean;
   syncStatus: SyncStatus;
@@ -16,14 +15,13 @@ interface SettingsState {
 
   // Actions
   initFromIndexedDB: () => Promise<void>;
-  setClaudeApiKey: (key: string) => void;
-  clearClaudeApiKey: () => void;
+  setClaudeApiKey: (key: string) => Promise<void>;
+  clearClaudeApiKey: () => Promise<void>;
   setOneDriveConnected: (connected: boolean) => void;
   setSyncStatus: (status: SyncStatus) => void;
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
-  claudeApiKey: '',
   hasApiKey: false,
   oneDriveConnected: false,
   syncStatus: 'offline',
@@ -32,30 +30,31 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   initFromIndexedDB: async () => {
     try {
       const key = await getApiKey();
-      if (key) {
-        set({ claudeApiKey: key, hasApiKey: true, initialized: true });
-      } else {
-        set({ initialized: true });
-      }
+      set({ hasApiKey: !!key, initialized: true });
     } catch {
       // IndexedDB not available (e.g., SSR or test environment)
       set({ initialized: true });
     }
   },
 
-  setClaudeApiKey: (key) => {
-    set({ claudeApiKey: key, hasApiKey: key.length > 0 });
-    // Persist to IndexedDB (fire-and-forget)
-    setApiKeyIdb(key).catch((err) => {
-      console.error('[FinPlanner] IndexedDB operation failed:', err);
-    });
+  setClaudeApiKey: async (key) => {
+    try {
+      await setApiKeyIdb(key);
+      set({ hasApiKey: key.length > 0 });
+    } catch (err) {
+      console.error('[FinPlanner] Failed to save API key to IndexedDB:', err);
+      throw err;
+    }
   },
 
-  clearClaudeApiKey: () => {
-    set({ claudeApiKey: '', hasApiKey: false });
-    clearApiKeyIdb().catch((err) => {
-      console.error('[FinPlanner] IndexedDB operation failed:', err);
-    });
+  clearClaudeApiKey: async () => {
+    try {
+      await clearApiKeyIdb();
+      set({ hasApiKey: false });
+    } catch (err) {
+      console.error('[FinPlanner] Failed to clear API key from IndexedDB:', err);
+      throw err;
+    }
   },
 
   setOneDriveConnected: (connected) => set({ oneDriveConnected: connected }),

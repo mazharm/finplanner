@@ -1,4 +1,17 @@
 import type { TaxYearRecord } from '@finplanner/domain';
+import {
+  CAPITAL_LOSS_DEDUCTION_CAP,
+  NIIT_RATE,
+  NIIT_THRESHOLD_MFJ,
+  NIIT_THRESHOLD_SINGLE,
+  SE_TAX_SS_RATE,
+  SE_TAX_MEDICARE_RATE,
+  SE_INCOME_ADJUSTMENT,
+  SS_WAGE_BASE,
+  ADDITIONAL_MEDICARE_RATE,
+  ADDITIONAL_MEDICARE_THRESHOLD_MFJ,
+  ADDITIONAL_MEDICARE_THRESHOLD_SINGLE,
+} from '@finplanner/domain';
 import type { TaxComputationConfig, TaxComputationResult } from './types.js';
 import { computeTotalGrossIncome, computeOrdinaryIncome, computeDeduction } from './income-helpers.js';
 import { computeTaxableSS } from './ss-taxation.js';
@@ -25,8 +38,8 @@ export function computeTaxYearTaxes(
 
   let taxableOrdinary = Math.max(0, ordinary - deduction);
 
-  // IRS caps net capital loss deduction at $3,000/year ($1,500 MFS)
-  const CAPITAL_LOSS_CAP = 3000;
+  // IRS caps net capital loss deduction at $3,000/year
+  const CAPITAL_LOSS_CAP = CAPITAL_LOSS_DEDUCTION_CAP;
   const rawNetCapGains = record.income.capitalGains - record.income.capitalLosses;
   const netCapGains = rawNetCapGains >= 0
     ? rawNetCapGains
@@ -50,32 +63,35 @@ export function computeTaxYearTaxes(
   );
 
   // NIIT: 3.8% on lesser of net investment income or MAGI above threshold
-  const NIIT_RATE = 0.038;
-  const NIIT_THRESHOLD = record.filingStatus === 'mfj' || record.filingStatus === 'survivor' ? 250_000 : 200_000;
+  // For NIIT, MAGI should use capital losses capped at $3,000 (not unlimited)
+  const niitThreshold = record.filingStatus === 'mfj' || record.filingStatus === 'survivor' ? NIIT_THRESHOLD_MFJ : NIIT_THRESHOLD_SINGLE;
   const netInvestmentIncome = record.income.interestIncome + record.income.dividendIncome +
     Math.max(0, rawNetCapGains) + record.income.rentalIncome;
-  const magiOverThreshold = Math.max(0, totalGross - NIIT_THRESHOLD);
+  // totalGross includes uncapped net cap gains (capitalGains - capitalLosses = rawNetCapGains).
+  // Replace with capped net cap gains for NIIT MAGI.
+  const niitMagi = totalGross - rawNetCapGains + netCapGains;
+  const magiOverThreshold = Math.max(0, niitMagi - niitThreshold);
   const niit = NIIT_RATE * Math.min(netInvestmentIncome, magiOverThreshold);
 
-  // Self-employment tax: 15.3% up to SS wage base ($168,600 for 2025), then 2.9% above
+  // Self-employment tax: 15.3% up to SS wage base, then 2.9% above
+  // W-2 wages count first against the SS wage base
   let seTax = 0;
   if (record.income.selfEmploymentIncome > 0) {
-    const SE_TAX_RATE_FULL = 0.153; // 12.4% SS + 2.9% Medicare
-    const SE_MEDICARE_RATE = 0.029;
-    const SS_WAGE_BASE = 168_600;
-    const seIncome = record.income.selfEmploymentIncome * 0.9235; // 92.35% of SE income
-    if (seIncome <= SS_WAGE_BASE) {
-      seTax = seIncome * SE_TAX_RATE_FULL;
-    } else {
-      seTax = SS_WAGE_BASE * SE_TAX_RATE_FULL + (seIncome - SS_WAGE_BASE) * SE_MEDICARE_RATE;
-    }
+    const seIncome = record.income.selfEmploymentIncome * SE_INCOME_ADJUSTMENT;
+    const remainingSSBase = Math.max(0, SS_WAGE_BASE - record.income.wages);
+    const seSubjectToSS = Math.min(seIncome, remainingSSBase);
+    seTax = seSubjectToSS * SE_TAX_SS_RATE + seIncome * SE_TAX_MEDICARE_RATE;
   }
 
-  // Additional Medicare Tax: 0.9% on wages + SE income above threshold
-  const ADDITIONAL_MEDICARE_RATE = 0.009;
-  const ADDITIONAL_MEDICARE_THRESHOLD = record.filingStatus === 'mfj' || record.filingStatus === 'survivor' ? 250_000 : 200_000;
-  const wagesAndSE = record.income.wages + record.income.selfEmploymentIncome;
-  const additionalMedicare = Math.max(0, wagesAndSE - ADDITIONAL_MEDICARE_THRESHOLD) * ADDITIONAL_MEDICARE_RATE;
+  // IRS allows deduction of 50% of SE tax from AGI
+  if (seTax > 0) {
+    taxableOrdinary = Math.max(0, taxableOrdinary - seTax * 0.5);
+  }
+
+  // Additional Medicare Tax: 0.9% on wages + SE income (92.35% adjusted) above threshold
+  const additionalMedicareThreshold = record.filingStatus === 'mfj' || record.filingStatus === 'survivor' ? ADDITIONAL_MEDICARE_THRESHOLD_MFJ : ADDITIONAL_MEDICARE_THRESHOLD_SINGLE;
+  const wagesAndSE = record.income.wages + record.income.selfEmploymentIncome * SE_INCOME_ADJUSTMENT;
+  const additionalMedicare = Math.max(0, wagesAndSE - additionalMedicareThreshold) * ADDITIONAL_MEDICARE_RATE;
 
   const federalTax = baseFederalTax + niit + seTax + additionalMedicare;
 
@@ -85,7 +101,9 @@ export function computeTaxYearTaxes(
   const stateCapGainsRatePct = config.stateCapGainsRatePct ?? stateRatePct;
 
   if (stateRatePct > 0 || stateCapGainsRatePct > 0) {
-    let stateOrdinary = taxableOrdinary;
+    // Use state-specific standard deduction; fall back to federal deduction if not provided
+    const stateDeduction = config.stateStandardDeduction ?? deduction;
+    let stateOrdinary = Math.max(0, ordinary - stateDeduction);
     // If state exempts SS, remove the taxable SS portion from state ordinary
     if (config.ssTaxExempt) {
       const taxableSS = computeTaxableSS(
@@ -99,20 +117,27 @@ export function computeTaxYearTaxes(
         record.filingStatus
       );
       const ordinaryWithoutSS = ordinary - taxableSS;
-      stateOrdinary = Math.max(0, ordinaryWithoutSS - deduction);
+      stateOrdinary = Math.max(0, ordinaryWithoutSS - stateDeduction);
+    }
+    // Compute state preferential income: apply threshold and qualified dividend exclusions
+    let statePreferentialIncome = preferentialIncome;
+    if (config.stateCapGainsExcludesQualDivs) {
+      statePreferentialIncome = Math.max(0, netCapGains);
+    }
+    if (config.stateCapGainsThreshold) {
+      statePreferentialIncome = Math.max(0, statePreferentialIncome - config.stateCapGainsThreshold);
     }
     stateTax = Math.max(0,
-      (stateOrdinary * stateRatePct / 100) + (preferentialIncome * stateCapGainsRatePct / 100)
+      (stateOrdinary * stateRatePct / 100) + (statePreferentialIncome * stateCapGainsRatePct / 100)
     );
   }
 
   const totalFederalPaid = record.payments.federalWithheld + record.payments.estimatedPaymentsFederal;
   const totalStatePaid = record.payments.stateWithheld + record.payments.estimatedPaymentsState;
 
-  // Use taxable income (ordinary + preferential) as denominator for more accurate effective rate
-  const taxableBase = taxableOrdinary + preferentialIncome;
-  const effectiveFederalRate = taxableBase > 0 ? (federalTax / taxableBase) * 100 : 0;
-  const effectiveStateRate = taxableBase > 0 ? (stateTax / taxableBase) * 100 : 0;
+  // Use gross income as denominator for conventional effective rate definition
+  const effectiveFederalRate = totalGross > 0 ? (federalTax / totalGross) * 100 : 0;
+  const effectiveStateRate = totalGross > 0 ? (stateTax / totalGross) * 100 : 0;
 
   return {
     federalTax,

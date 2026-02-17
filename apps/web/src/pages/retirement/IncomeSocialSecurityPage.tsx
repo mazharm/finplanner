@@ -28,6 +28,8 @@ import { MoneyRegular, AddRegular, DeleteRegular } from '@fluentui/react-icons';
 import { useState, useCallback } from 'react';
 import { useSharedStore } from '../../stores/shared-store.js';
 import { safeParseNumber } from '../../utils/parse-number.js';
+import { formatCurrency } from '../../utils/format.js';
+import { generateId } from '../../utils/id.js';
 import type { IncomeStream } from '@finplanner/domain';
 
 const useStyles = makeStyles({
@@ -36,14 +38,6 @@ const useStyles = makeStyles({
   form: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM },
   row: { display: 'flex', gap: tokens.spacingHorizontalM },
 });
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
-}
-
-function generateId(): string {
-  return `inc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-}
 
 const emptyStream: Omit<IncomeStream, 'id'> = {
   name: '',
@@ -60,7 +54,7 @@ export function IncomeSocialSecurityPage() {
   const [draft, setDraft] = useState<Omit<IncomeStream, 'id'>>(emptyStream);
 
   const handleAdd = useCallback(() => {
-    addIncomeStream({ ...draft, id: generateId() });
+    addIncomeStream({ ...draft, id: generateId('inc') });
     setDraft(emptyStream);
     setDialogOpen(false);
   }, [draft, addIncomeStream]);

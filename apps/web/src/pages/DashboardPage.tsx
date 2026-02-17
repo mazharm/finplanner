@@ -3,6 +3,7 @@ import { HomeRegular } from '@fluentui/react-icons';
 import { useSharedStore } from '../stores/shared-store.js';
 import { useTaxStore } from '../stores/tax-store.js';
 import { useRetirementStore } from '../stores/retirement-store.js';
+import { formatCurrency } from '../utils/format.js';
 import { useSettingsStore } from '../stores/settings-store.js';
 
 const useStyles = makeStyles({
@@ -26,16 +27,15 @@ const useStyles = makeStyles({
   },
 });
 
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
-}
-
 export function DashboardPage() {
   const styles = useStyles();
-  const { household, accounts, incomeStreams } = useSharedStore();
-  const { taxYears } = useTaxStore();
-  const { latestResult } = useRetirementStore();
-  const { hasApiKey, syncStatus } = useSettingsStore();
+  const household = useSharedStore((s) => s.household);
+  const accounts = useSharedStore((s) => s.accounts);
+  const incomeStreams = useSharedStore((s) => s.incomeStreams);
+  const taxYears = useTaxStore((s) => s.taxYears);
+  const latestResult = useRetirementStore((s) => s.latestResult);
+  const hasApiKey = useSettingsStore((s) => s.hasApiKey);
+  const syncStatus = useSettingsStore((s) => s.syncStatus);
 
   const totalBalance = accounts.reduce((sum, a) => sum + a.currentBalance, 0);
   const draftTaxYears = taxYears.filter((ty) => ty.status === 'draft').length;
@@ -96,10 +96,10 @@ export function DashboardPage() {
           {latestResult ? (
             <>
               <div className={styles.statValue}>
-                {(latestResult.summary.successProbability * 100).toFixed(0)}%
+                {((latestResult.summary.successProbability ?? 0) * 100).toFixed(0)}%
               </div>
               <div className={styles.statLabel}>
-                Success probability &middot; Median {formatCurrency(latestResult.summary.medianTerminalValue)}
+                Success probability &middot; Median {formatCurrency(latestResult.summary.medianTerminalValue ?? 0)}
               </div>
             </>
           ) : (

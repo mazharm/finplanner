@@ -38,19 +38,22 @@ function openDb(): Promise<IDBDatabase> {
   dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const db = request.result;
-      if (!db.objectStoreNames.contains('apiKey')) {
+      const oldVersion = event.oldVersion;
+
+      if (oldVersion < 1) {
+        // Initial schema: create all base stores
         db.createObjectStore('apiKey');
-      }
-      if (!db.objectStoreNames.contains('files')) {
         db.createObjectStore('files', { keyPath: 'path' });
-      }
-      if (!db.objectStoreNames.contains('syncQueue')) {
         db.createObjectStore('syncQueue', { keyPath: 'id' });
       }
-      if (!db.objectStoreNames.contains('appState')) {
-        db.createObjectStore('appState');
+
+      if (oldVersion < 2) {
+        // Version 2: add appState store for persisted Zustand state
+        if (!db.objectStoreNames.contains('appState')) {
+          db.createObjectStore('appState');
+        }
       }
     };
 
@@ -80,20 +83,22 @@ function txGet<T>(db: IDBDatabase, store: string, key: IDBValidKey): Promise<T |
 function txPut(db: IDBDatabase, store: string, value: unknown, key?: IDBValidKey): Promise<void> {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(store, 'readwrite');
-    const req = key !== undefined
+    key !== undefined
       ? tx.objectStore(store).put(value, key)
       : tx.objectStore(store).put(value);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
   });
 }
 
 function txDelete(db: IDBDatabase, store: string, key: IDBValidKey): Promise<void> {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(store, 'readwrite');
-    const req = tx.objectStore(store).delete(key);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
+    tx.objectStore(store).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
   });
 }
 

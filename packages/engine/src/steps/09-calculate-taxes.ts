@@ -40,11 +40,13 @@ export function calculateTaxes(
 
   // ---- Ordinary income before SS ----
   // Includes: RMDs, NQDC, taxable income streams, taxable adjustments, withdrawal ordinary income
-  const ordinaryIncomeBeforeSS =
+  // Floor at 0 to prevent negative values from distorting SS taxation provisional income
+  const ordinaryIncomeBeforeSS = Math.max(0,
     rmdTotal +
     mandatoryIncome.nqdcDistributions +
     (mandatoryIncome.totalMandatoryTaxableOrdinary - mandatoryIncome.socialSecurityIncome - mandatoryIncome.nqdcDistributions) +
-    taxableOrdinaryFromWithdrawals;
+    taxableOrdinaryFromWithdrawals
+  );
 
   // ---- Taxable Social Security ----
   const taxableSS = computeTaxableSS(
@@ -141,7 +143,14 @@ function computeStateTax(
   const stateTaxableOrdinary = Math.max(0, stateOrdinaryIncome - stateDeduction);
 
   const stateOrdinaryTax = stateTaxableOrdinary * (stateIncomeRate / 100);
-  const stateCapGainsTax = totalCapitalGains * (stateCapGainsRate / 100);
+
+  // Apply state-specific capital gains adjustments (e.g., WA has $270K threshold
+  // and excludes qualified dividends from its 7% cap gains tax)
+  let stateCapGains = totalCapitalGains;
+  if (stateInfo?.capitalGainsThreshold) {
+    stateCapGains = Math.max(0, stateCapGains - stateInfo.capitalGainsThreshold);
+  }
+  const stateCapGainsTax = stateCapGains * (stateCapGainsRate / 100);
 
   return stateOrdinaryTax + stateCapGainsTax;
 }

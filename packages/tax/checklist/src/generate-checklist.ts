@@ -1,6 +1,8 @@
 import type { ChecklistItem, TaxChecklist } from '@finplanner/domain';
 import type { ChecklistRequest } from './types.js';
 
+// NOTE: normalizeIssuerName, tokenJaccardSimilarity, and issuerNamesMatch are
+// also used in packages/tax/anomaly/src/detect-anomalies.ts. Keep in sync.
 function normalizeIssuerName(name: string): string {
   return name
     .toLowerCase()
@@ -10,8 +12,24 @@ function normalizeIssuerName(name: string): string {
     .trim();
 }
 
+function tokenJaccardSimilarity(a: string, b: string): number {
+  const tokensA = new Set(normalizeIssuerName(a).split(' ').filter(t => t.length > 0));
+  const tokensB = new Set(normalizeIssuerName(b).split(' ').filter(t => t.length > 0));
+  if (tokensA.size === 0 && tokensB.size === 0) return 1;
+  if (tokensA.size === 0 || tokensB.size === 0) return 0;
+  let intersection = 0;
+  for (const t of tokensA) {
+    if (tokensB.has(t)) intersection++;
+  }
+  const union = tokensA.size + tokensB.size - intersection;
+  return union > 0 ? intersection / union : 0;
+}
+
 function issuerNamesMatch(a: string, b: string): boolean {
-  return normalizeIssuerName(a) === normalizeIssuerName(b);
+  // Primary check: exact match after normalization
+  if (normalizeIssuerName(a) === normalizeIssuerName(b)) return true;
+  // Fallback: token-overlap Jaccard similarity >= 0.5
+  return tokenJaccardSimilarity(a, b) >= 0.5;
 }
 
 export function generateChecklist(request: ChecklistRequest): TaxChecklist {
@@ -52,18 +70,39 @@ export function generateChecklist(request: ChecklistRequest): TaxChecklist {
   }
 
   // Rule 2b: Tax-deferred and Roth accounts may generate 1099-R forms
+  // Only generate if: (a) prior year had a 1099-R from this issuer, OR (b) owner is at/past RMD age
+  // SECURE 2.0 Act: born ≤1950→72, born 1951-1959→73, born 1960+→75
+  const getRmdAge = (birthYear: number) => birthYear <= 1950 ? 72 : birthYear <= 1959 ? 73 : 75;
   for (const account of request.sharedCorpus.accounts) {
     if (account.type === 'taxDeferred' || account.type === 'roth') {
+      // Check (a): prior year had a 1099-R from this account's issuer
+      const priorHad1099R = request.priorYearDocuments.some(
+        d => d.formType === '1099-R' && issuerNamesMatch(d.issuerName, account.name)
+      );
+
+      // Check (b): account owner is at or past RMD age
+      const owner = account.owner === 'spouse'
+        ? request.sharedCorpus.household.spouse
+        : request.sharedCorpus.household.primary;
+      const ownerAge = owner ? request.taxYear - owner.birthYear : 0;
+      const ownerRmdAge = owner ? getRmdAge(owner.birthYear) : 73;
+      const atRmdAge = ownerAge >= ownerRmdAge;
+
+      if (!priorHad1099R && !atRmdAge) continue;
+
       const has1099R = request.currentYearDocuments.some(
         d => d.formType === '1099-R' && issuerNamesMatch(d.issuerName, account.name)
       );
+      const reason = priorHad1099R
+        ? `Prior year included 1099-R from "${account.name}"`
+        : `Account owner age ${ownerAge} is at/past RMD age (${ownerRmdAge})`;
       items.push({
         id: makeId(),
         taxYear: request.taxYear,
         category: 'document',
         description: `1099-R expected from retirement account: ${account.name}`,
         status: has1099R ? 'received' : 'pending',
-        sourceReasoning: `Retirement account "${account.name}" (${account.type}) may have distributions requiring 1099-R`,
+        sourceReasoning: reason,
       });
     }
   }
@@ -100,7 +139,7 @@ export function generateChecklist(request: ChecklistRequest): TaxChecklist {
           category: 'deduction',
           description: `Review ${dt.label} deduction`,
           status: 'pending',
-          sourceReasoning: `Prior year (${request.priorYearRecord.taxYear}) had $${itemized[dt.key].toLocaleString()} in ${dt.label}`,
+          sourceReasoning: `Prior year (${request.priorYearRecord.taxYear}) had $${itemized[dt.key].toLocaleString('en-US')} in ${dt.label}`,
         });
       }
     }
@@ -157,7 +196,7 @@ export function generateChecklist(request: ChecklistRequest): TaxChecklist {
         category: 'deadline',
         description: `${q.label} estimated tax payment due ${q.date}`,
         status: 'pending',
-        sourceReasoning: `Prior year included estimated tax payments (federal: $${request.priorYearRecord.payments.estimatedPaymentsFederal.toLocaleString()}, state: $${request.priorYearRecord.payments.estimatedPaymentsState.toLocaleString()})`,
+        sourceReasoning: `Prior year included estimated tax payments (federal: $${request.priorYearRecord.payments.estimatedPaymentsFederal.toLocaleString('en-US')}, state: $${request.priorYearRecord.payments.estimatedPaymentsState.toLocaleString('en-US')})`,
       });
     }
   }

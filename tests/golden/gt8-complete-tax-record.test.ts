@@ -149,10 +149,13 @@ describe('GT8: Two-Year Complete Tax Record', () => {
 
   it('should have completionPct reflecting all docs received', () => {
     // Document items (3) are "received", deadline (1) is "pending"
-    // So completion = 3/4 * 100 = 75% (not all items are non-pending since deadline always pending)
+    // So completion = received / total * 100
     const docItems = checklist.items.filter(i => i.category === 'document');
     const receivedCount = docItems.filter(i => i.status === 'received').length;
     expect(receivedCount).toBe(docItems.length);
+    // Verify completionPct is computed correctly
+    const expectedPct = (receivedCount / checklist.items.length) * 100;
+    expect(checklist.completionPct).toBeCloseTo(expectedPct, 1);
   });
 
   it('should always include filing deadline', () => {

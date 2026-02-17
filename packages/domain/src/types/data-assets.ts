@@ -14,6 +14,8 @@ export interface StateEntry {
   capitalGainsRate: number;
   ssTaxExempt: 'yes' | 'no' | 'partial';
   stateStandardDeduction?: number;
+  capitalGainsThreshold?: number;
+  capitalGainsExcludesQualDivs?: boolean;
   notes?: string;
 }
 

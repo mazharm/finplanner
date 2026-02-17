@@ -120,10 +120,14 @@ describe('GT3: Survivor Transition Case', () => {
       expect(result.yearly[0].ageSpouse).toBe(63);
     });
 
-    it('should increment ages each year', () => {
+    it('should increment ages each year until death, then freeze at lifeExpectancy', () => {
+      // Primary: age 65, LE 85 -> dies at yearIndex 20. Age freezes at 85 after death.
+      // Spouse: age 63, LE 90 -> alive for all 27 years.
       for (let i = 0; i < result.yearly.length; i++) {
-        expect(result.yearly[i].agePrimary).toBe(65 + i);
-        expect(result.yearly[i].ageSpouse).toBe(63 + i);
+        const expectedPrimaryAge = Math.min(65 + i, 85); // freezes at LE
+        const expectedSpouseAge = 63 + i; // alive for all 27 years
+        expect(result.yearly[i].agePrimary).toBe(expectedPrimaryAge);
+        expect(result.yearly[i].ageSpouse).toBe(expectedSpouseAge);
       }
     });
   });
@@ -202,8 +206,10 @@ describe('GT3: Survivor Transition Case', () => {
       const baseInflated = 120_000 * Math.pow(1.025, 20);
       const expectedSurvivorTarget = baseInflated * 0.70;
       const actualTarget = result.yearly[20].targetSpend;
-      // Use a wider tolerance here due to cumulative inflation compounding
-      expect(Math.abs(actualTarget - expectedSurvivorTarget)).toBeLessThanOrEqual(50);
+      // Wider tolerance needed: 20 years of 2.5% inflation compounding introduces
+      // floating-point drift that exceeds the default $5 TOLERANCE
+      const INFLATION_TOLERANCE = 50;
+      expect(Math.abs(actualTarget - expectedSurvivorTarget)).toBeLessThanOrEqual(INFLATION_TOLERANCE);
     });
 
     it('should have year 20 spending > year 21 spending (survivor drop)', () => {
@@ -240,15 +246,20 @@ describe('GT3: Survivor Transition Case', () => {
       expect(result.yearly[10].rmdTotal).toBeGreaterThan(0);
     });
 
-    it('should continue RMDs in survivor phase', () => {
+    it('should continue RMDs in survivor phase while account has balance', () => {
       // Survivor (spouse) continues RMDs from consolidated account
       // Spouse is age 83 in year 21 (yearIndex 20), well past RMD age of 75
-      for (let i = 20; i < result.yearly.length; i++) {
-        // Spouse born 1963, RMD start age 75, age 75 at yearIndex 12
-        // So by yearIndex 20 the spouse is 83, RMDs should be active
-        if (result.yearly[i].endBalanceByAccount['trad-ira-1'] > 0) {
-          expect(result.yearly[i].rmdTotal).toBeGreaterThan(0);
-        }
+      // First, verify the account has positive balance in at least the first survivor year
+      expect(result.yearly[20].endBalanceByAccount['trad-ira-1']).toBeGreaterThan(0);
+      expect(result.yearly[20].rmdTotal).toBeGreaterThan(0);
+
+      // Check all survivor years with positive balance
+      const survivorYearsWithBalance = result.yearly
+        .slice(20)
+        .filter(yr => yr.endBalanceByAccount['trad-ira-1'] > 0);
+      expect(survivorYearsWithBalance.length).toBeGreaterThan(0);
+      for (const yr of survivorYearsWithBalance) {
+        expect(yr.rmdTotal).toBeGreaterThan(0);
       }
     });
   });

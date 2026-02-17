@@ -4,6 +4,9 @@ export interface TaxComputationConfig {
   stateEffectiveRatePct?: number;
   stateCapGainsRatePct?: number;
   ssTaxExempt?: boolean;
+  stateStandardDeduction?: number;
+  stateCapGainsThreshold?: number;
+  stateCapGainsExcludesQualDivs?: boolean;
 }
 
 export interface TaxComputationResult {

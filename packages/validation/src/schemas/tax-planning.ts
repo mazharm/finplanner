@@ -13,7 +13,7 @@ export const taxDocumentSchema = z.object({
   extractionConfidence: z.number().min(0).max(1),
   lowConfidenceFields: z.array(z.string()),
   confirmedByUser: z.boolean(),
-  importedAt: z.string(),
+  importedAt: z.string().datetime({ offset: true }),
 });
 
 export const taxYearIncomeSchema = z.object({
@@ -24,12 +24,15 @@ export const taxYearIncomeSchema = z.object({
   qualifiedDividends: z.number().min(0),
   capitalGains: z.number().min(0),
   capitalLosses: z.number().min(0),
-  rentalIncome: z.number(),
+  rentalIncome: z.number(), // Can be negative (rental losses are common)
   nqdcDistributions: z.number().min(0),
   retirementDistributions: z.number().min(0),
   socialSecurityIncome: z.number().min(0),
   otherIncome: z.number().min(0),
-});
+}).refine(
+  (d) => d.qualifiedDividends <= d.dividendIncome,
+  { message: 'qualifiedDividends must be <= dividendIncome', path: ['qualifiedDividends'] }
+);
 
 export const taxYearDeductionsSchema = z.object({
   standardDeduction: z.number().min(0),
@@ -41,7 +44,10 @@ export const taxYearDeductionsSchema = z.object({
     other: z.number().min(0),
   }).optional(),
   useItemized: z.boolean(),
-});
+}).refine(
+  (data) => !data.useItemized || data.itemizedDeductions !== undefined,
+  { message: 'itemizedDeductions is required when useItemized is true', path: ['itemizedDeductions'] }
+);
 
 export const taxYearCreditsSchema = z.object({
   childTaxCredit: z.number().min(0),
@@ -61,7 +67,7 @@ export const taxYearRecordSchema = z.object({
   taxYear: z.number().int(),
   status: taxYearStatusSchema,
   filingStatus: filingStatusSchema,
-  stateOfResidence: z.string().length(2),
+  stateOfResidence: z.string().regex(/^[A-Z]{2}$/, 'Must be a 2-letter uppercase state code'),
   income: taxYearIncomeSchema,
   deductions: taxYearDeductionsSchema,
   credits: taxYearCreditsSchema,

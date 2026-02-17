@@ -1,6 +1,7 @@
 import type { PlanInput, PersonProfile } from '@finplanner/domain';
 import type { SimulationState, AccountState, YearContext, MandatoryIncome } from '../types.js';
-import { getInflationRate } from '../helpers/inflation.js';
+// Note: getInflationRate is not directly called; pre-simulation inflation
+// uses plan.spending.inflationPct, and in-simulation uses cumulative prefix products.
 
 /**
  * Step 3: Compute Mandatory Income
@@ -43,8 +44,13 @@ export function computeMandatoryIncome(
   adjustmentIncome = adjResult.totalAmount;
   totalMandatoryTaxableOrdinary += adjResult.taxableAmount;
 
-  // SS and NQDC are ordinary income
-  totalMandatoryTaxableOrdinary += socialSecurityIncome; // Note: actual taxable SS is computed in step 9
+  // SS and NQDC are ordinary income.
+  // IMPORTANT: SS is included in the aggregate totalMandatoryTaxableOrdinary here intentionally.
+  // Step 9 (calculateTaxes) decomposes this: it subtracts the full SS amount from ordinary income,
+  // then computes the taxable portion of SS separately via the provisional income method (IRS rules),
+  // and adds only the taxable portion back. This two-step approach correctly handles the fact that
+  // only 0-85% of SS is taxable depending on total income.
+  totalMandatoryTaxableOrdinary += socialSecurityIncome;
   totalMandatoryTaxableOrdinary += nqdcDistributions;
 
   return {
@@ -102,7 +108,9 @@ function computeSocialSecurity(
     const deceasedProfile = survivorId === 'primary' ? household.spouse : household.primary;
     const survivorProfile = survivorId === 'primary' ? household.primary : household.spouse;
 
-    if (deceasedProfile?.socialSecurity && survivorProfile?.socialSecurity) {
+    const survivorOwnBenefit = survivorId === 'primary' ? primarySS : spouseSS;
+
+    if (deceasedProfile?.socialSecurity) {
       // For survivor benefits, use deceased's PIA even if they hadn't started claiming
       // The deceased's benefit is their PIA adjusted by COLA from their claim age year
       const deceasedSS = deceasedProfile.socialSecurity;
@@ -121,18 +129,21 @@ function computeSocialSecurity(
           cumulativeInflation
         );
       } else {
-        // Deceased died before claiming - survivor gets PIA directly
-        // (no early/late adjustment modeled; PIA is used as the base benefit)
+        // Deceased died before claiming - survivor gets PIA directly.
+        // Known approximation: deceasedBaseBenefit uses estimatedMonthlyBenefitAtClaim
+        // which includes claim-age adjustments. We don't have a separate PIA field,
+        // so estimatedMonthlyBenefitAtClaim is the best available proxy.
         deceasedBenefit = deceasedBaseBenefit;
       }
 
-      const survivorOwnBenefit = survivorId === 'primary' ? primarySS : spouseSS;
+      // Survivor gets the higher of their own benefit or the deceased's benefit.
+      // If survivor has no SS record of their own, survivorOwnBenefit is 0,
+      // so they inherit the deceased's benefit.
       return Math.max(survivorOwnBenefit, deceasedBenefit);
     }
 
-    // If only one had SS, return whichever applies
-    if (survivorId === 'primary') return primarySS;
-    return spouseSS;
+    // Deceased had no SS — survivor keeps only their own benefit
+    return survivorOwnBenefit;
   }
 
   return primarySS + spouseSS;
@@ -308,6 +319,9 @@ function computeIncomeStreams(
     const yearsSinceStart = calendarYear - stream.startYear;
     let amount = stream.annualAmount;
 
+    // Design choice: when scenario inflation is available, income stream COLA uses
+    // scenario inflation rates instead of the stream's own colaPct. This models the
+    // assumption that pensions/income streams with COLA track actual inflation.
     if (yearsSinceStart > 0 && stream.colaPct !== undefined && stream.colaPct !== 0) {
       const colaPct = stream.colaPct ?? 0;
       const startIdx = yearIndex - yearsSinceStart;
@@ -378,11 +392,11 @@ function computeAdjustments(
 
 /**
  * Compute compound inflation multiplier for a range of year indices,
- * matching the behavior of the original loop that used
- * getInflationRate(Math.max(0, idx), plan, scenarioInflation).
+ * matching the behavior of the original loop that used the inflation rate
+ * for each year index (clamped to 0 for pre-simulation years).
  *
- * For pre-simulation indices (< 0), the original clamped to index 0,
- * so those years all use the same rate as getInflationRate(0, ...).
+ * For pre-simulation indices (< 0), we use plan.spending.inflationPct directly
+ * since there is no scenario data for those years.
  * For in-simulation indices, we use the precomputed cumulative array ratio.
  *
  * O(1) instead of O(yearsSinceStart).
@@ -398,10 +412,11 @@ function computeInflationMultiplierForRange(
 
   let multiplier = 1;
 
-  // Phase 1: Pre-simulation years (startIdx < 0) — clamp to index 0's rate
+  // Phase 1: Pre-simulation years (startIdx < 0) — use plan's constant inflation rate
+  // directly, since pre-simulation years have no scenario data to reference.
   if (startIdx < 0) {
     const preSimYears = Math.min(-startIdx, endIdx - startIdx);
-    const rate = getInflationRate(0, plan, scenarioInflation);
+    const rate = plan.spending.inflationPct;
     multiplier *= Math.pow(1 + rate / 100, preSimYears);
   }
 

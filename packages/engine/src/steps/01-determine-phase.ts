@@ -13,17 +13,24 @@ export function determinePhase(state: SimulationState): YearContext {
   const { household } = plan;
   const { primary, spouse } = household;
 
-  const agePrimary = primary.currentAge + yearIndex;
   const yearsUntilPrimaryDeath = primary.lifeExpectancy - primary.currentAge;
   const primaryAlive = yearIndex < yearsUntilPrimaryDeath;
+  // Freeze age at lifeExpectancy (death age) once the person is dead,
+  // rather than continuing to increment a meaningless counter.
+  const agePrimary = primaryAlive
+    ? primary.currentAge + yearIndex
+    : primary.lifeExpectancy;
 
   let ageSpouse: number | undefined;
   let spouseAlive = false;
 
   if (spouse) {
-    ageSpouse = spouse.currentAge + yearIndex;
     const yearsUntilSpouseDeath = spouse.lifeExpectancy - spouse.currentAge;
     spouseAlive = yearIndex < yearsUntilSpouseDeath;
+    // Freeze age at lifeExpectancy (death age) once the spouse is dead.
+    ageSpouse = spouseAlive
+      ? spouse.currentAge + yearIndex
+      : spouse.lifeExpectancy;
   }
 
   // Determine survivor phase: only applies when there IS a spouse
@@ -75,6 +82,7 @@ export function determinePhase(state: SimulationState): YearContext {
     filingStatus,
     primaryAlive,
     spouseAlive,
+    bothDead,
   };
 }
 

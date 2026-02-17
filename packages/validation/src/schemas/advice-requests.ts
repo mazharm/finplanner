@@ -11,8 +11,6 @@ export const portfolioAdviceRequestSchema = z.object({
     successProbability: z.number().min(0).max(1).optional(),
     medianTerminalValue: z.number().optional(),
     worstCaseShortfall: z.number().optional(),
-    averageShortfall: z.number().optional(),
-    percentileValues: z.record(z.string(), z.number()).optional(),
   }),
   userPreferences: z.object({
     riskTolerance: z.enum(['conservative', 'moderate', 'aggressive']),

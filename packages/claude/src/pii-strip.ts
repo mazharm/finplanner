@@ -1,6 +1,46 @@
 import type { PortfolioAdviceRequest, TaxStrategyAdviceRequest, TaxDocument } from '@finplanner/domain';
 import type { AnonymizedPortfolioContext, AnonymizedTaxContext } from './types.js';
 
+/**
+ * Sanitize a string value for LLM consumption by redacting PII patterns:
+ *  - SSNs (XXX-XX-XXXX, XXXXXXXXX, or XXX XX XXXX)
+ *  - EINs (XX-XXXXXXX)
+ *  - Bank/routing account numbers (sequences of 8+ digits)
+ */
+export function sanitizeForLlm(text: string): string {
+  let result = text;
+  // SSN patterns: 123-45-6789, 123 45 6789, or 123456789 (exactly 9 digits)
+  result = result.replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[SSN_REDACTED]');
+  result = result.replace(/\b\d{3}\s\d{2}\s\d{4}\b/g, '[SSN_REDACTED]');
+  result = result.replace(/\b(?<!\d)\d{9}(?!\d)\b/g, '[SSN_REDACTED]');
+  // EIN patterns: 12-3456789
+  result = result.replace(/\b\d{2}-\d{7}\b/g, '[EIN_REDACTED]');
+  // Email addresses
+  result = result.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, '[EMAIL_REDACTED]');
+  // US phone numbers: (123) 456-7890, 123-456-7890, 123.456.7890, +1-123-456-7890
+  result = result.replace(/(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}\b/g, '[PHONE_REDACTED]');
+  // Bank/routing account numbers: sequences of 8+ digits (not already redacted)
+  result = result.replace(/\b\d{8,17}\b/g, '[ACCOUNT_REDACTED]');
+  return result;
+}
+
+/**
+ * Sanitize extractedFields record: redact PII from string values, pass numbers through.
+ */
+function sanitizeExtractedFields(
+  fields: Record<string, number | string>,
+): Record<string, number | string> {
+  const sanitized: Record<string, number | string> = {};
+  for (const [key, value] of Object.entries(fields)) {
+    if (typeof value === 'string') {
+      sanitized[key] = sanitizeForLlm(value);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+}
+
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   taxable: 'Taxable',
   taxDeferred: 'Tax-Deferred',
@@ -26,8 +66,8 @@ export function stripPortfolioPii(request: PortfolioAdviceRequest): AnonymizedPo
     typeCounts[a.type] = (typeCounts[a.type] ?? 0) + 1;
     return {
       label: accountLabel(a.type, typeCounts[a.type]),
-      type: a.type,
-      owner: a.owner,
+      type: sanitizeForLlm(a.type),
+      owner: sanitizeForLlm(a.owner),
       currentBalance: a.currentBalance,
       expectedReturnPct: a.expectedReturnPct,
       feePct: a.feePct,
@@ -36,7 +76,7 @@ export function stripPortfolioPii(request: PortfolioAdviceRequest): AnonymizedPo
 
   const anonymizedIncomeStreams = otherIncome.map((s, i) => ({
     label: `Income Stream ${i + 1}`,
-    owner: s.owner,
+    owner: sanitizeForLlm(s.owner),
     startYear: s.startYear,
     endYear: s.endYear,
     annualAmount: s.annualAmount,
@@ -45,8 +85,8 @@ export function stripPortfolioPii(request: PortfolioAdviceRequest): AnonymizedPo
 
   return {
     household: {
-      filingStatus: household.filingStatus,
-      stateOfResidence: household.stateOfResidence,
+      filingStatus: sanitizeForLlm(household.filingStatus),
+      stateOfResidence: sanitizeForLlm(household.stateOfResidence),
       primary: {
         currentAge: household.primary.currentAge,
         retirementAge: household.primary.retirementAge,
@@ -77,14 +117,17 @@ export function stripPortfolioPii(request: PortfolioAdviceRequest): AnonymizedPo
       worstCaseShortfall: planResultSummary.worstCaseShortfall,
     },
     userPreferences: {
-      riskTolerance: userPreferences.riskTolerance,
+      riskTolerance: sanitizeForLlm(userPreferences.riskTolerance),
       spendingFloor: userPreferences.spendingFloor,
       legacyGoal: userPreferences.legacyGoal,
     },
   };
 }
 
-export function stripTaxPii(request: TaxStrategyAdviceRequest): AnonymizedTaxContext {
+export function stripTaxPii(
+  request: TaxStrategyAdviceRequest,
+  documents?: TaxDocument[],
+): AnonymizedTaxContext {
   const { taxYear, taxYearRecord, priorYearRecord, sharedCorpus, userPreferences } = request;
 
   const typeCounts: Record<string, number> = {};
@@ -92,17 +135,14 @@ export function stripTaxPii(request: TaxStrategyAdviceRequest): AnonymizedTaxCon
     typeCounts[a.type] = (typeCounts[a.type] ?? 0) + 1;
     return {
       label: accountLabel(a.type, typeCounts[a.type]),
-      type: a.type,
+      type: sanitizeForLlm(a.type),
       currentBalance: a.currentBalance,
     };
   });
 
-  // We don't have documents directly on the request; they come via taxYearRecord.documentIds
-  // For the anonymized context, we accept documents passed separately or build empty array
-  // The TaxStrategyAdviceRequest doesn't carry TaxDocument[] directly,
-  // but the plan indicates we should handle them if present.
-  // We'll provide an empty array since documents aren't on the request type.
-  const anonymizedDocuments: AnonymizedTaxContext['documents'] = [];
+  // Anonymize documents if provided; otherwise empty array
+  const anonymizedDocuments: AnonymizedTaxContext['documents'] =
+    documents && documents.length > 0 ? stripDocumentsPii(documents) : [];
 
   const priorYear = priorYearRecord
     ? {
@@ -118,8 +158,8 @@ export function stripTaxPii(request: TaxStrategyAdviceRequest): AnonymizedTaxCon
 
   return {
     taxYear,
-    filingStatus: taxYearRecord.filingStatus,
-    stateOfResidence: taxYearRecord.stateOfResidence,
+    filingStatus: sanitizeForLlm(taxYearRecord.filingStatus),
+    stateOfResidence: sanitizeForLlm(taxYearRecord.stateOfResidence),
     income: taxYearRecord.income,
     deductions: taxYearRecord.deductions,
     credits: taxYearRecord.credits,
@@ -130,7 +170,7 @@ export function stripTaxPii(request: TaxStrategyAdviceRequest): AnonymizedTaxCon
     documents: anonymizedDocuments,
     accounts: anonymizedAccounts,
     userPreferences: {
-      prioritize: userPreferences.prioritize,
+      prioritize: sanitizeForLlm(userPreferences.prioritize),
     },
   };
 }
@@ -149,7 +189,7 @@ export function stripDocumentsPii(
     return {
       label: `${doc.formType} Issuer ${issuerLetter(letterIndex)}`,
       formType: doc.formType,
-      extractedFields: doc.extractedFields,
+      extractedFields: sanitizeExtractedFields(doc.extractedFields),
     };
   });
 }

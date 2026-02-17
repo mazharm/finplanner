@@ -15,18 +15,18 @@
       "type": "object",
       "required": ["wages", "selfEmploymentIncome", "interestIncome", "dividendIncome", "qualifiedDividends", "capitalGains", "capitalLosses", "rentalIncome", "nqdcDistributions", "retirementDistributions", "socialSecurityIncome", "otherIncome"],
       "properties": {
-        "wages": { "type": "number" },
-        "selfEmploymentIncome": { "type": "number" },
-        "interestIncome": { "type": "number" },
-        "dividendIncome": { "type": "number" },
-        "qualifiedDividends": { "type": "number" },
-        "capitalGains": { "type": "number" },
-        "capitalLosses": { "type": "number" },
+        "wages": { "type": "number", "minimum": 0 },
+        "selfEmploymentIncome": { "type": "number", "minimum": 0 },
+        "interestIncome": { "type": "number", "minimum": 0 },
+        "dividendIncome": { "type": "number", "minimum": 0 },
+        "qualifiedDividends": { "type": "number", "minimum": 0 },
+        "capitalGains": { "type": "number", "minimum": 0 },
+        "capitalLosses": { "type": "number", "minimum": 0 },
         "rentalIncome": { "type": "number" },
-        "nqdcDistributions": { "type": "number" },
-        "retirementDistributions": { "type": "number" },
-        "socialSecurityIncome": { "type": "number" },
-        "otherIncome": { "type": "number" }
+        "nqdcDistributions": { "type": "number", "minimum": 0 },
+        "retirementDistributions": { "type": "number", "minimum": 0 },
+        "socialSecurityIncome": { "type": "number", "minimum": 0 },
+        "otherIncome": { "type": "number", "minimum": 0 }
       },
       "additionalProperties": false
     },
@@ -39,11 +39,11 @@
           "type": "object",
           "required": ["mortgageInterest", "stateAndLocalTaxes", "charitableContributions", "medicalExpenses", "other"],
           "properties": {
-            "mortgageInterest": { "type": "number" },
-            "stateAndLocalTaxes": { "type": "number" },
-            "charitableContributions": { "type": "number" },
-            "medicalExpenses": { "type": "number" },
-            "other": { "type": "number" }
+            "mortgageInterest": { "type": "number", "minimum": 0 },
+            "stateAndLocalTaxes": { "type": "number", "minimum": 0 },
+            "charitableContributions": { "type": "number", "minimum": 0 },
+            "medicalExpenses": { "type": "number", "minimum": 0 },
+            "other": { "type": "number", "minimum": 0 }
           },
           "additionalProperties": false
         },

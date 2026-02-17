@@ -23,6 +23,7 @@ export interface YearContext {
   filingStatus: FilingStatus;
   primaryAlive: boolean;
   spouseAlive: boolean;
+  bothDead: boolean;
 }
 
 export interface SimulationState {
@@ -30,7 +31,8 @@ export interface SimulationState {
   plan: PlanInput;
   currentYear: number;
   yearIndex: number;
-  priorYearEffectiveRate: number;
+  /** Total tax dollars from the prior year, used as the initial estimate for the convergence loop. */
+  priorYearTotalTaxDollars: number;
   /**
    * Capital gains realized during the prior year's rebalancing step.
    * Because rebalancing (step 12) occurs after tax calculation (step 9),

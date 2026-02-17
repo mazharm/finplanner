@@ -17,11 +17,12 @@ import {
   MessageBarBody,
 } from '@fluentui/react-components';
 import { DocumentRegular, ArrowImportRegular, CheckmarkRegular } from '@fluentui/react-icons';
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { useTaxStore } from '../../stores/tax-store.js';
 import type { TaxDocument } from '@finplanner/domain';
 import { extractPdfFields } from '@finplanner/tax-extraction';
 import { createPdfTextExtractor } from '../../services/pdf-extractor.js';
+import { generateId } from '../../utils/id.js';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
@@ -48,22 +49,40 @@ function confidenceColor(conf: number): 'success' | 'warning' | 'danger' {
   return 'danger';
 }
 
-function generateId(): string {
-  return `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-}
-
 export function DocumentImportPage() {
   const styles = useStyles();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const { documents, addDocument, updateDocument } = useTaxStore();
   const [importMessage, setImportMessage] = useState('');
 
+  // Cleanup: abort any in-flight PDF imports on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
+  // Auto-dismiss import message after 8 seconds
+  useEffect(() => {
+    if (!importMessage) return;
+    const timer = setTimeout(() => setImportMessage(''), 8000);
+    return () => clearTimeout(timer);
+  }, [importMessage]);
+
   const handlePdfImport = useCallback(
     async (files: FileList) => {
+      // Abort any previous in-flight import
+      abortControllerRef.current?.abort();
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
       const extractor = createPdfTextExtractor();
 
       for (const file of Array.from(files)) {
+        if (abortController.signal.aborted) return;
+
         if (!file.name.toLowerCase().endsWith('.pdf')) {
           setImportMessage(`Skipped ${file.name}: not a PDF file.`);
           continue;
@@ -73,8 +92,10 @@ export function DocumentImportPage() {
           const taxYear = new Date().getFullYear();
           const result = await extractPdfFields(file, taxYear, extractor);
 
+          if (abortController.signal.aborted) return;
+
           const doc: TaxDocument = {
-            id: generateId(),
+            id: generateId('doc'),
             taxYear,
             formType: result.formType,
             issuerName: result.issuerName,
@@ -90,6 +111,8 @@ export function DocumentImportPage() {
           addDocument(doc);
           setImportMessage(`Extracted ${result.formType} from ${file.name} (${(result.extractionConfidence * 100).toFixed(0)}% confidence). Review and confirm.`);
         } catch (err) {
+          if (abortController.signal.aborted) return;
+
           const errMsg = err instanceof Error ? err.message : String(err);
           if (errMsg === 'PDF_FORM_UNRECOGNIZED') {
             setImportMessage(`Could not identify tax form type in ${file.name}. Manual entry may be needed.`);
@@ -99,6 +122,11 @@ export function DocumentImportPage() {
             setImportMessage(`Error processing ${file.name}: ${errMsg}`);
           }
         }
+      }
+
+      // Reset file input so re-selecting the same file triggers onChange
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
     },
     [addDocument],

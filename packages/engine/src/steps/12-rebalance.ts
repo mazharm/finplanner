@@ -10,6 +10,11 @@ export interface RebalanceResult {
 /**
  * Step 12: Rebalance Portfolio
  *
+ * Note: Rebalancing across account types (taxable, tax-deferred, Roth) is an
+ * intentional simplification. In practice, cross-account-type rebalancing involves
+ * complex tax implications; here we model it as simple balance transfers with
+ * capital gains tracking only on taxable account sales.
+ *
  * Rebalances accounts with targetAllocationPct set to their target allocations.
  *
  * - 'none': skip
@@ -48,6 +53,23 @@ function performRebalance(accounts: AccountState[]): RebalanceResult {
   );
 
   if (rebalanceable.length === 0) return { realizedCapitalGains: 0 };
+
+  // Validate that targetAllocationPct sums to ~100% (allow floating point tolerance [99, 101])
+  const totalPct = rebalanceable.reduce((sum, a) => sum + (a.targetAllocationPct ?? 0), 0);
+  if (totalPct <= 0) {
+    return { realizedCapitalGains: 0 };
+  }
+  if (totalPct < 99 || totalPct > 101) {
+    console.warn(
+      `[FinPlanner] Rebalance: targetAllocationPct sums to ${totalPct.toFixed(2)}%, ` +
+      `expected ~100%. Normalizing percentages.`
+    );
+    // Normalize to exactly 100%
+    const scaleFactor = 100 / totalPct;
+    for (const account of rebalanceable) {
+      account.targetAllocationPct = (account.targetAllocationPct ?? 0) * scaleFactor;
+    }
+  }
 
   // Compute total portfolio value of rebalanceable accounts
   const totalValue = rebalanceable.reduce((sum, a) => sum + a.balance, 0);

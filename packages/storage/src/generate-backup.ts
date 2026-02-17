@@ -15,6 +15,8 @@ const CANONICAL_ORDER: string[] = [
 
 const TAX_TYPES = new Set(['taxYear', 'taxDocument', 'checklistItem', 'anomaly']);
 const RETIREMENT_TYPES = new Set(['household', 'account', 'incomeStream', 'adjustment', 'retirementPlan', 'simulationResult']);
+const SINGLETON_TYPES = new Set(['household', 'appConfig']);
+const TAX_YEAR_KEYED_TYPES = new Set(['taxYear']);
 
 function isApiKeyField(key: string): boolean {
   const lower = key.toLowerCase();
@@ -41,7 +43,7 @@ function stripApiKeys(value: unknown): unknown {
 export function generateBackup(files: OneDriveFile[]): BackupResult {
   const recordsByType = new Map<string, Array<Record<string, unknown>>>();
   const modules = new Set<'tax' | 'retirement' | 'config'>();
-  const seenIds = new Map<string, string>(); // id -> _type for duplicate detection
+  const seenIds = new Map<string, { type: string; index: number }>(); // id -> type and index for dedup
   const warnings: string[] = [];
   let skippedJsonCount = 0;
 
@@ -69,15 +71,40 @@ export function generateBackup(files: OneDriveFile[]): BackupResult {
       }
       // Unknown types still get preserved (no silent data loss)
 
-      // Detect duplicate IDs
-      const recordId = record.id as string | undefined;
-      if (recordId) {
-        const existing = seenIds.get(recordId);
-        if (existing) {
-          warnings.push(`Duplicate record id "${recordId}" (type: ${type}, previously seen as: ${existing})`);
-        } else {
-          seenIds.set(recordId, type);
+      // Compute a dedup key based on record type:
+      // - Singleton types (household, appConfig): keyed by _type alone
+      // - taxYear records: keyed by _type + taxYear
+      // - All other records: keyed by id field
+      let dedupKey: string | undefined;
+      if (SINGLETON_TYPES.has(type)) {
+        dedupKey = `singleton:${type}`;
+      } else if (TAX_YEAR_KEYED_TYPES.has(type) && record.taxYear != null) {
+        dedupKey = `${type}:taxYear:${record.taxYear}`;
+      } else {
+        const recordId = record.id as string | undefined;
+        if (recordId) {
+          dedupKey = `id:${recordId}`;
         }
+      }
+
+      if (dedupKey) {
+        const existing = seenIds.get(dedupKey);
+        if (existing) {
+          warnings.push(`Duplicate ${type} record (key: "${dedupKey}", previously seen as: ${existing.type}) — keeping last occurrence`);
+          // Remove the previously stored record
+          const prevRecords = recordsByType.get(existing.type);
+          if (prevRecords) {
+            const idx = prevRecords.findIndex((r) => {
+              if (SINGLETON_TYPES.has(existing.type)) return r._type === existing.type;
+              if (TAX_YEAR_KEYED_TYPES.has(existing.type)) return r.taxYear === record.taxYear;
+              return r.id === record.id;
+            });
+            if (idx !== -1) {
+              prevRecords.splice(idx, 1);
+            }
+          }
+        }
+        seenIds.set(dedupKey, { type, index: (recordsByType.get(type)?.length ?? 0) });
       }
 
       // Strip API keys recursively from all record types
@@ -123,5 +150,5 @@ export function generateBackup(files: OneDriveFile[]): BackupResult {
     }
   }
 
-  return { content: outputLines.join('\n'), warnings };
+  return { content: outputLines.join('\n') + '\n', warnings };
 }

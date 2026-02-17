@@ -26,16 +26,24 @@ export function iterateUntilConverged<T>(
   let taxEstimate = initialTaxEstimate;
   let lastResult: T | undefined;
   let actualTaxes = 0;
+  let prevDelta = 0;
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const outcome = computeFn(taxEstimate);
     lastResult = outcome.result;
     actualTaxes = outcome.actualTaxes;
 
-    if (Math.abs(actualTaxes - taxEstimate) < WITHDRAWAL_CONVERGENCE_THRESHOLD) {
+    const delta = actualTaxes - taxEstimate;
+    if (Math.abs(delta) < WITHDRAWAL_CONVERGENCE_THRESHOLD) {
       return { result: lastResult, converged: true, iterations: i + 1 };
     }
-    taxEstimate = actualTaxes;
+
+    // Detect oscillation: if delta flips sign, increase damping
+    const oscillating = i > 0 && Math.sign(delta) !== Math.sign(prevDelta) && Math.sign(prevDelta) !== 0;
+    const dampingFactor = oscillating ? 0.5 : 0.7;
+    prevDelta = delta;
+
+    taxEstimate = dampingFactor * actualTaxes + (1 - dampingFactor) * taxEstimate;
   }
 
   if (lastResult === undefined) {

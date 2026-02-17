@@ -2,6 +2,7 @@ import { makeStyles, tokens, Card, CardHeader, Text, Title3, Badge } from '@flue
 import { DataTrendingRegular } from '@fluentui/react-icons';
 import { useMemo } from 'react';
 import { useTaxStore } from '../../stores/tax-store.js';
+import { formatCurrency } from '../../utils/format.js';
 import type { AnomalySeverity } from '@finplanner/domain';
 
 const useStyles = makeStyles({
@@ -40,13 +41,10 @@ const severityColors: Record<AnomalySeverity, 'informative' | 'warning' | 'dange
   critical: 'danger',
 };
 
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
-}
-
 export function YearOverYearPage() {
   const styles = useStyles();
-  const { taxYears, anomalies } = useTaxStore();
+  const taxYears = useTaxStore((s) => s.taxYears);
+  const anomalies = useTaxStore((s) => s.anomalies);
 
   const sorted = useMemo(() => [...taxYears].sort((a, b) => a.taxYear - b.taxYear), [taxYears]);
   const hasComparison = sorted.length >= 2;
@@ -55,8 +53,12 @@ export function YearOverYearPage() {
     if (!hasComparison) return [];
     return sorted.slice(1).map((current, i) => {
       const prior = sorted[i];
-      const totalIncomeCurrent = Object.values(current.income).reduce((s, v) => s + v, 0);
-      const totalIncomePrior = Object.values(prior.income).reduce((s, v) => s + v, 0);
+      const computeGross = (inc: typeof current.income) =>
+        inc.wages + inc.selfEmploymentIncome + inc.interestIncome + inc.dividendIncome +
+        inc.capitalGains - inc.capitalLosses + inc.rentalIncome + inc.nqdcDistributions +
+        inc.retirementDistributions + inc.socialSecurityIncome + inc.otherIncome;
+      const totalIncomeCurrent = computeGross(current.income);
+      const totalIncomePrior = computeGross(prior.income);
       const incomeChange = totalIncomePrior !== 0 ? ((totalIncomeCurrent - totalIncomePrior) / totalIncomePrior) * 100 : 0;
       return {
         current: current.taxYear,

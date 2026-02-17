@@ -12,7 +12,7 @@ function compareVersions(v1: string, v2: string): number {
   for (let i = 0; i < 3; i++) {
     const a = parts1[i] ?? 0;
     const b = parts2[i] ?? 0;
-    if (isNaN(a) || isNaN(b)) return 0;
+    if (isNaN(a) || isNaN(b)) return -1;
     if (a < b) return -1;
     if (a > b) return 1;
   }
