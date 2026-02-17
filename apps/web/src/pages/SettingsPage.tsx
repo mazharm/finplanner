@@ -19,9 +19,10 @@ import {
   DialogActions,
   DialogTrigger,
 } from '@fluentui/react-components';
-import { SettingsRegular, KeyRegular, CloudRegular, DeleteRegular } from '@fluentui/react-icons';
+import { SettingsRegular, KeyRegular, CloudRegular, DeleteRegular, DatabaseRegular } from '@fluentui/react-icons';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useSettingsStore } from '../stores/settings-store.js';
+import { loadDemoData } from '../data/demo-data.js';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
@@ -38,6 +39,9 @@ export function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
+  const [confirmDemo, setConfirmDemo] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [demoLoaded, setDemoLoaded] = useState(false);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
@@ -80,6 +84,21 @@ export function SettingsPage() {
     }
   }, [clearAllData]);
 
+  const handleLoadDemo = useCallback(async () => {
+    setDemoLoading(true);
+    try {
+      await loadDemoData();
+      setConfirmDemo(false);
+      setDemoLoaded(true);
+      clearTimeout(savedTimerRef.current);
+      savedTimerRef.current = setTimeout(() => setDemoLoaded(false), 3000);
+    } catch (err) {
+      console.error('[FinPlanner] Failed to load demo data:', err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setDemoLoading(false);
+    }
+  }, []);
+
   return (
     <div className={styles.root}>
       <Title3>
@@ -88,6 +107,11 @@ export function SettingsPage() {
       {saved && (
         <MessageBar intent="success">
           <MessageBarBody>API key saved to IndexedDB.</MessageBarBody>
+        </MessageBar>
+      )}
+      {demoLoaded && (
+        <MessageBar intent="success">
+          <MessageBarBody>Demo data loaded successfully. Navigate to any page to see the data.</MessageBarBody>
         </MessageBar>
       )}
       <Card>
@@ -152,6 +176,18 @@ export function SettingsPage() {
       </Card>
 
       <Card>
+        <CardHeader
+          header={<Text weight="semibold">Demo Data</Text>}
+          description="Load a realistic demo scenario for a fictional retired couple (the Chen family, CA, MFJ). Populates all pages with sample data."
+        />
+        <div className={styles.form}>
+          <Button appearance="primary" icon={<DatabaseRegular />} onClick={() => setConfirmDemo(true)} disabled={demoLoading}>
+            {demoLoading ? 'Loading...' : 'Load Demo Data'}
+          </Button>
+        </div>
+      </Card>
+
+      <Card>
         <CardHeader header={<Text weight="semibold">Data Management</Text>} />
         <div className={styles.form}>
           <Text size={200}>
@@ -176,6 +212,25 @@ export function SettingsPage() {
               </DialogTrigger>
               <Button appearance="primary" onClick={handleClearAll}>
                 Clear Everything
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+
+      <Dialog open={confirmDemo} onOpenChange={(_, data) => { if (!data.open && !demoLoading) setConfirmDemo(false); }}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Load Demo Data</DialogTitle>
+            <DialogContent>
+              This will replace all existing data (household, accounts, tax years, and retirement plans) with demo data for a fictional couple. Any current data will be overwritten.
+            </DialogContent>
+            <DialogActions>
+              <DialogTrigger disableButtonEnhancement>
+                <Button appearance="secondary" disabled={demoLoading}>Cancel</Button>
+              </DialogTrigger>
+              <Button appearance="primary" onClick={handleLoadDemo} disabled={demoLoading}>
+                {demoLoading ? 'Loading...' : 'Load Demo Data'}
               </Button>
             </DialogActions>
           </DialogBody>
