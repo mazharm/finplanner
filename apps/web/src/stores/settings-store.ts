@@ -3,6 +3,7 @@ import {
   getApiKey,
   setApiKey as setApiKeyIdb,
   clearApiKey as clearApiKeyIdb,
+  clearAllData as clearAllDataIdb,
 } from '../services/indexeddb.js';
 
 type SyncStatus = 'offline' | 'syncing' | 'synced' | 'error';
@@ -17,6 +18,7 @@ interface SettingsState {
   initFromIndexedDB: () => Promise<void>;
   setClaudeApiKey: (key: string) => Promise<void>;
   clearClaudeApiKey: () => Promise<void>;
+  clearAllData: () => Promise<void>;
   setOneDriveConnected: (connected: boolean) => void;
   setSyncStatus: (status: SyncStatus) => void;
 }
@@ -53,6 +55,16 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       set({ hasApiKey: false });
     } catch (err) {
       console.error('[FinPlanner] Failed to clear API key from IndexedDB:', err);
+      throw err;
+    }
+  },
+
+  clearAllData: async () => {
+    try {
+      await clearAllDataIdb();
+      set({ hasApiKey: false, oneDriveConnected: false, syncStatus: 'offline' });
+    } catch (err) {
+      console.error('[FinPlanner] Failed to clear all data:', err);
       throw err;
     }
   },

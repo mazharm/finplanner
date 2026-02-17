@@ -237,9 +237,9 @@ export async function processSyncQueue(
       await removeFromSyncQueue(entry.id);
       filesWritten++;
     } catch (err) {
-      const message = `Failed to sync ${entry.path} (attempt ${entry.retries + 1}/${MAX_RETRIES}): ${String(err)}`;
+      const errMsg = err instanceof Error ? err.message : 'Unknown error';
+      const message = `Failed to sync ${entry.path} (attempt ${entry.retries + 1}/${MAX_RETRIES}): ${errMsg}`;
       errors.push(message);
-      console.error('[FinPlanner] Sync error:', message);
 
       // Remove the old entry
       await removeFromSyncQueue(entry.id);
@@ -253,9 +253,7 @@ export async function processSyncQueue(
           queuedAt: new Date().toISOString(),
         });
       } else {
-        const permMessage = `Permanently failed to sync ${entry.path} after ${MAX_RETRIES} retries: ${String(err)}`;
-        console.error(`[FinPlanner] ${permMessage}`);
-        permanentlyFailed.push({ path: entry.path, lastError: String(err) });
+        permanentlyFailed.push({ path: entry.path, lastError: errMsg });
       }
     }
   }

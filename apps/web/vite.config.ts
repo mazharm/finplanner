@@ -19,7 +19,11 @@ export default defineConfig({
       '@finplanner/tax-anomaly': path.resolve(__dirname, '../../packages/tax/anomaly/src'),
     },
   },
+  build: {
+    sourcemap: false,
+  },
   server: {
     port: 3000,
+    host: '127.0.0.1',
   },
 });

@@ -14,7 +14,7 @@ const appErrorCodeSchema = z.enum([
 export const appErrorSchema = z.object({
   code: appErrorCodeSchema,
   message: z.string(),
-  details: z.record(z.string(), z.unknown()).optional(),
+  details: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
   retryable: z.boolean(),
   timestamp: z.string(),
 });

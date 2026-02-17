@@ -44,7 +44,7 @@ export function validateImport(ndjsonContent: string): ImportValidationResult {
   }
 
   // Line 1: header
-  let header: any;
+  let header: unknown;
   try {
     header = JSON.parse(lines[0]);
   } catch {
@@ -69,7 +69,7 @@ export function validateImport(ndjsonContent: string): ImportValidationResult {
   // Parse remaining lines
   for (let i = 1; i < lines.length; i++) {
     const lineNum = lineMap[i];
-    let record: any;
+    let record: unknown;
     try {
       record = JSON.parse(lines[i]);
     } catch {
@@ -77,8 +77,14 @@ export function validateImport(ndjsonContent: string): ImportValidationResult {
       continue;
     }
 
-    const type = record._type;
-    if (!type) {
+    if (typeof record !== 'object' || record === null) {
+      errors.push({ line: lineNum, message: 'Record is not an object' });
+      continue;
+    }
+
+    const rec = record as Record<string, unknown>;
+    const type = rec._type;
+    if (!type || typeof type !== 'string') {
       errors.push({ line: lineNum, message: 'Missing _type field' });
       continue;
     }
@@ -96,7 +102,7 @@ export function validateImport(ndjsonContent: string): ImportValidationResult {
     }
 
     // Strip _type before validating against the schema (schemas don't include _type)
-    const { _type, ...data } = record;
+    const { _type, ...data } = rec;
     const result = schema.safeParse(data);
     if (!result.success) {
       errors.push({ line: lineNum, message: `Validation error for ${type}: ${result.error.message}` });

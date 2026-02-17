@@ -1,6 +1,6 @@
 import type { TaxStrategyAdviceRequest, TaxStrategyAdviceResponse, TaxDocument } from '@finplanner/domain';
 import type { LlmClient } from './types.js';
-import { stripTaxPii, sanitizeForLlm } from './pii-strip.js';
+import { stripTaxPii } from './pii-strip.js';
 import { buildTaxPrompt } from './prompt-builder.js';
 import { validateTaxResponse } from './response-validator.js';
 import { getTaxFallbackAdvice } from './fallback-advice.js';
@@ -31,7 +31,7 @@ export async function getTaxStrategyAdvice(
   }
 
   // Retry once with corrective prompt — sanitize error string to prevent injection via malformed LLM output
-  const retryUser = `${user}\n\nYour previous response had validation errors: ${sanitizeForLlm(result.error)}\n\nPlease respond again with valid JSON matching the schema exactly.`;
+  const retryUser = `${user}\n\nYour previous response was not valid JSON matching the expected schema. Please respond again with valid JSON matching the schema exactly.`;
   let retryRaw: string;
   try {
     retryRaw = await client.sendMessage(system, retryUser);

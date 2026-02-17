@@ -11,4 +11,4 @@ export const ndjsonHeaderSchema = z.object({
 
 export const ndjsonRecordSchema = z.object({
   _type: ndjsonRecordTypeSchema,
-}).passthrough();
+}).strict();

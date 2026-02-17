@@ -16,6 +16,13 @@ const MAX_RETRIES = 3;
 const INITIAL_DELAY_MS = 1000;
 const REQUEST_TIMEOUT_MS = 90_000;
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 529]);
+const MIN_REQUEST_INTERVAL_MS = 5_000;
+
+let lastRequestTime = 0;
+
+function redactApiKeys(text: string): string {
+  return text.replace(/sk-ant-[a-zA-Z0-9_-]+/g, '[API_KEY_REDACTED]');
+}
 
 interface RetryInfo {
   retryAfterMs: number | null;
@@ -74,11 +81,19 @@ export function createLlmClient(apiKey: string, modelId?: string, externalSignal
   if (!apiKey || apiKey.trim().length === 0) {
     throw new Error('API key is required');
   }
-  if (!apiKey.startsWith('sk-ant-')) {
-    console.warn('[FinPlanner] API key does not match expected format (sk-ant-...). Proceeding anyway.');
+  if (!apiKey.startsWith('sk-ant-') || apiKey.length < 30) {
+    throw new Error('Invalid API key format. Key must start with "sk-ant-" and be at least 30 characters.');
   }
   return {
     async sendMessage(systemPrompt: string, userMessage: string): Promise<string> {
+      // Client-side rate limiting
+      const now = Date.now();
+      const elapsed = now - lastRequestTime;
+      if (elapsed < MIN_REQUEST_INTERVAL_MS) {
+        await sleep(MIN_REQUEST_INTERVAL_MS - elapsed, externalSignal);
+      }
+      lastRequestTime = Date.now();
+
       const requestBody = JSON.stringify({
         model: modelId || DEFAULT_MODEL,
         max_tokens: DEFAULT_MAX_TOKENS,
@@ -147,16 +162,18 @@ export function createLlmClient(apiKey: string, modelId?: string, externalSignal
         if (!response.ok) {
           const errorBody = await response.text().catch(() => '');
 
+          const sanitizedBody = redactApiKeys(errorBody).substring(0, 500);
+
           if (RETRYABLE_STATUS_CODES.has(response.status) && attempt < MAX_RETRIES) {
             const retryAfterMs = parseRetryAfterHeader(response.headers.get('retry-after'));
             lastError = new Error(
-              `Anthropic API error ${response.status}: ${errorBody}`,
+              `Anthropic API error ${response.status}: ${sanitizedBody}`,
             );
             lastRetryInfo = { retryAfterMs };
             continue;
           }
 
-          throw new Error(`Anthropic API error ${response.status}: ${errorBody}`);
+          throw new Error(`Anthropic API error ${response.status}: ${sanitizedBody}`);
         }
 
         const data = await response.json();

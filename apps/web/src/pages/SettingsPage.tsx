@@ -33,10 +33,11 @@ const useStyles = makeStyles({
 
 export function SettingsPage() {
   const styles = useStyles();
-  const { hasApiKey, syncStatus, setClaudeApiKey, clearClaudeApiKey } = useSettingsStore();
+  const { hasApiKey, syncStatus, setClaudeApiKey, clearClaudeApiKey, clearAllData } = useSettingsStore();
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [saved, setSaved] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
@@ -68,6 +69,16 @@ export function SettingsPage() {
       // Error already logged in the store action
     }
   }, [clearClaudeApiKey]);
+
+  const handleClearAll = useCallback(async () => {
+    try {
+      await clearAllData();
+      setConfirmClearAll(false);
+      setSaved(false);
+    } catch {
+      // Error already logged in the store action
+    }
+  }, [clearAllData]);
 
   return (
     <div className={styles.root}>
@@ -139,6 +150,37 @@ export function SettingsPage() {
           </Text>
         </div>
       </Card>
+
+      <Card>
+        <CardHeader header={<Text weight="semibold">Data Management</Text>} />
+        <div className={styles.form}>
+          <Text size={200}>
+            Clear all locally stored data including API key, cached files, tax records, and household information.
+          </Text>
+          <Button appearance="subtle" icon={<DeleteRegular />} onClick={() => setConfirmClearAll(true)}>
+            Clear All Data
+          </Button>
+        </div>
+      </Card>
+
+      <Dialog open={confirmClearAll} onOpenChange={(_, data) => { if (!data.open) setConfirmClearAll(false); }}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Clear All Data</DialogTitle>
+            <DialogContent>
+              This will permanently delete all locally stored data, including your API key, cached files, tax records, and household information. This cannot be undone.
+            </DialogContent>
+            <DialogActions>
+              <DialogTrigger disableButtonEnhancement>
+                <Button appearance="secondary">Cancel</Button>
+              </DialogTrigger>
+              <Button appearance="primary" onClick={handleClearAll}>
+                Clear Everything
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
 
       <Dialog open={confirmClear} onOpenChange={(_, data) => { if (!data.open) setConfirmClear(false); }}>
         <DialogSurface>

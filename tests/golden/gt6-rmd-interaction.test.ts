@@ -139,15 +139,15 @@ describe('GT6: RMD Interaction', () => {
   describe('RMD treated as ordinary income', () => {
     it('should compute federal taxes on RMD in year 1', () => {
       const yr1 = yearly[0];
-      // RMD of ~$123,529 is ordinary income. After $15,000 single standard deduction:
-      // taxable ordinary = ~$108,529. At 22% effective rate: ~$23,876
+      // RMD of ~$123,529 is ordinary income. After $14,600 single standard deduction:
+      // taxable ordinary = ~$108,929. At 22% effective rate: ~$23,964
       expect(yr1.taxesFederal).toBeGreaterThan(0);
     });
 
     it('should have taxable ordinary income reflecting RMD in year 1', () => {
       const yr1 = yearly[0];
       // taxableOrdinaryIncome should be RMD minus standard deduction (approximately)
-      // RMD ~$117,647 - $15,000 std deduction = ~$102,647
+      // RMD ~$117,647 - $14,600 std deduction = ~$103,047
       expect(yr1.taxableOrdinaryIncome).toBeGreaterThan(95_000);
     });
 
@@ -193,7 +193,7 @@ describe('GT6: RMD Interaction', () => {
     it('should not need additional withdrawals beyond RMD in year 1', () => {
       const yr1 = yearly[0];
       // The RMD of ~$117,647 should be enough to cover $80,000 spending + taxes.
-      // Taxes on ~$117,647 at 22% effective (after $15k deduction) are roughly $22,582.
+      // Taxes on ~$117,647 at 22% effective (after $14.6k deduction) are roughly $22,670.
       // Net from RMD = ~$117,647 - ~$22,582 = ~$95,065 > $80,000 spending.
       // So no discretionary withdrawal from the tax-deferred account should be needed.
       // The withdrawalsByAccount should only reflect the RMD amount (or very close to it).

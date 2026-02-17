@@ -167,6 +167,22 @@ export async function getSyncQueue(): Promise<SyncQueueEntry[]> {
   return txGetAll<SyncQueueEntry>(db, 'syncQueue');
 }
 
+// --- Clear All Data ---
+
+export async function clearAllData(): Promise<void> {
+  const db = await openDb();
+  const storeNames = Array.from(db.objectStoreNames);
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeNames, 'readwrite');
+    for (const name of storeNames) {
+      tx.objectStore(name).clear();
+    }
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+}
+
 // --- App State Persistence ---
 
 export async function getAppState<T>(key: string): Promise<T | undefined> {

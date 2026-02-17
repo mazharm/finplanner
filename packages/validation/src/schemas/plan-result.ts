@@ -34,5 +34,5 @@ export const planResultSchema = z.object({
     worstCaseShortfall: z.number().min(0).optional(),
   }),
   yearly: z.array(yearResultSchema),
-  assumptionsUsed: z.record(z.string(), z.unknown()),
+  assumptionsUsed: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])),
 });

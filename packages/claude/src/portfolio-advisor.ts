@@ -1,6 +1,6 @@
 import type { PortfolioAdviceRequest, PortfolioAdviceResponse } from '@finplanner/domain';
 import type { LlmClient } from './types.js';
-import { stripPortfolioPii, sanitizeForLlm } from './pii-strip.js';
+import { stripPortfolioPii } from './pii-strip.js';
 import { buildPortfolioPrompt } from './prompt-builder.js';
 import { validatePortfolioResponse } from './response-validator.js';
 import { getPortfolioFallbackAdvice } from './fallback-advice.js';
@@ -30,7 +30,7 @@ export async function getPortfolioAdvice(
   }
 
   // Retry once with corrective prompt — sanitize error string to prevent injection via malformed LLM output
-  const retryUser = `${user}\n\nYour previous response had validation errors: ${sanitizeForLlm(result.error)}\n\nPlease respond again with valid JSON matching the schema exactly.`;
+  const retryUser = `${user}\n\nYour previous response was not valid JSON matching the expected schema. Please respond again with valid JSON matching the schema exactly.`;
   let retryRaw: string;
   try {
     retryRaw = await client.sendMessage(system, retryUser);
