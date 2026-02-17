@@ -40,7 +40,7 @@ export const taxStrategyAdviceRequestSchema = z.object({
 
 export const taxChecklistSchema = z.object({
   taxYear: z.number().int(),
-  generatedAt: z.string(),
+  generatedAt: z.string().datetime({ offset: true }),
   items: z.array(z.object({
     id: z.string().min(1),
     taxYear: z.number().int(),

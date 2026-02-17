@@ -47,7 +47,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       await setApiKeyIdb(key);
       set({ hasApiKey: key.length > 0 });
     } catch (err) {
-      console.error('[FinPlanner] Failed to save API key to IndexedDB:', err);
+      console.error('[FinPlanner] Failed to save API key to IndexedDB:', err instanceof Error ? err.message : 'Unknown error');
       throw err;
     }
   },
@@ -57,7 +57,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       await clearApiKeyIdb();
       set({ hasApiKey: false });
     } catch (err) {
-      console.error('[FinPlanner] Failed to clear API key from IndexedDB:', err);
+      console.error('[FinPlanner] Failed to clear API key from IndexedDB:', err instanceof Error ? err.message : 'Unknown error');
       throw err;
     }
   },
@@ -67,7 +67,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       await clearAllDataIdb();
       set({ hasApiKey: false, oneDriveConnected: false, syncStatus: 'offline' });
     } catch (err) {
-      console.error('[FinPlanner] Failed to clear all data:', err);
+      console.error('[FinPlanner] Failed to clear all data:', err instanceof Error ? err.message : 'Unknown error');
       throw err;
     }
   },

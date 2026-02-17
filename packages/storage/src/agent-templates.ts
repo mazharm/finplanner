@@ -284,7 +284,7 @@ Singleton — one per corpus.
 | \`confirmedByUser\` | boolean | Yes | User confirmed extraction |
 | \`importedAt\` | string (ISO 8601) | Yes | Import timestamp |
 
-TaxFormType: \`"W-2" | "1099-INT" | "1099-DIV" | "1099-R" | "1099-B" | "1099-MISC" | "1099-NEC" | "K-1" | "1098" | "other"\`
+TaxFormType: \`"W-2" | "1099-INT" | "1099-DIV" | "1099-R" | "1099-B" | "1099-MISC" | "1099-NEC" | "K-1" | "1098" | "1098-T" | "1098-E" | "other"\`
 
 ## ChecklistItem Record
 
@@ -508,7 +508,7 @@ accountType ∈ {"taxable", "taxDeferred", "deferredComp", "roth"}
 taxYearStatus ∈ {"draft", "ready", "filed", "amended"}
 checklistItemStatus ∈ {"pending", "received", "not_applicable", "waived"}
 anomalySeverity ∈ {"info", "warning", "critical"}
-formType ∈ {"W-2", "1099-INT", "1099-DIV", "1099-R", "1099-B", "1099-MISC", "1099-NEC", "K-1", "1098", "other"}
+formType ∈ {"W-2", "1099-INT", "1099-DIV", "1099-R", "1099-B", "1099-MISC", "1099-NEC", "K-1", "1098", "1098-T", "1098-E", "other"}
 simulationMode ∈ {"deterministic", "historical", "stress", "monteCarlo"}
 withdrawalOrder ∈ {"taxableFirst", "taxDeferredFirst", "proRata", "taxOptimized"}
 owner ∈ {"primary", "spouse", "joint"}
@@ -644,7 +644,9 @@ Schema Version: ${SCHEMA_VERSION}
     doc += '| (none) | — |\n';
   } else {
     for (const a of input.accounts) {
-      doc += `| ${a.name} | ${a.type} |\n`;
+      // Escape pipe characters in account names to prevent markdown table corruption
+      const safeName = a.name.replace(/\|/g, '\\|').replace(/\[/g, '\\[');
+      doc += `| ${safeName} | ${a.type} |\n`;
     }
   }
 
@@ -657,7 +659,8 @@ Schema Version: ${SCHEMA_VERSION}
     doc += '(none)\n';
   } else {
     for (const s of input.incomeStreams) {
-      doc += `- ${s.name}\n`;
+      const safeName = s.name.replace(/\[/g, '\\[');
+      doc += `- ${safeName}\n`;
     }
   }
 
@@ -673,7 +676,12 @@ Schema Version: ${SCHEMA_VERSION}
     for (const year of years) {
       doc += `### ${year}\n`;
       for (const fileName of input.documentsByYear[year]) {
-        doc += `- ${fileName}\n`;
+        // Redact potential PII from filenames (SSNs, names) — show only form type and generic label
+        const safeFileName = fileName
+          .replace(/\d{3}-\d{2}-\d{4}/g, '[REDACTED]')
+          .replace(/\d{9}/g, '[REDACTED]')
+          .replace(/\[/g, '\\[');
+        doc += `- ${safeFileName}\n`;
       }
     }
   }

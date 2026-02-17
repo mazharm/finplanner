@@ -18,24 +18,28 @@ const RETIREMENT_TYPES = new Set(['household', 'account', 'incomeStream', 'adjus
 const SINGLETON_TYPES = new Set(['household', 'appConfig']);
 const TAX_YEAR_KEYED_TYPES = new Set(['taxYear']);
 
-function isApiKeyField(key: string): boolean {
+function isSensitiveField(key: string): boolean {
   const lower = key.toLowerCase();
   return lower.includes('apikey') || lower.includes('api_key') ||
-    lower.includes('claudeapikey') || lower.includes('claude_api_key');
+    lower.includes('claudeapikey') || lower.includes('claude_api_key') ||
+    lower.includes('secret') || lower.includes('token') ||
+    lower.includes('password') || lower.includes('credential') ||
+    lower.includes('accesstoken') || lower.includes('access_token') ||
+    lower.includes('authkey') || lower.includes('auth_key');
 }
 
-/** Recursively strip fields that look like API keys from any depth */
-function stripApiKeys(value: unknown): unknown {
+/** Recursively strip fields that look like secrets/credentials from any depth */
+function stripSensitiveFields(value: unknown): unknown {
   if (value === null || value === undefined || typeof value !== 'object') {
     return value;
   }
   if (Array.isArray(value)) {
-    return value.map(stripApiKeys);
+    return value.map(stripSensitiveFields);
   }
   const stripped: Record<string, unknown> = {};
   for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
-    if (isApiKeyField(key)) continue;
-    stripped[key] = stripApiKeys(val);
+    if (isSensitiveField(key)) continue;
+    stripped[key] = stripSensitiveFields(val);
   }
   return stripped;
 }
@@ -107,8 +111,8 @@ export function generateBackup(files: OneDriveFile[]): BackupResult {
         seenIds.set(dedupKey, { type, index: (recordsByType.get(type)?.length ?? 0) });
       }
 
-      // Strip API keys recursively from all record types
-      const cleanRecord = stripApiKeys(record) as Record<string, unknown>;
+      // Strip sensitive fields recursively from all record types
+      const cleanRecord = stripSensitiveFields(record) as Record<string, unknown>;
 
       if (!recordsByType.has(type)) {
         recordsByType.set(type, []);

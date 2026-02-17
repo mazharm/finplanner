@@ -94,7 +94,7 @@ export function AssumptionsPage() {
               <Input
                 type="number"
                 value={String(draftMarket.monteCarloRuns ?? 10000)}
-                onChange={(_, d) => setDraftMarket((m) => ({ ...m, monteCarloRuns: safeParseNumber(d.value, 10000) }))}
+                onChange={(_, d) => setDraftMarket((m) => ({ ...m, monteCarloRuns: safeParseNumber(d.value, 10000, 1, 100000) }))}
               />
             </Field>
           )}

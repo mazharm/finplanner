@@ -43,7 +43,7 @@ export function App() {
       try {
         await init();
       } catch (err) {
-        console.error(`[FinPlanner] Failed to initialize ${name} store:`, err);
+        console.error(`[FinPlanner] Failed to initialize ${name} store:`, err instanceof Error ? err.message : 'Unknown error');
       }
     };
 
@@ -53,7 +53,7 @@ export function App() {
       initStore(() => useTaxStore.getState().initFromIndexedDB(), 'tax'),
       initStore(() => useRetirementStore.getState().initFromIndexedDB(), 'retirement'),
     ]).catch((err) => {
-      console.error('[FinPlanner] Store initialization failed:', err);
+      console.error('[FinPlanner] Store initialization failed:', err instanceof Error ? err.message : 'Unknown error');
     });
   }, []);
 
@@ -69,7 +69,7 @@ export function App() {
       const result = await processSyncQueue(client);
       setSyncStatus(result.status);
     } catch (err) {
-      console.error('[FinPlanner] Sync loop error:', err);
+      console.error('[FinPlanner] Sync loop error:', err instanceof Error ? err.message : 'Unknown error');
       setSyncStatus('error');
     }
   }, []);

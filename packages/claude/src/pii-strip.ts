@@ -9,18 +9,19 @@ import type { AnonymizedPortfolioContext, AnonymizedTaxContext } from './types.j
  */
 export function sanitizeForLlm(text: string): string {
   let result = text;
-  // SSN patterns: 123-45-6789, 123 45 6789, or 123456789 (exactly 9 digits)
+  // SSN patterns: 123-45-6789, 123 45 6789 (formatted patterns are more specific)
   result = result.replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[SSN_REDACTED]');
   result = result.replace(/\b\d{3}\s\d{2}\s\d{4}\b/g, '[SSN_REDACTED]');
-  result = result.replace(/\b(?<!\d)\d{9}(?!\d)\b/g, '[SSN_REDACTED]');
   // EIN patterns: 12-3456789
   result = result.replace(/\b\d{2}-\d{7}\b/g, '[EIN_REDACTED]');
   // Email addresses
   result = result.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, '[EMAIL_REDACTED]');
   // US phone numbers: (123) 456-7890, 123-456-7890, 123.456.7890, +1-123-456-7890
   result = result.replace(/(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}\b/g, '[PHONE_REDACTED]');
-  // Bank/routing account numbers: sequences of 8+ digits (not already redacted)
-  result = result.replace(/\b\d{8,17}\b/g, '[ACCOUNT_REDACTED]');
+  // Bank/routing account numbers: sequences of 10+ digits (narrower range to avoid
+  // false positives on financial amounts; 10+ digits covers most routing/account numbers
+  // while avoiding collisions with 8-9 digit dollar amounts and ZIP+4 codes)
+  result = result.replace(/\b\d{10,17}\b/g, '[ACCOUNT_REDACTED]');
   return result;
 }
 

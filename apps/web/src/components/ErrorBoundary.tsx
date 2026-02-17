@@ -35,7 +35,7 @@ function ErrorFallback({ error, onReset }: { error: Error | null; onReset: () =>
         <CardHeader header={<Text weight="semibold">Application Error</Text>} />
         <MessageBar intent="error">
           <MessageBarBody>
-            {error?.message ?? 'An unexpected error occurred.'}
+            An unexpected error occurred. Please try refreshing the page.
           </MessageBarBody>
         </MessageBar>
         <div className={styles.actions}>

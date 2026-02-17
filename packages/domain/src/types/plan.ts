@@ -52,5 +52,5 @@ export interface PlanResult {
     worstCaseShortfall?: number;
   };
   yearly: YearResult[];
-  assumptionsUsed: Record<string, unknown>;
+  assumptionsUsed: Record<string, string | number | boolean | null>;
 }

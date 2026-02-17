@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { filingStatusSchema, taxYearStatusSchema, taxFormTypeSchema, checklistItemStatusSchema, anomalySeveritySchema } from './common.js';
+import { VALID_STATE_CODES } from '@finplanner/domain';
 
 export const taxDocumentSchema = z.object({
   id: z.string().min(1),
@@ -67,7 +68,10 @@ export const taxYearRecordSchema = z.object({
   taxYear: z.number().int(),
   status: taxYearStatusSchema,
   filingStatus: filingStatusSchema,
-  stateOfResidence: z.string().regex(/^[A-Z]{2}$/, 'Must be a 2-letter uppercase state code'),
+  stateOfResidence: z.string().refine(
+    (code) => new Set(VALID_STATE_CODES).has(code),
+    { message: 'Must be a valid US state code (e.g., CA, NY, TX)' },
+  ),
   income: taxYearIncomeSchema,
   deductions: taxYearDeductionsSchema,
   credits: taxYearCreditsSchema,

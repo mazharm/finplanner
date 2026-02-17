@@ -86,15 +86,34 @@ function performRebalance(accounts: AccountState[]): RebalanceResult {
     deltas.push({ account, targetBalance, delta });
   }
 
+  // Compute aggregate gain fraction across all taxable accounts being sold,
+  // so that funds flowing into a buying taxable account carry the correct
+  // blended cost basis rather than assuming 100% basis on incoming funds.
+  let totalTaxableSellAmount = 0;
+  let totalTaxableSellBasis = 0;
+  for (const { account, delta } of deltas) {
+    if (account.type === 'taxable' && delta < 0) {
+      const sellAmount = Math.abs(delta);
+      const gainFraction = computeGainFraction(account.balance, account.costBasis);
+      const basisPortion = sellAmount * (1 - gainFraction);
+      totalTaxableSellAmount += sellAmount;
+      totalTaxableSellBasis += basisPortion;
+    }
+  }
+  const blendedBasisFraction = totalTaxableSellAmount > 0
+    ? totalTaxableSellBasis / totalTaxableSellAmount
+    : 1; // If no sells, incoming funds are from non-taxable accounts; treat as full basis.
+
   // Apply rebalancing: adjust each account to its target
   for (const { account, targetBalance, delta } of deltas) {
     if (Math.abs(delta) < 0.01) continue; // Skip negligible adjustments
 
-      if (account.type === 'taxable') {
+    if (account.type === 'taxable') {
       // Per spec §19.1 item 6: rebalancing tax events -- notional transfers
       // do not trigger capital gains in v1. Only adjust cost basis.
       if (delta > 0) {
-        account.costBasis += delta;
+        // Incoming funds carry the blended basis fraction from sold taxable positions
+        account.costBasis += delta * blendedBasisFraction;
       } else {
         const sellAmount = Math.abs(delta);
         const gainFraction = computeGainFraction(account.balance, account.costBasis);

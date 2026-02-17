@@ -110,6 +110,30 @@ export function createStubOneDriveClient(): OneDriveClient {
 /** The root folder name in OneDrive */
 export const FINPLANNER_ROOT = 'FinPlanner';
 
+/**
+ * Validate that a file path is safe and stays within the FinPlanner root.
+ * Rejects path traversal attempts, absolute paths, and other unsafe patterns.
+ */
+export function validateOneDrivePath(path: string): void {
+  if (!path || path.trim().length === 0) {
+    throw new Error('OneDrive path must not be empty');
+  }
+  if (path.startsWith('/') || path.startsWith('\\')) {
+    throw new Error('OneDrive path must be relative, not absolute');
+  }
+  // Reject path traversal segments
+  const segments = path.split(/[/\\]/);
+  for (const segment of segments) {
+    if (segment === '..' || segment === '.') {
+      throw new Error('OneDrive path must not contain ".." or "." segments');
+    }
+  }
+  // Ensure the path starts with the FinPlanner root
+  if (!path.startsWith(FINPLANNER_ROOT + '/') && path !== FINPLANNER_ROOT) {
+    throw new Error(`OneDrive path must be within the "${FINPLANNER_ROOT}/" root`);
+  }
+}
+
 /** Standard folder structure paths */
 export const FOLDER_STRUCTURE = {
   root: FINPLANNER_ROOT,

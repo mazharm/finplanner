@@ -50,6 +50,12 @@ export interface SimulationState {
    * So index 0 = 1.0, index 1 = (1 + rate_0/100), etc.
    */
   cumulativeInflationByYear: number[];
+  /**
+   * Prior year-end balances for tax-deferred accounts, used as the RMD basis.
+   * IRS requires RMDs to be computed from the prior December 31 balance.
+   * Captured at the end of each year (after fees and rebalancing).
+   */
+  priorYearEndBalances: Map<string, number>;
 }
 
 export interface MandatoryIncome {

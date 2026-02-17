@@ -74,7 +74,7 @@ export function generateChecklist(request: ChecklistRequest): TaxChecklist {
   // SECURE 2.0 Act: born ≤1950→72, born 1951-1959→73, born 1960+→75
   const getRmdAge = (birthYear: number) => birthYear <= 1950 ? 72 : birthYear <= 1959 ? 73 : 75;
   for (const account of request.sharedCorpus.accounts) {
-    if (account.type === 'taxDeferred' || account.type === 'roth') {
+    if (account.type === 'taxDeferred') {
       // Check (a): prior year had a 1099-R from this account's issuer
       const priorHad1099R = request.priorYearDocuments.some(
         d => d.formType === '1099-R' && issuerNamesMatch(d.issuerName, account.name)
@@ -110,6 +110,20 @@ export function generateChecklist(request: ChecklistRequest): TaxChecklist {
         description: `1099-R expected from retirement account: ${account.name}`,
         status: has1099R ? 'received' : 'pending',
         sourceReasoning: reason,
+      });
+    }
+  }
+
+  // Rule 2c: Deferred compensation accounts generate W-2 supplements
+  for (const account of request.sharedCorpus.accounts) {
+    if (account.type === 'deferredComp' && account.currentBalance > 0) {
+      items.push({
+        id: makeId(),
+        taxYear: request.taxYear,
+        category: 'income',
+        description: `W-2 supplement expected for deferred compensation from ${account.name}`,
+        status: 'pending',
+        sourceReasoning: `Deferred compensation account "${account.name}" has balance > $0; distributions appear on W-2`,
       });
     }
   }

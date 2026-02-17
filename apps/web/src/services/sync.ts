@@ -11,6 +11,7 @@
  */
 
 import type { OneDriveClient } from './onedrive.js';
+import { validateOneDrivePath } from './onedrive.js';
 import {
   setCachedFile,
   getCachedFile,
@@ -52,6 +53,7 @@ export async function writeFileLocally(
   path: string,
   content: string,
 ): Promise<void> {
+  validateOneDrivePath(path);
   const now = new Date().toISOString();
 
   // Write to IndexedDB cache
@@ -83,6 +85,7 @@ export async function readFile(
   path: string,
   oneDrive?: OneDriveClient,
 ): Promise<string | null> {
+  validateOneDrivePath(path);
   // Try IndexedDB cache first
   const cached = await getCachedFile(path);
   if (cached) {

@@ -25,7 +25,7 @@ export type AppErrorCode =
 export interface AppError {
   code: AppErrorCode;
   message: string;
-  details?: Record<string, unknown>;
+  details?: Record<string, string | number | boolean | null>;
   retryable: boolean;
   timestamp: string;
 }

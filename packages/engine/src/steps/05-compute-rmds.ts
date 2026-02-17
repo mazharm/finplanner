@@ -15,7 +15,7 @@ import { getRmdStartAge, lookupDistributionPeriod } from '../helpers/rmd-table.j
 export function computeRmds(
   state: SimulationState,
   yearContext: YearContext,
-  priorYearEndBalances?: Map<string, number>
+  priorYearEndBalances: Map<string, number>
 ): RmdResult {
   const { accounts, plan } = state;
   const { agePrimary, ageSpouse, primaryAlive, spouseAlive, isSurvivorPhase, survivorId } = yearContext;

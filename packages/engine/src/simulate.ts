@@ -129,6 +129,7 @@ function initializeState(planInput: PlanInput): SimulationState {
     survivorTransitioned: false,
     firstSurvivorYearIndex: -1,
     cumulativeInflationByYear: [1],
+    priorYearEndBalances: new Map(),
   };
 }
 
@@ -172,22 +173,14 @@ function simulateYear(state: SimulationState): YearResult {
   // Step 2: Apply beginning-of-year investment returns
   applyReturns(state);
 
-  // Snapshot post-return balances for RMD computation (per spec §8.1 step 2→5 ordering)
-  const postReturnBalances = new Map<string, number>();
-  for (const a of state.accounts) {
-    if (a.type === 'taxDeferred') {
-      postReturnBalances.set(a.id, a.balance);
-    }
-  }
-
   // Step 3: Compute mandatory income (SS, NQDC, pensions, adjustments)
   const mandatoryIncome = computeMandatoryIncome(state, yearContext);
 
   // Step 4: Inflate standard deduction
   const standardDeduction = inflateDeduction(state, yearContext);
 
-  // Step 5: Compute and distribute RMDs (using post-return balance per spec)
-  const rmdResult = computeRmds(state, yearContext, postReturnBalances);
+  // Step 5: Compute and distribute RMDs (using prior year-end balance per IRS rules)
+  const rmdResult = computeRmds(state, yearContext, state.priorYearEndBalances);
 
   // Step 6: Inflate spending target, apply guardrails
   const spending = inflateSpending(state, yearContext);
@@ -294,6 +287,16 @@ function simulateYear(state: SimulationState): YearResult {
   // Store rebalance gains for inclusion in next year's tax calculation
   // (rebalancing happens after this year's tax computation)
   state.priorYearRebalanceGains = rebalanceResult.realizedCapitalGains;
+
+  // Snapshot year-end balances for next year's RMD computation.
+  // IRS requires RMDs to be based on the prior December 31 balance
+  // (after fees and rebalancing).
+  state.priorYearEndBalances = new Map();
+  for (const a of state.accounts) {
+    if (a.type === 'taxDeferred') {
+      state.priorYearEndBalances.set(a.id, a.balance);
+    }
+  }
 
   // Step 13: Produce year result
   return produceYearResult(

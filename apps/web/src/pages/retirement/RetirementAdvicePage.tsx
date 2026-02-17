@@ -118,7 +118,7 @@ export function RetirementAdvicePage() {
       setDisclaimer(response.disclaimer);
     } catch (err) {
       if (abortController.signal.aborted) return;
-      console.error('[FinPlanner] Retirement advice error:', err);
+      console.error('[FinPlanner] Retirement advice error:', err instanceof Error ? err.message : 'Unknown error');
       setError('Unable to get retirement advice. Please check your API key and try again.');
     } finally {
       if (!abortController.signal.aborted) {

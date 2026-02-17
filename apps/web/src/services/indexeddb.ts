@@ -119,6 +119,9 @@ export async function getApiKey(): Promise<string | undefined> {
 }
 
 export async function setApiKey(key: string): Promise<void> {
+  if (!key || !key.startsWith('sk-ant-') || key.length < 30) {
+    throw new Error('Invalid API key format');
+  }
   const db = await openDb();
   await txPut(db, 'apiKey', key, 'claude');
 }

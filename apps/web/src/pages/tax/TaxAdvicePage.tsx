@@ -119,7 +119,7 @@ export function TaxAdvicePage() {
       setDisclaimer(response.disclaimer);
     } catch (err) {
       if (abortController.signal.aborted) return;
-      console.error('[FinPlanner] Tax advice error:', err);
+      console.error('[FinPlanner] Tax advice error:', err instanceof Error ? err.message : 'Unknown error');
       setError('Unable to get tax advice. Please check your API key and try again.');
     } finally {
       if (!abortController.signal.aborted) {

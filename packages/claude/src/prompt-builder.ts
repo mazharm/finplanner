@@ -54,8 +54,8 @@ Do not include any text outside the JSON object.`;
   const user = `Portfolio Analysis Request:
 
 Household:
-- Filing Status: ${ctx.household.filingStatus}
-- State: ${ctx.household.stateOfResidence}
+- Filing Status: <value>${ctx.household.filingStatus}</value>
+- State: <value>${ctx.household.stateOfResidence}</value>
 - Primary: Age ${ctx.household.primary.currentAge}, Retirement Age ${ctx.household.primary.retirementAge}, Life Expectancy ${ctx.household.primary.lifeExpectancy}${
     ctx.household.spouse
       ? `\n- Spouse: Age ${ctx.household.spouse.currentAge}, Retirement Age ${ctx.household.spouse.retirementAge}, Life Expectancy ${ctx.household.spouse.lifeExpectancy}`
@@ -63,10 +63,10 @@ Household:
   }
 
 Accounts:
-${ctx.accounts.map((a) => `- ${a.label} (${a.type}, ${a.owner}): Balance $${a.currentBalance.toLocaleString()}, Return ${a.expectedReturnPct}%, Fee ${a.feePct}%`).join('\n')}
+${ctx.accounts.map((a) => `- <value>${a.label}</value> (${a.type}, ${a.owner}): Balance $${a.currentBalance.toLocaleString()}, Return ${a.expectedReturnPct}%, Fee ${a.feePct}%`).join('\n')}
 
 Income Streams:
-${ctx.incomeStreams.map((s) => `- ${s.label} (${s.owner}): $${s.annualAmount.toLocaleString()}/yr, Years ${s.startYear}${s.endYear ? `-${s.endYear}` : '+'}, Taxable: ${s.taxable}`).join('\n')}
+${ctx.incomeStreams.map((s) => `- <value>${s.label}</value> (${s.owner}): $${s.annualAmount.toLocaleString()}/yr, Years ${s.startYear}${s.endYear ? `-${s.endYear}` : '+'}, Taxable: ${s.taxable}`).join('\n')}
 
 Tax Configuration:
 - Federal Model: ${ctx.taxes.federalModel}${ctx.taxes.federalEffectiveRatePct != null ? ` (${ctx.taxes.federalEffectiveRatePct}%)` : ''}
@@ -78,7 +78,7 @@ ${ctx.simulationSummary.medianTerminalValue != null ? `- Median Terminal Value: 
 ${ctx.simulationSummary.worstCaseShortfall != null ? `- Worst Case Shortfall: $${ctx.simulationSummary.worstCaseShortfall.toLocaleString()}` : '- Worst Case Shortfall: N/A'}
 
 User Preferences:
-- Risk Tolerance: ${ctx.userPreferences.riskTolerance}
+- Risk Tolerance: <value>${ctx.userPreferences.riskTolerance}</value>
 - Spending Floor: $${ctx.userPreferences.spendingFloor.toLocaleString()}/yr
 - Legacy Goal: $${ctx.userPreferences.legacyGoal.toLocaleString()}`;
 
@@ -103,8 +103,8 @@ Do not include any text outside the JSON object.`;
   const user = `Tax Strategy Analysis Request:
 
 Tax Year: ${ctx.taxYear}
-Filing Status: ${ctx.filingStatus}
-State: ${ctx.stateOfResidence}
+Filing Status: <value>${ctx.filingStatus}</value>
+State: <value>${ctx.stateOfResidence}</value>
 
 Income:
 - Wages: $${ctx.income.wages.toLocaleString()}
@@ -164,7 +164,7 @@ ${ctx.documents.map((d) => `- ${d.label} (${d.formType})`).join('\n')}`
 Accounts:
 ${ctx.accounts.map((a) => `- ${a.label} (${a.type}): $${a.currentBalance.toLocaleString()}`).join('\n')}
 
-User Priority: ${ctx.userPreferences.prioritize}`;
+User Priority: <value>${ctx.userPreferences.prioritize}</value>`;
 
   return { system, user };
 }

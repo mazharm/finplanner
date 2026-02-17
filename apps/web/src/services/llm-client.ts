@@ -17,8 +17,11 @@ const INITIAL_DELAY_MS = 1000;
 const REQUEST_TIMEOUT_MS = 90_000;
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 529]);
 const MIN_REQUEST_INTERVAL_MS = 5_000;
+const MAX_REQUESTS_PER_HOUR = 50;
 
 let lastRequestTime = 0;
+let requestCountThisHour = 0;
+let hourWindowStart = Date.now();
 
 function redactApiKeys(text: string): string {
   return text.replace(/sk-ant-[a-zA-Z0-9_-]+/g, '[API_KEY_REDACTED]');
@@ -93,6 +96,17 @@ export function createLlmClient(apiKey: string, modelId?: string, externalSignal
         await sleep(MIN_REQUEST_INTERVAL_MS - elapsed, externalSignal);
       }
       lastRequestTime = Date.now();
+
+      // Per-hour request budget
+      if (Date.now() - hourWindowStart > 3_600_000) {
+        // Reset the window
+        hourWindowStart = Date.now();
+        requestCountThisHour = 0;
+      }
+      requestCountThisHour++;
+      if (requestCountThisHour > MAX_REQUESTS_PER_HOUR) {
+        throw new Error(`Hourly API request limit (${MAX_REQUESTS_PER_HOUR}) exceeded. Please wait before making more requests.`);
+      }
 
       const requestBody = JSON.stringify({
         model: modelId || DEFAULT_MODEL,

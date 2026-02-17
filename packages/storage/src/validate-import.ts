@@ -24,7 +24,17 @@ function compareVersions(v1: string, v2: string): number {
   return 0;
 }
 
+const MAX_IMPORT_SIZE = 50 * 1024 * 1024; // 50 MB
+const MAX_RAW_PREVIEW_LENGTH = 200;
+
 export function validateImport(ndjsonContent: string): ImportValidationResult {
+  if (ndjsonContent.length > MAX_IMPORT_SIZE) {
+    return {
+      valid: false,
+      errors: [{ line: 0, message: `Import file too large (${(ndjsonContent.length / 1024 / 1024).toFixed(1)} MB, max ${MAX_IMPORT_SIZE / 1024 / 1024} MB)` }],
+      recordCounts: {},
+    };
+  }
   const rawLines = ndjsonContent.split('\n');
   // Build a mapping from filtered index to original line number
   const lineMap: number[] = [];
@@ -48,7 +58,7 @@ export function validateImport(ndjsonContent: string): ImportValidationResult {
   try {
     header = JSON.parse(lines[0]);
   } catch {
-    errors.push({ line: lineMap[0], message: 'Invalid JSON on header line', raw: lines[0] });
+    errors.push({ line: lineMap[0], message: 'Invalid JSON on header line', raw: lines[0].substring(0, MAX_RAW_PREVIEW_LENGTH) });
     return { valid: false, errors, recordCounts };
   }
 
@@ -73,7 +83,7 @@ export function validateImport(ndjsonContent: string): ImportValidationResult {
     try {
       record = JSON.parse(lines[i]);
     } catch {
-      errors.push({ line: lineNum, message: 'Invalid JSON', raw: lines[i] });
+      errors.push({ line: lineNum, message: 'Invalid JSON', raw: lines[i].substring(0, MAX_RAW_PREVIEW_LENGTH) });
       continue;
     }
 
@@ -96,7 +106,12 @@ export function validateImport(ndjsonContent: string): ImportValidationResult {
     if (!schema) {
       // Unknown record types are preserved by generateBackup for forward
       // compatibility.  Rejecting them here would break round-trip fidelity,
-      // so we skip validation and still count them.
+      // so we skip validation but enforce basic safety constraints.
+      const lineLength = lines[i].length;
+      if (lineLength > 100_000) {
+        errors.push({ line: lineNum, message: `Unknown record type "${type}" exceeds 100KB size limit (${lineLength} bytes)` });
+        continue;
+      }
       recordCounts[type] = (recordCounts[type] ?? 0) + 1;
       continue;
     }
