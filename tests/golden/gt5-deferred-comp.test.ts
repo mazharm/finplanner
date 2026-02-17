@@ -20,13 +20,13 @@ import type { PlanInput } from '@finplanner/domain';
  *
  * NQDC balance walkthrough (accounting for taxOptimized deduction-filling):
  * - Year 1 (2026): BOY=$500k; after 4% return=$520k; no scheduled dist;
- *   taxOptimized fills $14,600 std deduction from NQDC; EOY=$505,400
- * - Year 2 (2027): BOY=$505,400; after 4%=$525,616; scheduled dist $120k;
- *   EOY=$405,616
- * - Year 3 (2028): BOY=$405,616; after 4%=$421,840.64; dist $120k; EOY=$301,840.64
- * - Year 4 (2029): BOY=$301,840.64; after 4%=$313,914.27; dist $120k; EOY=$193,914.27
- * - Year 5 (2030): BOY=$193,914.27; after 4%=$201,670.84; dist $120k; EOY=$81,670.84
- * - Year 6 (2031): BOY=$81,670.84; after 4%=$84,937.67; dist capped; EOY=$0
+ *   taxOptimized fills $15,000 std deduction from NQDC; EOY=$505,000
+ * - Year 2 (2027): BOY=$505,000; after 4%=$525,200; scheduled dist $120k;
+ *   EOY=$405,200
+ * - Year 3 (2028): BOY=$405,200; after 4%=$421,408; dist $120k; EOY=$301,408
+ * - Year 4 (2029): BOY=$301,408; after 4%=$313,464; dist $120k; EOY=$193,464
+ * - Year 5 (2030): BOY=$193,464; after 4%=$201,203; dist $120k; EOY=$81,203
+ * - Year 6 (2031): BOY=$81,203; after 4%=$84,451; dist capped; EOY=$0
  */
 
 /** Tolerance for dollar comparisons */
@@ -121,18 +121,18 @@ describe('GT5: Deferred Comp Concentrated Payout', () => {
       expect(yr1.withdrawalsByAccount['taxable-1']).toBeGreaterThan(0);
     });
 
-    it('should have NQDC end balance of ~$505,400', () => {
+    it('should have NQDC end balance of ~$505,000', () => {
       // BOY return: 500,000 * 1.04 = 520,000; no scheduled distribution;
-      // taxOptimized fills the $14,600 standard deduction from NQDC;
-      // EOY = 520,000 - 14,600 = 505,400
-      expect(Math.abs(yr1.endBalanceByAccount['nqdc-1'] - 505_400)).toBeLessThanOrEqual(TOLERANCE);
+      // taxOptimized fills the $15,000 standard deduction from NQDC;
+      // EOY = 520,000 - 15,000 = 505,000
+      expect(Math.abs(yr1.endBalanceByAccount['nqdc-1'] - 505_000)).toBeLessThanOrEqual(TOLERANCE);
     });
 
     it('should withdraw from NQDC to fill the 0% tax bracket (standard deduction)', () => {
-      // taxOptimized strategy: fills the $14,600 single standard deduction
+      // taxOptimized strategy: fills the $15,000 single standard deduction
       // from deferredComp/taxDeferred before going to taxable
       expect(yr1.withdrawalsByAccount['nqdc-1']).toBeGreaterThan(0);
-      expect(Math.abs(yr1.withdrawalsByAccount['nqdc-1'] - 14_600)).toBeLessThanOrEqual(TOLERANCE);
+      expect(Math.abs(yr1.withdrawalsByAccount['nqdc-1'] - 15_000)).toBeLessThanOrEqual(TOLERANCE);
     });
   });
 
@@ -143,9 +143,9 @@ describe('GT5: Deferred Comp Concentrated Payout', () => {
       expect(Math.abs(yr2.nqdcDistributions - 120_000)).toBeLessThanOrEqual(TOLERANCE);
     });
 
-    it('should have NQDC end balance of ~$405,616', () => {
-      // BOY: 505,400 * 1.04 = 525,616; scheduled dist $120,000; EOY = 405,616
-      expect(Math.abs(yr2.endBalanceByAccount['nqdc-1'] - 405_616)).toBeLessThanOrEqual(TOLERANCE);
+    it('should have NQDC end balance of ~$405,200', () => {
+      // BOY: 505,000 * 1.04 = 525,200; scheduled dist $120,000; EOY = 405,200
+      expect(Math.abs(yr2.endBalanceByAccount['nqdc-1'] - 405_200)).toBeLessThanOrEqual(TOLERANCE);
     });
   });
 
@@ -156,9 +156,9 @@ describe('GT5: Deferred Comp Concentrated Payout', () => {
       expect(Math.abs(yr3.nqdcDistributions - 120_000)).toBeLessThanOrEqual(TOLERANCE);
     });
 
-    it('should have NQDC end balance of ~$301,841', () => {
-      // BOY: 405,616 * 1.04 = 421,840.64; dist $120,000; EOY = 301,840.64
-      expect(Math.abs(yr3.endBalanceByAccount['nqdc-1'] - 301_841)).toBeLessThanOrEqual(TOLERANCE);
+    it('should have NQDC end balance of ~$301,408', () => {
+      // BOY: 405,200 * 1.04 = 421,408; dist $120,000; EOY = 301,408
+      expect(Math.abs(yr3.endBalanceByAccount['nqdc-1'] - 301_408)).toBeLessThanOrEqual(TOLERANCE);
     });
   });
 
@@ -169,9 +169,9 @@ describe('GT5: Deferred Comp Concentrated Payout', () => {
       expect(Math.abs(yr4.nqdcDistributions - 120_000)).toBeLessThanOrEqual(TOLERANCE);
     });
 
-    it('should have NQDC end balance of ~$193,914', () => {
-      // BOY: 301,840.64 * 1.04 = 313,914.27; dist $120,000; EOY = 193,914.27
-      expect(Math.abs(yr4.endBalanceByAccount['nqdc-1'] - 193_914)).toBeLessThanOrEqual(10);
+    it('should have NQDC end balance of ~$193,464', () => {
+      // BOY: 301,408 * 1.04 = 313,464; dist $120,000; EOY = 193,464
+      expect(Math.abs(yr4.endBalanceByAccount['nqdc-1'] - 193_464)).toBeLessThanOrEqual(10);
     });
   });
 
@@ -182,20 +182,20 @@ describe('GT5: Deferred Comp Concentrated Payout', () => {
       expect(Math.abs(yr5.nqdcDistributions - 120_000)).toBeLessThanOrEqual(TOLERANCE);
     });
 
-    it('should have NQDC end balance of ~$81,671', () => {
-      // BOY: 193,914.27 * 1.04 = 201,670.84; dist $120,000; EOY = 81,670.84
-      expect(Math.abs(yr5.endBalanceByAccount['nqdc-1'] - 81_671)).toBeLessThanOrEqual(10);
+    it('should have NQDC end balance of ~$81,203', () => {
+      // BOY: 193,464 * 1.04 = 201,203; dist $120,000; EOY = 81,203
+      expect(Math.abs(yr5.endBalanceByAccount['nqdc-1'] - 81_203)).toBeLessThanOrEqual(10);
     });
   });
 
   describe('Year 6 (2031) — final NQDC distribution year (capped at balance)', () => {
     const yr6 = yearly[5];
 
-    it('should have NQDC distribution capped at remaining balance (~$84,938)', () => {
-      // BOY: 81,670.84 * 1.04 = 84,937.67; distribute min(120,000, 84,938) = 84,938
+    it('should have NQDC distribution capped at remaining balance (~$84,451)', () => {
+      // BOY: 81,203 * 1.04 = 84,451; distribute min(120,000, 84,451) = 84,451
       expect(yr6.nqdcDistributions).toBeGreaterThan(80_000);
       expect(yr6.nqdcDistributions).toBeLessThan(120_000);
-      expect(Math.abs(yr6.nqdcDistributions - 84_938)).toBeLessThanOrEqual(10);
+      expect(Math.abs(yr6.nqdcDistributions - 84_451)).toBeLessThanOrEqual(10);
     });
 
     it('should have NQDC end balance of $0', () => {
@@ -221,8 +221,8 @@ describe('GT5: Deferred Comp Concentrated Payout', () => {
     it('should include NQDC distributions in taxable ordinary income (years 2-5)', () => {
       for (let i = 1; i <= 4; i++) {
         const yr = yearly[i];
-        // NQDC distributes $120k as ordinary income; after $14,600 std deduction,
-        // taxableOrdinaryIncome = $120k - $14.6k = $105.4k (roughly)
+        // NQDC distributes $120k as ordinary income; after $15,000 std deduction,
+        // taxableOrdinaryIncome = $120k - $15k = $105k (roughly)
         expect(yr.taxableOrdinaryIncome).toBeGreaterThan(100_000);
       }
     });
@@ -251,8 +251,8 @@ describe('GT5: Deferred Comp Concentrated Payout', () => {
       const totalDistributed = yearly.reduce((sum, yr) => sum + yr.nqdcDistributions, 0);
       // Year 1: 0; Years 2-5: 120k each = 480k; Year 6: ~84,451
       // Total ~ 564,451. This is less than the naive walkthrough (~582k) because
-      // the taxOptimized strategy withdrew $14.6k from NQDC in year 1, reducing
-      // the compounding base. Those $14.6k appear in withdrawalsByAccount instead.
+      // the taxOptimized strategy withdrew $15k from NQDC in year 1, reducing
+      // the compounding base. Those $15k appear in withdrawalsByAccount instead.
       expect(totalDistributed).toBeGreaterThan(560_000);
       expect(totalDistributed).toBeLessThan(570_000);
     });

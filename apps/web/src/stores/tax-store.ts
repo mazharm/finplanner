@@ -8,9 +8,11 @@ interface TaxState {
   checklistItems: ChecklistItem[];
   anomalies: Anomaly[];
   initialized: boolean;
+  persistError: string | null;
 
   // Lifecycle
   initFromIndexedDB: () => Promise<void>;
+  clearPersistError: () => void;
 
   // Tax year actions
   addTaxYear: (record: TaxYearRecord) => void;
@@ -31,6 +33,8 @@ interface TaxState {
   setAnomalies: (anomalies: Anomaly[]) => void;
 }
 
+let _setTax: ((partial: Partial<TaxState>) => void) | null = null;
+
 function persistTax(state: Pick<TaxState, 'taxYears' | 'documents' | 'checklistItems' | 'anomalies'>) {
   setAppState('tax', {
     taxYears: state.taxYears,
@@ -39,15 +43,21 @@ function persistTax(state: Pick<TaxState, 'taxYears' | 'documents' | 'checklistI
     anomalies: state.anomalies,
   }).catch((err) => {
     console.error('[FinPlanner] IndexedDB operation failed:', err);
+    _setTax?.({ persistError: 'Failed to save tax data. Changes may be lost on page refresh.' });
   });
 }
 
-export const useTaxStore = create<TaxState>((set, get) => ({
+export const useTaxStore = create<TaxState>((set, get) => {
+  _setTax = set;
+  return {
   taxYears: [],
   documents: [],
   checklistItems: [],
   anomalies: [],
   initialized: false,
+  persistError: null,
+
+  clearPersistError: () => set({ persistError: null }),
 
   initFromIndexedDB: async () => {
     try {
@@ -59,10 +69,10 @@ export const useTaxStore = create<TaxState>((set, get) => ({
       }>('tax');
       if (saved) {
         set({
-          taxYears: saved.taxYears ?? [],
-          documents: saved.documents ?? [],
-          checklistItems: saved.checklistItems ?? [],
-          anomalies: saved.anomalies ?? [],
+          taxYears: Array.isArray(saved.taxYears) ? saved.taxYears : [],
+          documents: Array.isArray(saved.documents) ? saved.documents : [],
+          checklistItems: Array.isArray(saved.checklistItems) ? saved.checklistItems : [],
+          anomalies: Array.isArray(saved.anomalies) ? saved.anomalies : [],
           initialized: true,
         });
       } else {
@@ -146,4 +156,5 @@ export const useTaxStore = create<TaxState>((set, get) => ({
     set({ anomalies });
     persistTax({ ...get(), anomalies });
   },
-}));
+};
+});

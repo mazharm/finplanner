@@ -7,6 +7,9 @@ import {
   Badge,
   Divider,
   Text,
+  MessageBar,
+  MessageBarBody,
+  MessageBarActions,
 } from '@fluentui/react-components';
 import {
   HomeRegular,
@@ -27,10 +30,14 @@ import {
   WeatherSunnyRegular,
   WeatherMoonRegular,
   CloudRegular,
+  DismissRegular,
 } from '@fluentui/react-icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { useSettingsStore } from '../stores/settings-store.js';
+import { useSharedStore } from '../stores/shared-store.js';
+import { useTaxStore } from '../stores/tax-store.js';
+import { useRetirementStore } from '../stores/retirement-store.js';
 
 const useStyles = makeStyles({
   root: {
@@ -125,6 +132,18 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const syncStatus = useSettingsStore((s) => s.syncStatus);
+  const sharedPersistError = useSharedStore((s) => s.persistError);
+  const taxPersistError = useTaxStore((s) => s.persistError);
+  const retirementPersistError = useRetirementStore((s) => s.persistError);
+  const clearSharedPersistError = useSharedStore((s) => s.clearPersistError);
+  const clearTaxPersistError = useTaxStore((s) => s.clearPersistError);
+  const clearRetirementPersistError = useRetirementStore((s) => s.clearPersistError);
+  const persistError = sharedPersistError || taxPersistError || retirementPersistError;
+  const clearPersistError = () => {
+    clearSharedPersistError();
+    clearTaxPersistError();
+    clearRetirementPersistError();
+  };
 
   const currentPath = location.pathname;
   const syncColor = syncStatus === 'synced' ? 'success' : syncStatus === 'error' ? 'danger' : 'informative';
@@ -200,6 +219,14 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
             />
           </div>
         </header>
+        {persistError && (
+          <MessageBar intent="warning">
+            <MessageBarBody>{persistError}</MessageBarBody>
+            <MessageBarActions>
+              <Button appearance="transparent" icon={<DismissRegular />} onClick={clearPersistError} aria-label="Dismiss" />
+            </MessageBarActions>
+          </MessageBar>
+        )}
         <main className={styles.main}>{children}</main>
       </div>
     </div>

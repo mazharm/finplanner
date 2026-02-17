@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { filingStatusSchema, personIdSchema } from './common.js';
+import { VALID_STATE_CODES } from '@finplanner/domain';
 
 export const socialSecuritySchema = z.object({
   claimAge: z.number().int().min(62).max(70),
@@ -7,6 +8,8 @@ export const socialSecuritySchema = z.object({
   estimatedMonthlyBenefitAtClaim: z.number().min(0),
   colaPct: z.number().min(-100).max(100),
 });
+
+const validStateCodes = new Set(VALID_STATE_CODES);
 
 export const personProfileSchema = z.object({
   id: personIdSchema,
@@ -21,12 +24,22 @@ export const personProfileSchema = z.object({
 ).refine(
   (data) => data.lifeExpectancy >= data.retirementAge,
   { message: 'lifeExpectancy must be >= retirementAge', path: ['lifeExpectancy'] }
+).refine(
+  (data) => {
+    const currentYear = new Date().getFullYear();
+    const impliedAge = currentYear - data.birthYear;
+    return Math.abs(impliedAge - data.currentAge) <= 1;
+  },
+  { message: 'currentAge must be consistent with birthYear (within 1 year)', path: ['currentAge'] }
 );
 
 export const householdProfileSchema = z.object({
   maritalStatus: z.enum(['single', 'married']),
   filingStatus: filingStatusSchema,
-  stateOfResidence: z.string().regex(/^[A-Z]{2}$/, 'Must be a 2-letter uppercase state code'),
+  stateOfResidence: z.string().refine(
+    (code) => validStateCodes.has(code),
+    { message: 'Must be a valid US state code (e.g., CA, NY, TX)' },
+  ),
   primary: personProfileSchema,
   spouse: personProfileSchema.optional(),
 }).superRefine((data, ctx) => {

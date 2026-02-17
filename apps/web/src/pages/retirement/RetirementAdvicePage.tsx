@@ -73,7 +73,7 @@ export function RetirementAdvicePage() {
 
       if (abortController.signal.aborted) return;
 
-      const client = apiKey ? createLlmClient(apiKey) : undefined;
+      const client = apiKey ? createLlmClient(apiKey, undefined, abortController.signal) : undefined;
 
       const request: PortfolioAdviceRequest = {
         planInput: {
@@ -118,7 +118,8 @@ export function RetirementAdvicePage() {
       setDisclaimer(response.disclaimer);
     } catch (err) {
       if (abortController.signal.aborted) return;
-      setError(`Failed to get advice: ${err instanceof Error ? err.message : String(err)}`);
+      console.error('[FinPlanner] Retirement advice error:', err);
+      setError('Unable to get retirement advice. Please check your API key and try again.');
     } finally {
       if (!abortController.signal.aborted) {
         setLoading(false);

@@ -62,12 +62,21 @@ export function stripPortfolioPii(request: PortfolioAdviceRequest): AnonymizedPo
   const { household, accounts, otherIncome, taxes } = planInput;
 
   const typeCounts: Record<string, number> = {};
+  const ownerLabels = new Map<string, string>();
+  let ownerCounter = 0;
+  function anonymizeOwner(owner: string): string {
+    if (!ownerLabels.has(owner)) {
+      ownerLabels.set(owner, `Owner ${String.fromCharCode(65 + ownerCounter++)}`);
+    }
+    return ownerLabels.get(owner)!;
+  }
+
   const anonymizedAccounts = accounts.map((a) => {
     typeCounts[a.type] = (typeCounts[a.type] ?? 0) + 1;
     return {
       label: accountLabel(a.type, typeCounts[a.type]),
       type: sanitizeForLlm(a.type),
-      owner: sanitizeForLlm(a.owner),
+      owner: anonymizeOwner(a.owner),
       currentBalance: a.currentBalance,
       expectedReturnPct: a.expectedReturnPct,
       feePct: a.feePct,
@@ -76,7 +85,7 @@ export function stripPortfolioPii(request: PortfolioAdviceRequest): AnonymizedPo
 
   const anonymizedIncomeStreams = otherIncome.map((s, i) => ({
     label: `Income Stream ${i + 1}`,
-    owner: sanitizeForLlm(s.owner),
+    owner: anonymizeOwner(s.owner),
     startYear: s.startYear,
     endYear: s.endYear,
     annualAmount: s.annualAmount,

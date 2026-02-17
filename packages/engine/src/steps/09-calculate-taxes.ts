@@ -127,12 +127,9 @@ function computeStateTax(
   // Adjust ordinary income for SS exemption
   let stateOrdinaryIncome = totalOrdinaryIncome;
   if (stateInfo) {
-    if (stateInfo.ssTaxExempt === 'yes') {
-      // Fully exempt: remove taxable SS from state ordinary income
+    if (stateInfo.ssTaxExempt === 'yes' || stateInfo.ssTaxExempt === 'partial') {
+      // Per spec §5.4.3: in v1, treat 'partial' as 'yes' (fully exempt)
       stateOrdinaryIncome -= taxableSS;
-    } else if (stateInfo.ssTaxExempt === 'partial') {
-      // Partial exemption: remove 50% of taxable SS
-      stateOrdinaryIncome -= taxableSS * 0.5;
     }
     // 'no': SS is fully taxable at state level
   }

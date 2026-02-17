@@ -1,17 +1,4 @@
 import type { TaxYearRecord } from '@finplanner/domain';
-import {
-  CAPITAL_LOSS_DEDUCTION_CAP,
-  NIIT_RATE,
-  NIIT_THRESHOLD_MFJ,
-  NIIT_THRESHOLD_SINGLE,
-  SE_TAX_SS_RATE,
-  SE_TAX_MEDICARE_RATE,
-  SE_INCOME_ADJUSTMENT,
-  SS_WAGE_BASE,
-  ADDITIONAL_MEDICARE_RATE,
-  ADDITIONAL_MEDICARE_THRESHOLD_MFJ,
-  ADDITIONAL_MEDICARE_THRESHOLD_SINGLE,
-} from '@finplanner/domain';
 import type { TaxComputationConfig, TaxComputationResult } from './types.js';
 import { computeTotalGrossIncome, computeOrdinaryIncome, computeDeduction } from './income-helpers.js';
 import { computeTaxableSS } from './ss-taxation.js';
@@ -36,65 +23,25 @@ export function computeTaxYearTaxes(
   const ordinary = computeOrdinaryIncome(record.income, record.filingStatus);
   const deduction = computeDeduction(record.deductions, totalGross);
 
-  let taxableOrdinary = Math.max(0, ordinary - deduction);
+  const taxableOrdinary = Math.max(0, ordinary - deduction);
 
-  // IRS caps net capital loss deduction at $3,000/year
-  const CAPITAL_LOSS_CAP = CAPITAL_LOSS_DEDUCTION_CAP;
-  const rawNetCapGains = record.income.capitalGains - record.income.capitalLosses;
-  const netCapGains = rawNetCapGains >= 0
-    ? rawNetCapGains
-    : Math.max(-CAPITAL_LOSS_CAP, rawNetCapGains); // loss capped at -$3,000
+  // Per spec §8.4 step 5 and §19.1 item 5: excess capital losses do NOT offset
+  // ordinary income, do NOT offset qualified dividends, and are NOT carried forward.
+  const netCapGains = Math.max(0, record.income.capitalGains - record.income.capitalLosses);
 
-  // If net capital loss, deduct from ordinary income (IRS allows up to $3,000)
-  if (netCapGains < 0) {
-    taxableOrdinary = Math.max(0, taxableOrdinary + netCapGains); // netCapGains is negative, so this subtracts
-  }
-
-  // Self-employment tax: 15.3% up to SS wage base, then 2.9% above
-  // W-2 wages count first against the SS wage base
-  let seTax = 0;
-  if (record.income.selfEmploymentIncome > 0) {
-    const seIncome = record.income.selfEmploymentIncome * SE_INCOME_ADJUSTMENT;
-    const remainingSSBase = Math.max(0, SS_WAGE_BASE - record.income.wages);
-    const seSubjectToSS = Math.min(seIncome, remainingSSBase);
-    seTax = seSubjectToSS * SE_TAX_SS_RATE + seIncome * SE_TAX_MEDICARE_RATE;
-  }
-
-  // IRS allows deduction of 50% of SE tax from AGI (Schedule 1, Part II, line 15)
-  // Must be applied before computing baseFederalTax so it reduces taxable ordinary income
-  if (seTax > 0) {
-    taxableOrdinary = Math.max(0, taxableOrdinary - seTax * 0.5);
-  }
-
-  const preferentialIncome = Math.max(0, netCapGains) + record.income.qualifiedDividends;
+  const preferentialIncome = netCapGains + record.income.qualifiedDividends;
 
   const totalCredits = record.credits.childTaxCredit + record.credits.educationCredits +
     record.credits.foreignTaxCredit + record.credits.otherCredits;
 
-  const baseFederalTax = Math.max(
+  // Per spec §19.1 item 3: AMT / NIIT / phase-outs are not modeled.
+  // Federal tax uses effective rates only (no SE tax, NIIT, or additional Medicare).
+  const federalTax = Math.max(
     0,
     (taxableOrdinary * config.federalEffectiveRatePct / 100) +
     (preferentialIncome * config.capGainsRatePct / 100) -
     totalCredits
   );
-
-  // NIIT: 3.8% on lesser of net investment income or MAGI above threshold
-  // For NIIT, MAGI should use capital losses capped at $3,000 (not unlimited)
-  const niitThreshold = record.filingStatus === 'mfj' || record.filingStatus === 'survivor' ? NIIT_THRESHOLD_MFJ : NIIT_THRESHOLD_SINGLE;
-  const netInvestmentIncome = record.income.interestIncome + record.income.dividendIncome +
-    Math.max(0, rawNetCapGains) + record.income.rentalIncome;
-  // totalGross includes uncapped net cap gains (capitalGains - capitalLosses = rawNetCapGains).
-  // Replace with capped net cap gains for NIIT MAGI.
-  const niitMagi = totalGross - rawNetCapGains + netCapGains;
-  const magiOverThreshold = Math.max(0, niitMagi - niitThreshold);
-  const niit = NIIT_RATE * Math.min(netInvestmentIncome, magiOverThreshold);
-
-  // Additional Medicare Tax: 0.9% on wages + SE income (92.35% adjusted) above threshold
-  const additionalMedicareThreshold = record.filingStatus === 'mfj' || record.filingStatus === 'survivor' ? ADDITIONAL_MEDICARE_THRESHOLD_MFJ : ADDITIONAL_MEDICARE_THRESHOLD_SINGLE;
-  const wagesAndSE = record.income.wages + record.income.selfEmploymentIncome * SE_INCOME_ADJUSTMENT;
-  const additionalMedicare = Math.max(0, wagesAndSE - additionalMedicareThreshold) * ADDITIONAL_MEDICARE_RATE;
-
-  const federalTax = baseFederalTax + niit + seTax + additionalMedicare;
 
   // State tax
   let stateTax = 0;

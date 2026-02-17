@@ -45,7 +45,8 @@ export function rebalance(
 }
 
 function performRebalance(accounts: AccountState[]): RebalanceResult {
-  let realizedCapitalGains = 0;
+  // Per spec §19.1 item 6: rebalancing does not trigger capital gains in v1
+  const realizedCapitalGains = 0;
 
   // Filter to accounts that participate in rebalancing
   const rebalanceable = accounts.filter(
@@ -89,17 +90,14 @@ function performRebalance(accounts: AccountState[]): RebalanceResult {
   for (const { account, targetBalance, delta } of deltas) {
     if (Math.abs(delta) < 0.01) continue; // Skip negligible adjustments
 
-    if (account.type === 'taxable') {
-      // For taxable accounts, adjust cost basis
+      if (account.type === 'taxable') {
+      // Per spec §19.1 item 6: rebalancing tax events -- notional transfers
+      // do not trigger capital gains in v1. Only adjust cost basis.
       if (delta > 0) {
-        // Inflow: new money increases basis proportionally
-        // The funds come from other accounts being sold, so this is a purchase
         account.costBasis += delta;
       } else {
-        // Outflow: selling from taxable account realizes capital gains
         const sellAmount = Math.abs(delta);
         const gainFraction = computeGainFraction(account.balance, account.costBasis);
-        realizedCapitalGains += sellAmount * gainFraction;
         account.costBasis = reduceBasis(account.costBasis, sellAmount, gainFraction);
       }
     }

@@ -8,9 +8,11 @@ interface SharedState {
   incomeStreams: IncomeStream[];
   adjustments: Adjustment[];
   initialized: boolean;
+  persistError: string | null;
 
   // Lifecycle
   initFromIndexedDB: () => Promise<void>;
+  clearPersistError: () => void;
 
   // Household actions
   setHousehold: (household: HouseholdProfile) => void;
@@ -45,6 +47,9 @@ const defaultHousehold: HouseholdProfile = {
   },
 };
 
+// Module-level reference to store setter, populated on store creation
+let _setShared: ((partial: Partial<SharedState>) => void) | null = null;
+
 function persistShared(state: Pick<SharedState, 'household' | 'accounts' | 'incomeStreams' | 'adjustments'>) {
   setAppState('shared', {
     household: state.household,
@@ -53,15 +58,25 @@ function persistShared(state: Pick<SharedState, 'household' | 'accounts' | 'inco
     adjustments: state.adjustments,
   }).catch((err) => {
     console.error('[FinPlanner] IndexedDB operation failed:', err);
+    _setShared?.({ persistError: 'Failed to save data. Changes may be lost on page refresh.' });
   });
 }
 
-export const useSharedStore = create<SharedState>((set, get) => ({
+function isValidHousehold(h: unknown): h is HouseholdProfile {
+  return h !== null && typeof h === 'object' && 'primary' in h && 'stateOfResidence' in h;
+}
+
+export const useSharedStore = create<SharedState>((set, get) => {
+  _setShared = set;
+  return {
   household: defaultHousehold,
   accounts: [],
   incomeStreams: [],
   adjustments: [],
   initialized: false,
+  persistError: null,
+
+  clearPersistError: () => set({ persistError: null }),
 
   initFromIndexedDB: async () => {
     try {
@@ -73,10 +88,10 @@ export const useSharedStore = create<SharedState>((set, get) => ({
       }>('shared');
       if (saved) {
         set({
-          household: saved.household ?? defaultHousehold,
-          accounts: saved.accounts ?? [],
-          incomeStreams: saved.incomeStreams ?? [],
-          adjustments: saved.adjustments ?? [],
+          household: isValidHousehold(saved.household) ? saved.household : defaultHousehold,
+          accounts: Array.isArray(saved.accounts) ? saved.accounts : [],
+          incomeStreams: Array.isArray(saved.incomeStreams) ? saved.incomeStreams : [],
+          adjustments: Array.isArray(saved.adjustments) ? saved.adjustments : [],
           initialized: true,
         });
       } else {
@@ -168,4 +183,5 @@ export const useSharedStore = create<SharedState>((set, get) => ({
       return { adjustments };
     });
   },
-}));
+};
+});

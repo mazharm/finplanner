@@ -40,6 +40,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   },
 
   setClaudeApiKey: async (key) => {
+    if (key.length > 0 && (!key.startsWith('sk-ant-') || key.length < 30)) {
+      throw new Error('Invalid API key format. Key must start with "sk-ant-" and be at least 30 characters.');
+    }
     try {
       await setApiKeyIdb(key);
       set({ hasApiKey: key.length > 0 });

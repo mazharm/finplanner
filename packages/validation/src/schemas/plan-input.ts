@@ -44,6 +44,20 @@ export const planInputSchema = z.object({
     }
   }
 
+  // Account IDs must be unique
+  const accountIds = new Set<string>();
+  for (const account of data.accounts) {
+    if (accountIds.has(account.id)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Duplicate account ID: "${account.id}"`,
+        path: ['accounts'],
+      });
+      break;
+    }
+    accountIds.add(account.id);
+  }
+
   // Rebalance targets must sum to ~100% when rebalancing is enabled
   if (data.strategy.rebalanceFrequency !== 'none') {
     const accountsWithTarget = data.accounts.filter(a => a.targetAllocationPct !== undefined);

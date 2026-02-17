@@ -104,7 +104,7 @@ export function TaxAdvicePage() {
         },
       };
 
-      const client = apiKey ? createLlmClient(apiKey) : undefined;
+      const client = apiKey ? createLlmClient(apiKey, undefined, abortController.signal) : undefined;
       const response = await getTaxStrategyAdvice(request, client);
 
       if (abortController.signal.aborted) return;
@@ -119,7 +119,8 @@ export function TaxAdvicePage() {
       setDisclaimer(response.disclaimer);
     } catch (err) {
       if (abortController.signal.aborted) return;
-      setError(`Failed to get tax advice: ${err instanceof Error ? err.message : String(err)}`);
+      console.error('[FinPlanner] Tax advice error:', err);
+      setError('Unable to get tax advice. Please check your API key and try again.');
     } finally {
       if (!abortController.signal.aborted) {
         setLoading(false);

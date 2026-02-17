@@ -22,9 +22,11 @@ interface RetirementState {
   activeScenarioId: string | null;
   latestResult: PlanResult | null;
   initialized: boolean;
+  persistError: string | null;
 
   // Lifecycle
   initFromIndexedDB: () => Promise<void>;
+  clearPersistError: () => void;
 
   // Actions
   setSpending: (spending: SpendingPlan) => void;
@@ -67,6 +69,8 @@ const defaultStrategy: StrategyConfig = {
 
 type PersistableRetirement = Pick<RetirementState, 'spending' | 'taxes' | 'market' | 'strategy' | 'scenarios' | 'activeScenarioId'>;
 
+let _setRetirement: ((partial: Partial<RetirementState>) => void) | null = null;
+
 function persistRetirement(state: PersistableRetirement) {
   setAppState('retirement', {
     spending: state.spending,
@@ -77,10 +81,17 @@ function persistRetirement(state: PersistableRetirement) {
     activeScenarioId: state.activeScenarioId,
   }).catch((err) => {
     console.error('[FinPlanner] IndexedDB operation failed:', err);
+    _setRetirement?.({ persistError: 'Failed to save retirement data. Changes may be lost on page refresh.' });
   });
 }
 
-export const useRetirementStore = create<RetirementState>((set, get) => ({
+function isValidObject(v: unknown): v is Record<string, unknown> {
+  return v !== null && typeof v === 'object' && !Array.isArray(v);
+}
+
+export const useRetirementStore = create<RetirementState>((set, get) => {
+  _setRetirement = set;
+  return {
   spending: defaultSpending,
   taxes: defaultTaxes,
   market: defaultMarket,
@@ -89,17 +100,20 @@ export const useRetirementStore = create<RetirementState>((set, get) => ({
   activeScenarioId: null,
   latestResult: null,
   initialized: false,
+  persistError: null,
+
+  clearPersistError: () => set({ persistError: null }),
 
   initFromIndexedDB: async () => {
     try {
       const saved = await getAppState<PersistableRetirement>('retirement');
       if (saved) {
         set({
-          spending: saved.spending ?? defaultSpending,
-          taxes: saved.taxes ?? defaultTaxes,
-          market: saved.market ?? defaultMarket,
-          strategy: saved.strategy ?? defaultStrategy,
-          scenarios: saved.scenarios ?? [],
+          spending: isValidObject(saved.spending) ? saved.spending as SpendingPlan : defaultSpending,
+          taxes: isValidObject(saved.taxes) ? saved.taxes as TaxConfig : defaultTaxes,
+          market: isValidObject(saved.market) ? saved.market as MarketConfig : defaultMarket,
+          strategy: isValidObject(saved.strategy) ? saved.strategy as StrategyConfig : defaultStrategy,
+          scenarios: Array.isArray(saved.scenarios) ? saved.scenarios : [],
           activeScenarioId: saved.activeScenarioId ?? null,
           initialized: true,
         });
@@ -153,4 +167,5 @@ export const useRetirementStore = create<RetirementState>((set, get) => ({
     persistRetirement({ ...get(), activeScenarioId: id });
   },
   setLatestResult: (result) => set({ latestResult: result }),
-}));
+};
+});

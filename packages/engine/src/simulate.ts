@@ -169,16 +169,16 @@ function simulateYear(state: SimulationState): YearResult {
   // Step 1: Determine phase (joint vs survivor), ages, filing status
   const yearContext = determinePhase(state);
 
-  // Snapshot prior year-end balances for RMD computation (IRS uses Dec 31 balance)
-  const priorYearEndBalances = new Map<string, number>();
-  for (const a of state.accounts) {
-    if (a.type === 'taxDeferred') {
-      priorYearEndBalances.set(a.id, a.balance);
-    }
-  }
-
   // Step 2: Apply beginning-of-year investment returns
   applyReturns(state);
+
+  // Snapshot post-return balances for RMD computation (per spec §8.1 step 2→5 ordering)
+  const postReturnBalances = new Map<string, number>();
+  for (const a of state.accounts) {
+    if (a.type === 'taxDeferred') {
+      postReturnBalances.set(a.id, a.balance);
+    }
+  }
 
   // Step 3: Compute mandatory income (SS, NQDC, pensions, adjustments)
   const mandatoryIncome = computeMandatoryIncome(state, yearContext);
@@ -186,8 +186,8 @@ function simulateYear(state: SimulationState): YearResult {
   // Step 4: Inflate standard deduction
   const standardDeduction = inflateDeduction(state, yearContext);
 
-  // Step 5: Compute and distribute RMDs (using prior year-end balance per IRS rules)
-  const rmdResult = computeRmds(state, yearContext, priorYearEndBalances);
+  // Step 5: Compute and distribute RMDs (using post-return balance per spec)
+  const rmdResult = computeRmds(state, yearContext, postReturnBalances);
 
   // Step 6: Inflate spending target, apply guardrails
   const spending = inflateSpending(state, yearContext);

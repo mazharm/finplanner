@@ -62,18 +62,12 @@ export async function writeFileLocally(
     savedAt: now,
   });
 
-  // Check for existing queue entry for this path and remove it
-  const existingQueue = await getSyncQueue();
-  const existingEntry = existingQueue.find(
-    (e) => e.path === path && e.operation === 'write',
-  );
-  if (existingEntry) {
-    await removeFromSyncQueue(existingEntry.id);
-  }
-
-  // Queue for OneDrive sync
+  // Use a deterministic ID based on the path so that IndexedDB's put()
+  // atomically replaces any existing entry for the same path, avoiding
+  // the TOCTOU race of read-check-delete-add.
+  const syncId = `sync_write_${path}`;
   await addToSyncQueue({
-    id: `sync_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    id: syncId,
     path,
     content,
     operation: 'write',

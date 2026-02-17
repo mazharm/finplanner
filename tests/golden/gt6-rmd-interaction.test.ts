@@ -21,9 +21,10 @@ import type { PlanInput } from '@finplanner/domain';
  * delay applies.
  *
  * Year 1 RMD walkthrough:
- *   RMD uses prior year-end balance (snapshot before returns): $3,000,000
+ *   RMD uses post-return balance (per spec §8.1 step 2→5 ordering):
+ *   $3,000,000 * 1.05 = $3,150,000
  *   ULT divisor for age 74 = 25.5
- *   RMD = 3,000,000 / 25.5 = 117,647.06
+ *   RMD = 3,150,000 / 25.5 = 123,529.41
  */
 
 /** Tolerance for dollar comparisons (wider to accommodate convergence residuals) */
@@ -93,15 +94,15 @@ describe('GT6: RMD Interaction', () => {
       expect(yr1.agePrimary).toBe(74);
     });
 
-    it('should have RMD of approximately $117,647', () => {
-      // RMD uses prior year-end balance (snapshot before returns): $3,000,000
+    it('should have RMD of approximately $123,529', () => {
+      // RMD uses post-return balance: $3,000,000 * 1.05 = $3,150,000
       // Divisor for age 74 = 25.5
-      // RMD = 3,000,000 / 25.5 = 117,647.06
-      expect(yr1.rmdTotal).toBeCloseTo(117_647, 0);
+      // RMD = 3,150,000 / 25.5 = 123,529.41
+      expect(yr1.rmdTotal).toBeCloseTo(123_529, 0);
     });
 
     it('should have RMD exceeding spending target ($80,000)', () => {
-      // RMD ~$117,647 > $80,000 spending target
+      // RMD ~$123,529 > $80,000 spending target
       expect(yr1.rmdTotal).toBeGreaterThan(80_000);
     });
 
