@@ -84,9 +84,16 @@ export function generateChecklist(request: ChecklistRequest): TaxChecklist {
       const owner = account.owner === 'spouse'
         ? request.sharedCorpus.household.spouse
         : request.sharedCorpus.household.primary;
-      const ownerAge = owner ? request.taxYear - owner.birthYear : 0;
-      const ownerRmdAge = owner ? getRmdAge(owner.birthYear) : 73;
-      const atRmdAge = ownerAge >= ownerRmdAge;
+      let atRmdAge = false;
+      let ownerAge = 0;
+      let ownerRmdAge = 73;
+      if (owner) {
+        ownerAge = request.taxYear - owner.birthYear;
+        ownerRmdAge = getRmdAge(owner.birthYear);
+        atRmdAge = ownerAge >= ownerRmdAge;
+      } else {
+        console.warn(`[FinPlanner] Checklist: account "${account.name}" references "${account.owner}" but no such person in household`);
+      }
 
       if (!priorHad1099R && !atRmdAge) continue;
 

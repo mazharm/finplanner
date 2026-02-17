@@ -59,16 +59,17 @@ function performRebalance(accounts: AccountState[]): RebalanceResult {
   if (totalPct <= 0) {
     return { realizedCapitalGains: 0 };
   }
-  if (totalPct < 99 || totalPct > 101) {
+  // Compute normalized allocations without mutating input account objects
+  const normalizedAlloc = new Map<string, number>();
+  const scaleFactor = (totalPct < 99 || totalPct > 101) ? 100 / totalPct : 1;
+  if (scaleFactor !== 1) {
     console.warn(
       `[FinPlanner] Rebalance: targetAllocationPct sums to ${totalPct.toFixed(2)}%, ` +
       `expected ~100%. Normalizing percentages.`
     );
-    // Normalize to exactly 100%
-    const scaleFactor = 100 / totalPct;
-    for (const account of rebalanceable) {
-      account.targetAllocationPct = (account.targetAllocationPct ?? 0) * scaleFactor;
-    }
+  }
+  for (const account of rebalanceable) {
+    normalizedAlloc.set(account.id, (account.targetAllocationPct ?? 0) * scaleFactor);
   }
 
   // Compute total portfolio value of rebalanceable accounts
@@ -79,7 +80,7 @@ function performRebalance(accounts: AccountState[]): RebalanceResult {
   const deltas: Array<{ account: AccountState; targetBalance: number; delta: number }> = [];
 
   for (const account of rebalanceable) {
-    const targetBalance = totalValue * (account.targetAllocationPct! / 100);
+    const targetBalance = totalValue * (normalizedAlloc.get(account.id)! / 100);
     const delta = targetBalance - account.balance;
     deltas.push({ account, targetBalance, delta });
   }

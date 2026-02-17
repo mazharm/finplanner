@@ -50,6 +50,22 @@ export function computeTaxYearTaxes(
     taxableOrdinary = Math.max(0, taxableOrdinary + netCapGains); // netCapGains is negative, so this subtracts
   }
 
+  // Self-employment tax: 15.3% up to SS wage base, then 2.9% above
+  // W-2 wages count first against the SS wage base
+  let seTax = 0;
+  if (record.income.selfEmploymentIncome > 0) {
+    const seIncome = record.income.selfEmploymentIncome * SE_INCOME_ADJUSTMENT;
+    const remainingSSBase = Math.max(0, SS_WAGE_BASE - record.income.wages);
+    const seSubjectToSS = Math.min(seIncome, remainingSSBase);
+    seTax = seSubjectToSS * SE_TAX_SS_RATE + seIncome * SE_TAX_MEDICARE_RATE;
+  }
+
+  // IRS allows deduction of 50% of SE tax from AGI (Schedule 1, Part II, line 15)
+  // Must be applied before computing baseFederalTax so it reduces taxable ordinary income
+  if (seTax > 0) {
+    taxableOrdinary = Math.max(0, taxableOrdinary - seTax * 0.5);
+  }
+
   const preferentialIncome = Math.max(0, netCapGains) + record.income.qualifiedDividends;
 
   const totalCredits = record.credits.childTaxCredit + record.credits.educationCredits +
@@ -73,21 +89,6 @@ export function computeTaxYearTaxes(
   const magiOverThreshold = Math.max(0, niitMagi - niitThreshold);
   const niit = NIIT_RATE * Math.min(netInvestmentIncome, magiOverThreshold);
 
-  // Self-employment tax: 15.3% up to SS wage base, then 2.9% above
-  // W-2 wages count first against the SS wage base
-  let seTax = 0;
-  if (record.income.selfEmploymentIncome > 0) {
-    const seIncome = record.income.selfEmploymentIncome * SE_INCOME_ADJUSTMENT;
-    const remainingSSBase = Math.max(0, SS_WAGE_BASE - record.income.wages);
-    const seSubjectToSS = Math.min(seIncome, remainingSSBase);
-    seTax = seSubjectToSS * SE_TAX_SS_RATE + seIncome * SE_TAX_MEDICARE_RATE;
-  }
-
-  // IRS allows deduction of 50% of SE tax from AGI
-  if (seTax > 0) {
-    taxableOrdinary = Math.max(0, taxableOrdinary - seTax * 0.5);
-  }
-
   // Additional Medicare Tax: 0.9% on wages + SE income (92.35% adjusted) above threshold
   const additionalMedicareThreshold = record.filingStatus === 'mfj' || record.filingStatus === 'survivor' ? ADDITIONAL_MEDICARE_THRESHOLD_MFJ : ADDITIONAL_MEDICARE_THRESHOLD_SINGLE;
   const wagesAndSE = record.income.wages + record.income.selfEmploymentIncome * SE_INCOME_ADJUSTMENT;
@@ -101,8 +102,9 @@ export function computeTaxYearTaxes(
   const stateCapGainsRatePct = config.stateCapGainsRatePct ?? stateRatePct;
 
   if (stateRatePct > 0 || stateCapGainsRatePct > 0) {
-    // Use state-specific standard deduction; fall back to federal deduction if not provided
-    const stateDeduction = config.stateStandardDeduction ?? deduction;
+    // Use state-specific standard deduction; fall back to ~50% of federal (most states have
+    // smaller standard deductions than federal), consistent with engine's 09-calculate-taxes.ts
+    const stateDeduction = config.stateStandardDeduction ?? Math.round(deduction * 0.5);
     let stateOrdinary = Math.max(0, ordinary - stateDeduction);
     // If state exempts SS, remove the taxable SS portion from state ordinary
     if (config.ssTaxExempt) {

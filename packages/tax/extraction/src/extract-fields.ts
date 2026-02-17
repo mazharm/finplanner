@@ -103,12 +103,13 @@ function extractSingleField(
         // Fall back to bare number only if no more matches of this pattern exist
         const value = parseCurrencyValue(afterMatch);
         if (value !== null) {
-          // Check if there's another match of the same pattern further in the text
-          // If so, skip this one (it's likely a header match)
-          const nextMatch = pattern.exec(text);
-          if (nextMatch) {
-            // Reset pattern to re-try from this next match
-            pattern.lastIndex = nextMatch.index;
+          // If there's another match of the same pattern further in the text,
+          // skip this bare number (it's likely a header line, not the real field value).
+          // Save/restore lastIndex so the while loop advances naturally.
+          const savedLastIndex = pattern.lastIndex;
+          const hasMoreMatches = pattern.exec(text) !== null;
+          pattern.lastIndex = savedLastIndex;
+          if (hasMoreMatches) {
             continue;
           }
           return { value, confidence: 0.8 };

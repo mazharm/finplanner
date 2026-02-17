@@ -146,6 +146,29 @@ describe('GT13: LLM Advice Retry & Fallback — Portfolio', () => {
     const result = await getPortfolioAdvice(portfolioRequest);
     expect(result.recommendations.every((r) => r.source === 'fallback')).toBe(true);
   });
+
+  it('valid JSON but missing required schema fields → fallback', async () => {
+    // LLM returns valid JSON that fails Zod validation (missing recommendations, disclaimer)
+    const client: LlmClient = {
+      sendMessage: vi.fn().mockResolvedValue(JSON.stringify({ someField: 'value' })),
+    };
+    const result = await getPortfolioAdvice(portfolioRequest, client);
+    expect(result.recommendations.every((r) => r.source === 'fallback')).toBe(true);
+    // Retry should have been attempted (2 calls total)
+    expect(client.sendMessage).toHaveBeenCalledTimes(2);
+  });
+
+  it('valid JSON with wrong field types → fallback', async () => {
+    // recommendations should be an array of objects, not a string
+    const client: LlmClient = {
+      sendMessage: vi.fn().mockResolvedValue(JSON.stringify({
+        recommendations: 'not an array',
+        disclaimer: 123,
+      })),
+    };
+    const result = await getPortfolioAdvice(portfolioRequest, client);
+    expect(result.recommendations.every((r) => r.source === 'fallback')).toBe(true);
+  });
 });
 
 // ── GT13: Tax Advisor ──
@@ -199,5 +222,14 @@ describe('GT13: LLM Advice Retry & Fallback — Tax', () => {
   it('no LlmClient → fallback', async () => {
     const result = await getTaxStrategyAdvice(taxRequest);
     expect(result.recommendations.every((r) => r.source === 'fallback')).toBe(true);
+  });
+
+  it('valid JSON but missing required schema fields → fallback', async () => {
+    const client: LlmClient = {
+      sendMessage: vi.fn().mockResolvedValue(JSON.stringify({ unrelated: true })),
+    };
+    const result = await getTaxStrategyAdvice(taxRequest, client);
+    expect(result.recommendations.every((r) => r.source === 'fallback')).toBe(true);
+    expect(client.sendMessage).toHaveBeenCalledTimes(2);
   });
 });

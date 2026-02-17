@@ -85,6 +85,7 @@ export function aggregateDocumentsToIncome(documents: TaxDocument[]): Aggregated
         income.rentalIncome += getNum(f, 'rentalIncome');
         income.interestIncome += getNum(f, 'interestIncome');
         income.dividendIncome += getNum(f, 'dividendIncome');
+        income.qualifiedDividends += getNum(f, 'qualifiedDividends');
         // K-1 Box 8 (short-term) and Box 9 (long-term) are separate fields;
         // also support legacy combined 'capitalGains' field for backward compat
         const k1ShortTerm = getNum(f, 'shortTermCapitalGains');

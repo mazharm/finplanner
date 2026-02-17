@@ -30,5 +30,17 @@
       "additionalProperties": false
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "owner": { "const": "joint" } }, "required": ["owner"] },
+      "then": { "properties": { "type": { "const": "taxable" } } },
+      "description": "Joint ownership is only valid for taxable accounts"
+    },
+    {
+      "if": { "not": { "properties": { "type": { "const": "deferredComp" } } } },
+      "then": { "not": { "required": ["deferredCompSchedule"] } },
+      "description": "deferredCompSchedule is only valid for deferredComp accounts"
+    }
+  ]
 }

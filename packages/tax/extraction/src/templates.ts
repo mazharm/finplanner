@@ -279,6 +279,14 @@ const TEMPLATES: TaxFormTemplate[] = [
         required: false,
       },
       {
+        key: 'qualifiedDividends',
+        label: 'Qualified dividends',
+        boxNumber: '6b',
+        labelPatterns: ['qualified\\s*dividends', 'box\\s*6b\\b'],
+        valueType: 'currency',
+        required: false,
+      },
+      {
         key: 'shortTermCapitalGains',
         label: 'Net short-term capital gain (loss)',
         boxNumber: '8',
@@ -315,6 +323,42 @@ const TEMPLATES: TaxFormTemplate[] = [
         labelPatterns: ['real\\s*estate\\s*tax', 'property\\s*tax', 'box\\s*10\\b'],
         valueType: 'currency',
         required: false,
+      },
+    ],
+  },
+  {
+    formType: '1098-T',
+    formIdentifiers: ['1098-T', 'Tuition Statement', 'Form 1098-T'],
+    fields: [
+      {
+        key: 'tuitionPaid',
+        label: 'Amounts billed for qualified tuition and related expenses',
+        boxNumber: '1',
+        labelPatterns: ['amounts?\\s*billed', 'qualified\\s*tuition', 'box\\s*1(?![0-9a-z])'],
+        valueType: 'currency',
+        required: true,
+      },
+      {
+        key: 'scholarshipsGrants',
+        label: 'Scholarships or grants',
+        boxNumber: '5',
+        labelPatterns: ['scholarships?\\s*(or)?\\s*grants?', 'box\\s*5(?![0-9a-z])'],
+        valueType: 'currency',
+        required: false,
+      },
+    ],
+  },
+  {
+    formType: '1098-E',
+    formIdentifiers: ['1098-E', 'Student Loan Interest Statement', 'Form 1098-E'],
+    fields: [
+      {
+        key: 'studentLoanInterest',
+        label: 'Student loan interest received by lender',
+        boxNumber: '1',
+        labelPatterns: ['student\\s*loan\\s*interest', 'box\\s*1(?![0-9a-z])'],
+        valueType: 'currency',
+        required: true,
       },
     ],
   },

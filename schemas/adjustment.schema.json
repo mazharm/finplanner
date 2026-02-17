@@ -10,7 +10,7 @@
     "id": { "type": "string", "minLength": 1 },
     "name": { "type": "string", "minLength": 1 },
     "year": { "type": "integer", "minimum": 1900, "maximum": 2200 },
-    "endYear": { "type": "integer", "minimum": 1900, "maximum": 2200 },
+    "endYear": { "type": "integer", "minimum": 1900, "maximum": 2200, "description": "Must be >= year when present" },
     "amount": { "type": "number" },
     "taxable": { "type": "boolean" },
     "inflationAdjusted": { "type": "boolean" }

@@ -31,7 +31,17 @@
         "capGainsRatePct": { "type": "number", "minimum": 0, "maximum": 100 },
         "standardDeductionOverride": { "type": "number", "minimum": 0 }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "federalModel": { "const": "effective" } }, "required": ["federalModel"] },
+          "then": { "required": ["federalModel", "stateModel", "federalEffectiveRatePct"] }
+        },
+        {
+          "if": { "properties": { "stateModel": { "const": "effective" } }, "required": ["stateModel"] },
+          "then": { "required": ["federalModel", "stateModel", "stateEffectiveRatePct"] }
+        }
+      ]
     },
     "market": {
       "type": "object",
@@ -44,7 +54,17 @@
         "stressScenarioIds": { "type": "array", "items": { "type": "string" } },
         "monteCarloRuns": { "type": "integer", "minimum": 1 }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "simulationMode": { "const": "monteCarlo" } }, "required": ["simulationMode"] },
+          "then": { "required": ["simulationMode", "monteCarloRuns"] }
+        },
+        {
+          "if": { "properties": { "simulationMode": { "const": "historical" } }, "required": ["simulationMode"] },
+          "then": { "required": ["simulationMode", "historicalScenarioIds"] }
+        }
+      ]
     },
     "strategy": {
       "type": "object",

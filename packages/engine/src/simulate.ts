@@ -74,6 +74,17 @@ export function simulate(planInput: PlanInput): PlanResult {
     state.baselineReturn = computeBaselineReturn(state.accounts);
 
     const yearResult = simulateYear(state);
+
+    // Safety check: detect NaN/Infinity in account balances early
+    for (const account of state.accounts) {
+      if (!isFinite(account.balance)) {
+        throw new Error(
+          `[FinPlanner] Simulation produced non-finite balance (${account.balance}) ` +
+          `for account "${account.id}" in year ${state.currentYear}. Check inputs and rates.`
+        );
+      }
+    }
+
     yearlyResults.push(yearResult);
   }
 

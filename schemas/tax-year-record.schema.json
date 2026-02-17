@@ -19,7 +19,7 @@
         "selfEmploymentIncome": { "type": "number", "minimum": 0 },
         "interestIncome": { "type": "number", "minimum": 0 },
         "dividendIncome": { "type": "number", "minimum": 0 },
-        "qualifiedDividends": { "type": "number", "minimum": 0 },
+        "qualifiedDividends": { "type": "number", "minimum": 0, "description": "Must be <= dividendIncome (qualified dividends are a subset of total dividends)" },
         "capitalGains": { "type": "number", "minimum": 0 },
         "capitalLosses": { "type": "number", "minimum": 0 },
         "rentalIncome": { "type": "number" },
@@ -49,7 +49,9 @@
         },
         "useItemized": { "type": "boolean" }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "if": { "properties": { "useItemized": { "const": true } }, "required": ["useItemized"] },
+      "then": { "required": ["standardDeduction", "useItemized", "itemizedDeductions"] }
     },
     "credits": {
       "type": "object",

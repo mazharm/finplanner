@@ -1,6 +1,6 @@
 import { FluentProvider, webLightTheme, webDarkTheme } from '@fluentui/react-components';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { StoreLoadingGate } from './components/StoreLoadingGate.js';
 import { AppShell } from './layout/AppShell.js';
@@ -25,6 +25,10 @@ import { AssumptionsPage } from './pages/retirement/AssumptionsPage.js';
 import { ScenariosPage } from './pages/retirement/ScenariosPage.js';
 import { ResultsDashboardPage } from './pages/retirement/ResultsDashboardPage.js';
 import { RetirementAdvicePage } from './pages/retirement/RetirementAdvicePage.js';
+import { processSyncQueue } from './services/sync.js';
+import { createStubOneDriveClient } from './services/onedrive.js';
+
+const SYNC_INTERVAL_MS = 30_000; // Sync every 30 seconds
 
 export function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -48,8 +52,43 @@ export function App() {
       initStore(() => useSharedStore.getState().initFromIndexedDB(), 'shared'),
       initStore(() => useTaxStore.getState().initFromIndexedDB(), 'tax'),
       initStore(() => useRetirementStore.getState().initFromIndexedDB(), 'retirement'),
-    ]);
+    ]).catch((err) => {
+      console.error('[FinPlanner] Store initialization failed:', err);
+    });
   }, []);
+
+  // OneDrive sync loop: process queued writes periodically when connected
+  const oneDriveConnected = useSettingsStore((s) => s.oneDriveConnected);
+  const syncIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const runSync = useCallback(async () => {
+    const { setSyncStatus } = useSettingsStore.getState();
+    try {
+      setSyncStatus('syncing');
+      const client = createStubOneDriveClient(); // In production: use real MSAL client singleton
+      const result = await processSyncQueue(client);
+      setSyncStatus(result.status);
+    } catch (err) {
+      console.error('[FinPlanner] Sync loop error:', err);
+      setSyncStatus('error');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (oneDriveConnected) {
+      // Run immediately, then on interval
+      runSync();
+      syncIntervalRef.current = setInterval(runSync, SYNC_INTERVAL_MS);
+    } else {
+      useSettingsStore.getState().setSyncStatus('offline');
+    }
+    return () => {
+      if (syncIntervalRef.current) {
+        clearInterval(syncIntervalRef.current);
+        syncIntervalRef.current = null;
+      }
+    };
+  }, [oneDriveConnected, runSync]);
 
   const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'));
 
