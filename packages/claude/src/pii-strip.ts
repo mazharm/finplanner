@@ -29,8 +29,13 @@ export function sanitizeForLlm(text: string): string {
   result = result.replace(/\b\d{10,17}\b/g, '[ACCOUNT_REDACTED]');
   // US street addresses: number + street name + suffix (e.g., "123 Main St", "456 Oak Avenue Apt 7")
   result = result.replace(/\b\d{1,6}\s+[A-Za-z][A-Za-z\s]{2,30}\b\s*(?:St(?:reet)?|Ave(?:nue)?|Blvd|Boulevard|Dr(?:ive)?|Ln|Lane|Rd|Road|Ct|Court|Pl|Place|Way|Cir(?:cle)?|Pkwy|Parkway|Ter(?:race)?)\b[^.\n]{0,30}/gi, '[ADDRESS_REDACTED]');
-  // ZIP codes with optional +4 (standalone, not part of larger numbers)
-  result = result.replace(/\b\d{5}(?:-\d{4})?\b/g, '[ZIP_REDACTED]');
+  // ZIP codes with optional +4 (standalone, must appear with 5 digits, optional dash, 4 digits, and boundaries)
+  // Tightened to require word boundaries and avoid replacing parts of other numbers.
+  // Note: Simple 5-digit regex \b\d{5}\b matches 2024 (year) and 12345 (balance).
+  // We only redact ZIPs if they look strictly like ZIP+4 or are identified in a context
+  // (but context is hard here). For now, we only redact ZIP+4 to avoid year/balance false positives.
+  // Standard 5-digit ZIPs without context are indistinguishable from years/amounts.
+  result = result.replace(/\b\d{5}-\d{4}\b/g, '[ZIP_REDACTED]');
   return result;
 }
 

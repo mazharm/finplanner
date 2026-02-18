@@ -137,7 +137,7 @@ function computeStateTax(
   // Use state-specific standard deduction from lookup data; fall back to 50% of federal
   // for unknown states. All 50 states + DC are in the lookup table, so this fallback
   // should only trigger for unrecognized state codes.
-  const stateDeduction = stateInfo?.stateStandardDeduction ?? Math.round(standardDeduction * 0.5);
+  const stateDeduction = stateInfo?.stateStandardDeduction ?? Math.max(0, Math.round(standardDeduction * 0.5));
   if (stateInfo && stateInfo.stateStandardDeduction === undefined && stateIncomeRate > 0) {
     console.warn(`[FinPlanner] No state standard deduction data for state "${stateCode}"; using 50% of federal.`);
   }

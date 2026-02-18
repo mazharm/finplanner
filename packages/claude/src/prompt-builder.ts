@@ -35,6 +35,12 @@ const TAX_RESPONSE_SCHEMA = `{
   "disclaimer": "string"
 }`;
 
+function safeFormat(value: number | undefined | null): string {
+  if (value === undefined || value === null) return 'N/A';
+  if (!Number.isFinite(value)) return 'N/A'; // Handles NaN, Infinity, -Infinity
+  return value.toLocaleString();
+}
+
 export function buildPortfolioPrompt(ctx: AnonymizedPortfolioContext): { system: string; user: string } {
   const system = `You are a financial planning advisor assistant. Analyze the provided retirement portfolio data and provide actionable advice.
 
@@ -63,10 +69,10 @@ Household:
   }
 
 Accounts:
-${ctx.accounts.map((a) => `- <value>${a.label}</value> (${a.type}, ${a.owner}): Balance $${a.currentBalance.toLocaleString()}, Return ${a.expectedReturnPct}%, Fee ${a.feePct}%`).join('\n')}
+${ctx.accounts.map((a) => `- <value>${a.label}</value> (${a.type}, ${a.owner}): Balance $${safeFormat(a.currentBalance)}, Return ${a.expectedReturnPct}%, Fee ${a.feePct}%`).join('\n')}
 
 Income Streams:
-${ctx.incomeStreams.map((s) => `- <value>${s.label}</value> (${s.owner}): $${s.annualAmount.toLocaleString()}/yr, Years ${s.startYear}${s.endYear ? `-${s.endYear}` : '+'}, Taxable: ${s.taxable}`).join('\n')}
+${ctx.incomeStreams.map((s) => `- <value>${s.label}</value> (${s.owner}): $${safeFormat(s.annualAmount)}/yr, Years ${s.startYear}${s.endYear ? `-${s.endYear}` : '+'}, Taxable: ${s.taxable}`).join('\n')}
 
 Tax Configuration:
 - Federal Model: ${ctx.taxes.federalModel}${ctx.taxes.federalEffectiveRatePct != null ? ` (${ctx.taxes.federalEffectiveRatePct}%)` : ''}
@@ -74,13 +80,13 @@ Tax Configuration:
 
 Simulation Summary:
 ${ctx.simulationSummary.successProbability != null ? `- Success Probability: ${(ctx.simulationSummary.successProbability * 100).toFixed(1)}%` : '- Success Probability: N/A'}
-${ctx.simulationSummary.medianTerminalValue != null ? `- Median Terminal Value: $${ctx.simulationSummary.medianTerminalValue.toLocaleString()}` : '- Median Terminal Value: N/A'}
-${ctx.simulationSummary.worstCaseShortfall != null ? `- Worst Case Shortfall: $${ctx.simulationSummary.worstCaseShortfall.toLocaleString()}` : '- Worst Case Shortfall: N/A'}
+${ctx.simulationSummary.medianTerminalValue != null ? `- Median Terminal Value: $${safeFormat(ctx.simulationSummary.medianTerminalValue)}` : '- Median Terminal Value: N/A'}
+${ctx.simulationSummary.worstCaseShortfall != null ? `- Worst Case Shortfall: $${safeFormat(ctx.simulationSummary.worstCaseShortfall)}` : '- Worst Case Shortfall: N/A'}
 
 User Preferences:
 - Risk Tolerance: <value>${ctx.userPreferences.riskTolerance}</value>
-- Spending Floor: $${ctx.userPreferences.spendingFloor.toLocaleString()}/yr
-- Legacy Goal: $${ctx.userPreferences.legacyGoal.toLocaleString()}`;
+- Spending Floor: $${safeFormat(ctx.userPreferences.spendingFloor)}/yr
+- Legacy Goal: $${safeFormat(ctx.userPreferences.legacyGoal)}`;
 
   return { system, user };
 }
@@ -107,50 +113,50 @@ Filing Status: <value>${ctx.filingStatus}</value>
 State: <value>${ctx.stateOfResidence}</value>
 
 Income:
-- Wages: $${ctx.income.wages.toLocaleString()}
-- Self-Employment: $${ctx.income.selfEmploymentIncome.toLocaleString()}
-- Interest: $${ctx.income.interestIncome.toLocaleString()}
-- Dividends: $${ctx.income.dividendIncome.toLocaleString()} (Qualified: $${ctx.income.qualifiedDividends.toLocaleString()})
-- Capital Gains: $${ctx.income.capitalGains.toLocaleString()}, Losses: $${ctx.income.capitalLosses.toLocaleString()}
-- Rental: $${ctx.income.rentalIncome.toLocaleString()}
-- NQDC Distributions: $${ctx.income.nqdcDistributions.toLocaleString()}
-- Retirement Distributions: $${ctx.income.retirementDistributions.toLocaleString()}
-- Social Security: $${ctx.income.socialSecurityIncome.toLocaleString()}
-- Other: $${ctx.income.otherIncome.toLocaleString()}
+- Wages: $${safeFormat(ctx.income.wages)}
+- Self-Employment: $${safeFormat(ctx.income.selfEmploymentIncome)}
+- Interest: $${safeFormat(ctx.income.interestIncome)}
+- Dividends: $${safeFormat(ctx.income.dividendIncome)} (Qualified: $${safeFormat(ctx.income.qualifiedDividends)})
+- Capital Gains: $${safeFormat(ctx.income.capitalGains)}, Losses: $${safeFormat(ctx.income.capitalLosses)}
+- Rental: $${safeFormat(ctx.income.rentalIncome)}
+- NQDC Distributions: $${safeFormat(ctx.income.nqdcDistributions)}
+- Retirement Distributions: $${safeFormat(ctx.income.retirementDistributions)}
+- Social Security: $${safeFormat(ctx.income.socialSecurityIncome)}
+- Other: $${safeFormat(ctx.income.otherIncome)}
 
 Deductions:
-- Standard Deduction: $${ctx.deductions.standardDeduction.toLocaleString()}
+- Standard Deduction: $${safeFormat(ctx.deductions.standardDeduction)}
 - Using Itemized: ${ctx.deductions.useItemized}${
     ctx.deductions.itemizedDeductions
-      ? `\n- Mortgage Interest: $${ctx.deductions.itemizedDeductions.mortgageInterest.toLocaleString()}
-- State & Local Taxes: $${ctx.deductions.itemizedDeductions.stateAndLocalTaxes.toLocaleString()}
-- Charitable: $${ctx.deductions.itemizedDeductions.charitableContributions.toLocaleString()}
-- Medical: $${ctx.deductions.itemizedDeductions.medicalExpenses.toLocaleString()}`
+      ? `\n- Mortgage Interest: $${safeFormat(ctx.deductions.itemizedDeductions.mortgageInterest)}
+- State & Local Taxes: $${safeFormat(ctx.deductions.itemizedDeductions.stateAndLocalTaxes)}
+- Charitable: $${safeFormat(ctx.deductions.itemizedDeductions.charitableContributions)}
+- Medical: $${safeFormat(ctx.deductions.itemizedDeductions.medicalExpenses)}`
       : ''
   }
 
 Credits:
-- Child Tax Credit: $${ctx.credits.childTaxCredit.toLocaleString()}
-- Education: $${ctx.credits.educationCredits.toLocaleString()}
-- Foreign Tax: $${ctx.credits.foreignTaxCredit.toLocaleString()}
-- Other: $${ctx.credits.otherCredits.toLocaleString()}
+- Child Tax Credit: $${safeFormat(ctx.credits.childTaxCredit)}
+- Education: $${safeFormat(ctx.credits.educationCredits)}
+- Foreign Tax: $${safeFormat(ctx.credits.foreignTaxCredit)}
+- Other: $${safeFormat(ctx.credits.otherCredits)}
 
 Payments:
-- Federal Withheld: $${ctx.payments.federalWithheld.toLocaleString()}
-- State Withheld: $${ctx.payments.stateWithheld.toLocaleString()}
-- Estimated Federal: $${ctx.payments.estimatedPaymentsFederal.toLocaleString()}
-- Estimated State: $${ctx.payments.estimatedPaymentsState.toLocaleString()}
+- Federal Withheld: $${safeFormat(ctx.payments.federalWithheld)}
+- State Withheld: $${safeFormat(ctx.payments.stateWithheld)}
+- Estimated Federal: $${safeFormat(ctx.payments.estimatedPaymentsFederal)}
+- Estimated State: $${safeFormat(ctx.payments.estimatedPaymentsState)}
 
 Computed Tax:
-- Federal: $${ctx.computedFederalTax.toLocaleString()}
-- State: $${ctx.computedStateTax.toLocaleString()}${
+- Federal: $${safeFormat(ctx.computedFederalTax)}
+- State: $${safeFormat(ctx.computedStateTax)}${
     ctx.priorYear
       ? `
 
 Prior Year (${ctx.priorYear.taxYear}):
-- Total Income: $${Object.values(ctx.priorYear.income).reduce((s, v) => s + (typeof v === 'number' ? v : 0), 0).toLocaleString()}
-- Federal Tax: $${ctx.priorYear.computedFederalTax.toLocaleString()}
-- State Tax: $${ctx.priorYear.computedStateTax.toLocaleString()}`
+- Total Income: $${safeFormat(Object.values(ctx.priorYear.income).reduce((s, v) => s + (typeof v === 'number' ? v : 0), 0))}
+- Federal Tax: $${safeFormat(ctx.priorYear.computedFederalTax)}
+- State Tax: $${safeFormat(ctx.priorYear.computedStateTax)}`
       : ''
   }${
     ctx.documents.length > 0
@@ -162,7 +168,7 @@ ${ctx.documents.map((d) => `- ${d.label} (${d.formType})`).join('\n')}`
   }
 
 Accounts:
-${ctx.accounts.map((a) => `- ${a.label} (${a.type}): $${a.currentBalance.toLocaleString()}`).join('\n')}
+${ctx.accounts.map((a) => `- ${a.label} (${a.type}): $${safeFormat(a.currentBalance)}`).join('\n')}
 
 User Priority: <value>${ctx.userPreferences.prioritize}</value>`;
 
