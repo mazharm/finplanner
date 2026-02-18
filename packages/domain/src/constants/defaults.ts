@@ -5,6 +5,7 @@ export const STANDARD_DEDUCTIONS = {
   single: 15_000,
   mfj: 30_000,
   survivor: 30_000,
+  hoh: 22_500,
 } as const;
 
 export const EXTRA_DEDUCTION_SINGLE_65_PLUS = 1_550;
@@ -14,6 +15,7 @@ export const SS_PROVISIONAL_INCOME_THRESHOLDS = {
   mfj: { lower: 32_000, upper: 44_000, midBandCap: 6_000 },
   survivor: { lower: 32_000, upper: 44_000, midBandCap: 6_000 },
   single: { lower: 25_000, upper: 34_000, midBandCap: 4_500 },
+  hoh: { lower: 25_000, upper: 34_000, midBandCap: 4_500 },
 } as const;
 
 export const WITHDRAWAL_CONVERGENCE_THRESHOLD = 100;

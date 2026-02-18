@@ -69,11 +69,13 @@ export function aggregateDocumentsToIncome(documents: TaxDocument[]): Aggregated
         break;
       case '1099-B': {
         let gainLoss = getNum(f, 'gainLoss');
-        // Fallback: compute from proceeds and costBasis when gainLoss is 0
+        // Fallback: compute from proceeds and costBasis when gainLoss is 0,
+        // but only if BOTH fields were extracted to avoid phantom gains from
+        // partial OCR extraction (e.g., proceeds extracted but costBasis missing)
         if (gainLoss === 0) {
           const proceeds = getNum(f, 'proceeds');
           const costBasis = getNum(f, 'costBasis');
-          if (proceeds !== 0 || costBasis !== 0) {
+          if (proceeds !== 0 && costBasis !== 0) {
             gainLoss = proceeds - costBasis;
           }
         }
@@ -91,6 +93,7 @@ export function aggregateDocumentsToIncome(documents: TaxDocument[]): Aggregated
         break;
       case '1099-NEC':
         income.selfEmploymentIncome += getNum(f, 'nonemployeeCompensation');
+        payments.federalWithheld += getNum(f, 'federalTaxWithheld');
         break;
       case 'K-1': {
         income.otherIncome += getNum(f, 'ordinaryIncome');

@@ -24,7 +24,9 @@ let requestCountThisHour = 0;
 let hourWindowStart = Date.now();
 
 function redactApiKeys(text: string): string {
-  return text.replace(/sk-ant-[a-zA-Z0-9_-]+/g, '[API_KEY_REDACTED]');
+  return text
+    .replace(/sk-ant-[a-zA-Z0-9_-]+/g, '[API_KEY_REDACTED]')
+    .replace(/\b(Bearer\s+)[a-zA-Z0-9._~+\/-]{20,}/gi, '$1[TOKEN_REDACTED]');
 }
 
 interface RetryInfo {

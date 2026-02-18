@@ -1,14 +1,36 @@
 import type { FilingStatus } from '@finplanner/domain';
 import { SS_PROVISIONAL_INCOME_THRESHOLDS } from '@finplanner/domain';
 
+/**
+ * Compute the taxable portion of Social Security benefits using the
+ * IRS provisional income method.
+ *
+ * Provisional income = other taxable income + 0.5 * SS income
+ *
+ * Below lower threshold: 0% taxable
+ * Between lower and upper: up to 50% taxable
+ * Above upper: up to 85% taxable
+ *
+ * NOTE: This is the canonical implementation used by both the tax computation
+ * module and the retirement simulation engine (via packages/engine/src/helpers/ss-taxation.ts
+ * which must be kept in sync).
+ */
 export function computeTaxableSS(
   ssIncome: number,
   otherTaxableIncome: number,
   filingStatus: FilingStatus
 ): number {
   if (ssIncome <= 0) return 0;
+
   const provisionalIncome = otherTaxableIncome + 0.5 * ssIncome;
-  const thresholds = SS_PROVISIONAL_INCOME_THRESHOLDS[filingStatus] ?? SS_PROVISIONAL_INCOME_THRESHOLDS.single;
+
+  // Use direct filingStatus lookup; falls back to 'single' for unrecognized status
+  const directLookup = SS_PROVISIONAL_INCOME_THRESHOLDS[filingStatus as keyof typeof SS_PROVISIONAL_INCOME_THRESHOLDS];
+  if (!directLookup) {
+    console.warn(`[FinPlanner] Unrecognized filing status "${filingStatus}" for SS taxation; falling back to "single" thresholds.`);
+  }
+  const thresholds = directLookup ?? SS_PROVISIONAL_INCOME_THRESHOLDS.single;
+
   if (provisionalIncome <= thresholds.lower) return 0;
   if (provisionalIncome <= thresholds.upper) {
     return Math.min(0.50 * ssIncome, 0.50 * (provisionalIncome - thresholds.lower));

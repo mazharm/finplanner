@@ -60,7 +60,11 @@ export function createStubOneDriveClient(): OneDriveClient {
 
   return {
     async login() {
-      // In production: MSAL.js acquireTokenPopup() or acquireTokenRedirect()
+      if (import.meta.env.PROD) {
+        console.error('[FinPlanner] Stub OneDrive client cannot be used in production. Configure a real MSAL.js client.');
+        return false;
+      }
+      // In development: MSAL.js acquireTokenPopup() or acquireTokenRedirect()
       authenticated = true;
       return true;
     },

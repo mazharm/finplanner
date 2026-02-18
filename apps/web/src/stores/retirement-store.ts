@@ -71,15 +71,20 @@ type PersistableRetirement = Pick<RetirementState, 'spending' | 'taxes' | 'marke
 
 let _setRetirement: ((partial: Partial<RetirementState>) => void) | null = null;
 
+// Serialize IndexedDB writes to prevent race conditions from rapid successive mutations
+let _persistChain: Promise<void> = Promise.resolve();
+
 function persistRetirement(state: PersistableRetirement) {
-  setAppState('retirement', {
-    spending: state.spending,
-    taxes: state.taxes,
-    market: state.market,
-    strategy: state.strategy,
-    scenarios: state.scenarios,
-    activeScenarioId: state.activeScenarioId,
-  }).catch((err) => {
+  _persistChain = _persistChain.then(() =>
+    setAppState('retirement', {
+      spending: state.spending,
+      taxes: state.taxes,
+      market: state.market,
+      strategy: state.strategy,
+      scenarios: state.scenarios,
+      activeScenarioId: state.activeScenarioId,
+    })
+  ).catch((err) => {
     console.error('[FinPlanner] IndexedDB operation failed:', err instanceof Error ? err.message : 'Unknown error');
     _setRetirement?.({ persistError: 'Failed to save retirement data. Changes may be lost on page refresh.' });
   });
@@ -120,8 +125,12 @@ export const useRetirementStore = create<RetirementState>((set, get) => {
       } else {
         set({ initialized: true });
       }
-    } catch {
-      set({ initialized: true });
+    } catch (err) {
+      console.error('[FinPlanner] Failed to load retirement data from IndexedDB:', err instanceof Error ? err.message : 'Unknown error');
+      set({
+        initialized: true,
+        persistError: 'Failed to load saved retirement data. Your previously saved data may not be available.',
+      });
     }
   },
 

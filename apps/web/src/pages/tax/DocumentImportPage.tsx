@@ -82,12 +82,19 @@ export function DocumentImportPage() {
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
+      const MAX_PDF_FILES = 50;
+      const fileArray = Array.from(files);
+      if (fileArray.length > MAX_PDF_FILES) {
+        setImportMessage(`Too many files selected (${fileArray.length}). Maximum is ${MAX_PDF_FILES} at a time.`);
+        return;
+      }
+
       const extractor = createPdfTextExtractor();
 
-      for (const file of Array.from(files)) {
+      for (const file of fileArray) {
         if (abortController.signal.aborted) return;
 
-        if (!file.name.toLowerCase().endsWith('.pdf')) {
+        if (!file.name.toLowerCase().endsWith('.pdf') || (file.type && file.type !== 'application/pdf')) {
           setImportMessage(`Skipped ${file.name}: not a PDF file.`);
           continue;
         }

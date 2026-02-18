@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const filingStatusSchema = z.enum(['single', 'mfj', 'survivor']);
+export const filingStatusSchema = z.enum(['single', 'mfj', 'survivor', 'hoh']);
 export const accountTypeSchema = z.enum(['taxable', 'taxDeferred', 'deferredComp', 'roth']);
 export const simulationModeSchema = z.enum(['deterministic', 'historical', 'stress', 'monteCarlo']);
 export const taxYearStatusSchema = z.enum(['draft', 'ready', 'filed', 'amended']);

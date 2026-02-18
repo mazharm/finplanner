@@ -5,6 +5,20 @@
 
 import type { OneDriveClient } from './onedrive.js';
 
+/** Validate that a path does not contain traversal sequences. */
+function validatePathTraversal(path: string): void {
+  if (!path) return;
+  const segments = path.split(/[/\\]/);
+  for (const segment of segments) {
+    if (segment === '..' || segment === '.') {
+      throw new Error(`Path traversal not allowed: "${path}"`);
+    }
+  }
+  if (path.startsWith('/') || path.startsWith('\\')) {
+    throw new Error(`Absolute paths not allowed: "${path}"`);
+  }
+}
+
 export interface FolderReader {
   /** List entry names in a folder (files and subdirectories). */
   listEntries(folderPath: string): Promise<string[]>;
@@ -84,6 +98,7 @@ export class OneDriveFolderReader implements FolderReader {
   constructor(private client: OneDriveClient, private rootPrefix: string) {}
 
   private resolvePath(path: string): string {
+    validatePathTraversal(path);
     return path ? `${this.rootPrefix}/${path}` : this.rootPrefix;
   }
 
@@ -100,7 +115,7 @@ export class OneDriveFolderReader implements FolderReader {
     // OneDrive: try listing — if it returns entries, it's a directory
     try {
       const entries = await this.client.listFiles(this.resolvePath(path));
-      return entries.length >= 0; // listFiles succeeds → directory exists
+      return entries.length > 0; // listFiles succeeds and has entries → directory exists
     } catch {
       return false;
     }

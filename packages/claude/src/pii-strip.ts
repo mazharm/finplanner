@@ -27,6 +27,10 @@ export function sanitizeForLlm(text: string): string {
   // false positives on financial amounts; 10+ digits covers most routing/account numbers
   // while avoiding collisions with 8-9 digit dollar amounts and ZIP+4 codes)
   result = result.replace(/\b\d{10,17}\b/g, '[ACCOUNT_REDACTED]');
+  // US street addresses: number + street name + suffix (e.g., "123 Main St", "456 Oak Avenue Apt 7")
+  result = result.replace(/\b\d{1,6}\s+[A-Za-z][A-Za-z\s]{1,40}\b(?:St(?:reet)?|Ave(?:nue)?|Blvd|Boulevard|Dr(?:ive)?|Ln|Lane|Rd|Road|Ct|Court|Pl|Place|Way|Cir(?:cle)?|Pkwy|Parkway)\b[^,\n]{0,30}/gi, '[ADDRESS_REDACTED]');
+  // US ZIP codes (standalone 5-digit or ZIP+4)
+  result = result.replace(/\b\d{5}(?:-\d{4})?\b/g, '[ZIP_REDACTED]');
   return result;
 }
 
@@ -35,11 +39,24 @@ export function sanitizeForLlm(text: string): string {
  * Applies stricter redaction than sanitizeForLlm() — also catches unformatted 9-digit
  * SSN sequences, which are common in tax document extracted fields.
  */
+/** Field keys that contain PII and should be redacted entirely from extracted fields. */
+const PII_FIELD_KEYS = new Set([
+  'employeename', 'employername', 'payername', 'recipientname',
+  'name', 'address', 'employeeaddress', 'employeraddress',
+  'payeraddress', 'recipientaddress', 'city', 'state', 'zip',
+  'employernameline1', 'employernameline2', 'recipientnameline1',
+]);
+
 function sanitizeExtractedFields(
   fields: Record<string, number | string>,
 ): Record<string, number | string> {
   const sanitized: Record<string, number | string> = {};
   for (const [key, value] of Object.entries(fields)) {
+    // Skip fields whose keys indicate PII content (names, addresses)
+    if (PII_FIELD_KEYS.has(key.toLowerCase())) {
+      sanitized[key] = '[PII_REDACTED]';
+      continue;
+    }
     if (typeof value === 'string') {
       let result = sanitizeForLlm(value);
       // In tax document fields, unformatted 9-digit sequences are likely SSNs/TINs

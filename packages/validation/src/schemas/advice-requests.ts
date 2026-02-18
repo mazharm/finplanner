@@ -8,14 +8,14 @@ import { incomeStreamSchema } from './income.js';
 export const portfolioAdviceRequestSchema = z.object({
   planInput: planInputSchema,
   planResultSummary: z.object({
-    successProbability: z.number().min(0).max(1).optional(),
-    medianTerminalValue: z.number().optional(),
-    worstCaseShortfall: z.number().optional(),
+    successProbability: z.number().finite().min(0).max(1).optional(),
+    medianTerminalValue: z.number().finite().optional(),
+    worstCaseShortfall: z.number().finite().optional(),
   }),
   userPreferences: z.object({
     riskTolerance: z.enum(['conservative', 'moderate', 'aggressive']),
-    spendingFloor: z.number().min(0),
-    legacyGoal: z.number().min(0),
+    spendingFloor: z.number().finite().min(0),
+    legacyGoal: z.number().finite().min(0),
   }),
 });
 
@@ -25,13 +25,13 @@ export const taxStrategyAdviceRequestSchema = z.object({
   priorYearRecord: taxYearRecordSchema.nullable(),
   sharedCorpus: z.object({
     household: householdProfileSchema,
-    accounts: z.array(accountSchema),
-    incomeStreams: z.array(incomeStreamSchema),
+    accounts: z.array(accountSchema).max(200),
+    incomeStreams: z.array(incomeStreamSchema).max(200),
   }),
   retirementProjectionSummary: z.object({
-    successProbability: z.number().optional(),
-    medianTerminalValue: z.number().optional(),
-    worstCaseShortfall: z.number().optional(),
+    successProbability: z.number().finite().optional(),
+    medianTerminalValue: z.number().finite().optional(),
+    worstCaseShortfall: z.number().finite().optional(),
   }).optional(),
   userPreferences: z.object({
     prioritize: z.enum(['minimize_tax', 'maximize_refund', 'minimize_estimated_payments']),
@@ -50,7 +50,7 @@ export const taxChecklistSchema = z.object({
     sourceReasoning: z.string(),
     relatedPriorYearItem: z.string().optional(),
     linkedDocumentId: z.string().optional(),
-  })),
+  })).max(500),
   completionPct: z.number().min(0).max(100),
 });
 
@@ -65,12 +65,12 @@ export const taxAnalysisResultSchema = z.object({
     severity: z.enum(['info', 'warning', 'critical']),
     field: z.string(),
     description: z.string(),
-    priorValue: z.union([z.number(), z.string()]).optional(),
-    currentValue: z.union([z.number(), z.string()]).optional(),
-    percentChange: z.number().optional(),
+    priorValue: z.union([z.number().finite(), z.string()]).optional(),
+    currentValue: z.union([z.number().finite(), z.string()]).optional(),
+    percentChange: z.number().finite().optional(),
     suggestedAction: z.string(),
     llmAnalysis: z.string().optional(),
-  })),
+  })).max(500),
   yearOverYearSummary: z.object({
     totalIncomeChange: z.number(),
     totalDeductionChange: z.number(),

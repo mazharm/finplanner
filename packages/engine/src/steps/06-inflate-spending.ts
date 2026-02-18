@@ -69,13 +69,13 @@ function applyGuardrails(
 ): number {
   const totalPortfolio = accounts.reduce((sum, a) => sum + a.balance, 0);
 
-  // Ceiling rule (Guyton-Klinger): when portfolio is very large (> CEILING_MULTIPLIER * ceiling),
-  // the portfolio has grown significantly, so we raise spending up to the ceiling level.
-  // Use Math.max to ensure spending only goes UP (or stays same) — never decreases from this rule.
+  // Ceiling rule (Guyton-Klinger): cap spending at the inflation-adjusted ceiling.
+  // When portfolio has grown large (> CEILING_MULTIPLIER * ceiling), use Math.min
+  // to ensure spending does not exceed the ceiling.
   if (ceiling !== undefined && ceiling > 0) {
     const inflatedCeiling = ceiling * inflationMultiplier;
     if (totalPortfolio > GUARDRAIL_PORTFOLIO_CEILING_MULTIPLIER * inflatedCeiling) {
-      return Math.max(targetSpend, inflatedCeiling);
+      return Math.min(targetSpend, inflatedCeiling);
     }
   }
 

@@ -26,21 +26,25 @@ export function computeTaxYearTaxes(
 
   const taxableOrdinary = Math.max(0, ordinary - deduction);
 
-  // Per spec §8.4 step 5 and §19.1 item 5: excess capital losses do NOT offset
-  // ordinary income, do NOT offset qualified dividends, and are NOT carried forward.
+  // IRS rules: excess capital losses can offset up to $3,000 of ordinary income per year.
+  // (Filing status 'mfj' also uses $3,000; $1,500 for married filing separately is not modeled.)
   const netCapGains = Math.max(0, record.income.capitalGains - record.income.capitalLosses);
   const excessCapitalLosses = Math.max(0, record.income.capitalLosses - record.income.capitalGains);
+  const capitalLossDeduction = Math.min(excessCapitalLosses, 3_000);
 
   const preferentialIncome = netCapGains + record.income.qualifiedDividends;
 
   const totalCredits = record.credits.childTaxCredit + record.credits.educationCredits +
     record.credits.foreignTaxCredit + record.credits.otherCredits;
 
+  // Apply capital loss deduction to reduce taxable ordinary income (IRS $3K rule)
+  const taxableOrdinaryAfterLoss = Math.max(0, taxableOrdinary - capitalLossDeduction);
+
   // Per spec §19.1 item 3: AMT / NIIT / phase-outs are not modeled.
   // Federal tax uses effective rates only (no SE tax, NIIT, or additional Medicare).
   const federalTax = Math.max(
     0,
-    (taxableOrdinary * config.federalEffectiveRatePct / 100) +
+    (taxableOrdinaryAfterLoss * config.federalEffectiveRatePct / 100) +
     (preferentialIncome * config.capGainsRatePct / 100) -
     totalCredits
   );

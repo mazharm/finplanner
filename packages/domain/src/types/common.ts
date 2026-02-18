@@ -1,4 +1,4 @@
-export type FilingStatus = 'single' | 'mfj' | 'survivor';
+export type FilingStatus = 'single' | 'mfj' | 'survivor' | 'hoh';
 export type AccountType = 'taxable' | 'taxDeferred' | 'deferredComp' | 'roth';
 export type SimulationMode = 'deterministic' | 'historical' | 'stress' | 'monteCarlo';
 export type TaxYearStatus = 'draft' | 'ready' | 'filed' | 'amended';
