@@ -99,8 +99,8 @@ export class OneDriveFolderReader implements FolderReader {
   async isDirectory(path: string): Promise<boolean> {
     // OneDrive: try listing — if it returns entries, it's a directory
     try {
-      const entries = await this.client.listFiles(this.resolvePath(path));
-      return entries.length >= 0; // listFiles succeeds → directory exists
+      await this.client.listFiles(this.resolvePath(path));
+      return true; // listFiles succeeds without throwing → path is a directory
     } catch {
       return false;
     }

@@ -139,14 +139,18 @@ function computeStateTax(
   // should only trigger for unrecognized state codes.
   const stateDeduction = stateInfo?.stateStandardDeduction ?? Math.round(standardDeduction * 0.5);
   if (stateInfo && stateInfo.stateStandardDeduction === undefined && stateIncomeRate > 0) {
-    console.warn(`[FinPlanner] No state standard deduction data for "${stateCode}"; using 50% of federal ($${stateDeduction}).`);
+    console.warn(`[FinPlanner] No state standard deduction data for state "${stateCode}"; using 50% of federal.`);
   }
   const stateTaxableOrdinary = Math.max(0, stateOrdinaryIncome - stateDeduction);
 
   const stateOrdinaryTax = stateTaxableOrdinary * (stateIncomeRate / 100);
 
   // Apply state-specific capital gains adjustments (e.g., WA has $270K threshold
-  // and excludes qualified dividends from its 7% cap gains tax)
+  // and excludes qualified dividends from its 7% cap gains tax).
+  // Note: capitalGainsExcludesQualDivs is not applied here because the engine's
+  // simplified model does not track qualified dividends separately — totalCapitalGains
+  // only includes gains from account withdrawals. The tax/computation package handles
+  // the qualified dividend exclusion for detailed tax year computations.
   let stateCapGains = totalCapitalGains;
   if (stateInfo?.capitalGainsThreshold) {
     stateCapGains = Math.max(0, stateCapGains - stateInfo.capitalGainsThreshold);

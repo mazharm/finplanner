@@ -53,14 +53,14 @@ export function SettingsPage() {
   const handleSaveKey = useCallback(async () => {
     if (apiKeyInput.trim()) {
       try {
+        setSaveError('');
         await setClaudeApiKey(apiKeyInput.trim());
         setApiKeyInput('');
         setSaved(true);
-        setSaveError('');
         clearTimeout(savedTimerRef.current);
         savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
       } catch (err) {
-        setSaveError(err instanceof Error ? err.message : 'Failed to save API key');
+        setSaveError(err instanceof Error ? err.message : 'Failed to save API key. Please try again.');
       }
     }
   }, [apiKeyInput, setClaudeApiKey]);

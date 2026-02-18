@@ -19,8 +19,8 @@ export const personProfileSchema = z.object({
   lifeExpectancy: z.number().int().min(1).max(120),
   socialSecurity: socialSecuritySchema.optional(),
 }).refine(
-  (data) => data.lifeExpectancy >= data.currentAge,
-  { message: 'lifeExpectancy must be >= currentAge', path: ['lifeExpectancy'] }
+  (data) => data.lifeExpectancy > data.currentAge,
+  { message: 'lifeExpectancy must be greater than currentAge', path: ['lifeExpectancy'] }
 ).refine(
   (data) => data.lifeExpectancy >= data.retirementAge,
   { message: 'lifeExpectancy must be >= retirementAge', path: ['lifeExpectancy'] }
@@ -77,6 +77,12 @@ export const householdProfileSchema = z.object({
       path: ['spouse'],
     });
   }
-  // Survivor filing status is valid (no rejection) — it implies married status
-  // with a deceased spouse, so spouse profile is optional for survivor
+  // Survivor filing status requires married marital status (spouse is recently deceased)
+  if (data.filingStatus === 'survivor' && data.maritalStatus !== 'married') {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Survivor (qualifying widow/er) filing status requires married marital status',
+      path: ['filingStatus'],
+    });
+  }
 });

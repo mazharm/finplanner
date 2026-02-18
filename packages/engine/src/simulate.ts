@@ -79,8 +79,8 @@ export function simulate(planInput: PlanInput): PlanResult {
     for (const account of state.accounts) {
       if (!isFinite(account.balance)) {
         throw new Error(
-          `[FinPlanner] Simulation produced non-finite balance (${account.balance}) ` +
-          `for account "${account.id}" in year ${state.currentYear}. Check inputs and rates.`
+          `[FinPlanner] Simulation produced non-finite balance ` +
+          `in year ${state.currentYear}. Check inputs and rates.`
         );
       }
     }
@@ -99,7 +99,7 @@ function initializeState(planInput: PlanInput): SimulationState {
   const accounts: AccountState[] = planInput.accounts.map(account => {
     if (account.type === 'taxable' && account.costBasis === undefined && account.currentBalance > 0) {
       console.warn(
-        `[FinPlanner] Account "${account.name}" has no cost basis; defaulting to current balance ($${account.currentBalance}). ` +
+        `[FinPlanner] A taxable account has no cost basis; defaulting to current balance. ` +
         `Tax projections may understate gains for accounts with significant unrealized appreciation.`
       );
     }

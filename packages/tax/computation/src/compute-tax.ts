@@ -24,12 +24,15 @@ export function computeTaxYearTaxes(
   const ordinary = computeOrdinaryIncome(record.income, record.filingStatus);
   const deduction = computeDeduction(record.deductions, totalGross);
 
-  const taxableOrdinary = Math.max(0, ordinary - deduction);
-
-  // Per spec §8.4 step 5 and §19.1 item 5: excess capital losses do NOT offset
-  // ordinary income, do NOT offset qualified dividends, and are NOT carried forward.
+  // Capital gains/losses: net cap gains are taxed at preferential rates.
+  // Per IRS rules, up to $3,000 ($1,500 MFS) of net capital losses can offset ordinary income.
   const netCapGains = Math.max(0, record.income.capitalGains - record.income.capitalLosses);
-  const excessCapitalLosses = Math.max(0, record.income.capitalLosses - record.income.capitalGains);
+  const grossCapitalLossExcess = Math.max(0, record.income.capitalLosses - record.income.capitalGains);
+  const capitalLossDeductionCap = record.filingStatus === 'mfs' ? 1_500 : 3_000;
+  const capitalLossDeduction = Math.min(grossCapitalLossExcess, capitalLossDeductionCap);
+  const excessCapitalLosses = Math.max(0, grossCapitalLossExcess - capitalLossDeduction);
+
+  const taxableOrdinary = Math.max(0, ordinary - deduction - capitalLossDeduction);
 
   const preferentialIncome = netCapGains + record.income.qualifiedDividends;
 

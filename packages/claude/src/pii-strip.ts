@@ -27,14 +27,22 @@ export function sanitizeForLlm(text: string): string {
   // false positives on financial amounts; 10+ digits covers most routing/account numbers
   // while avoiding collisions with 8-9 digit dollar amounts and ZIP+4 codes)
   result = result.replace(/\b\d{10,17}\b/g, '[ACCOUNT_REDACTED]');
+  // US street addresses: number + street name + suffix (e.g., "123 Main St", "456 Oak Avenue Apt 7")
+  result = result.replace(/\b\d{1,6}\s+[A-Za-z][A-Za-z\s]{2,30}\b\s*(?:St(?:reet)?|Ave(?:nue)?|Blvd|Boulevard|Dr(?:ive)?|Ln|Lane|Rd|Road|Ct|Court|Pl|Place|Way|Cir(?:cle)?|Pkwy|Parkway|Ter(?:race)?)\b[^.\n]{0,30}/gi, '[ADDRESS_REDACTED]');
+  // ZIP codes with optional +4 (standalone, not part of larger numbers)
+  result = result.replace(/\b\d{5}(?:-\d{4})?\b/g, '[ZIP_REDACTED]');
   return result;
 }
+
+/** Keys in extracted fields that typically contain personal names. */
+const NAME_FIELD_KEYS = /\b(name|employee|employer|payer|payee|recipient|taxpayer|spouse|beneficiary|owner)\b/i;
 
 /**
  * Sanitize extractedFields record: redact PII from string values, pass numbers through.
  * Applies stricter redaction than sanitizeForLlm() — also catches unformatted 9-digit
- * SSN sequences, which are common in tax document extracted fields.
+ * SSN sequences and personal names in name-like field keys.
  */
+
 function sanitizeExtractedFields(
   fields: Record<string, number | string>,
 ): Record<string, number | string> {
@@ -44,6 +52,10 @@ function sanitizeExtractedFields(
       let result = sanitizeForLlm(value);
       // In tax document fields, unformatted 9-digit sequences are likely SSNs/TINs
       result = result.replace(/\b\d{9}\b/g, '[SSN_REDACTED]');
+      // Redact values in fields whose key suggests a personal name
+      if (NAME_FIELD_KEYS.test(key)) {
+        result = '[NAME_REDACTED]';
+      }
       sanitized[key] = result;
     } else {
       sanitized[key] = value;
@@ -77,7 +89,7 @@ export function stripPortfolioPii(request: PortfolioAdviceRequest): AnonymizedPo
   let ownerCounter = 0;
   function anonymizeOwner(owner: string): string {
     if (!ownerLabels.has(owner)) {
-      ownerLabels.set(owner, `Owner ${String.fromCharCode(65 + ownerCounter++)}`);
+      ownerLabels.set(owner, `Owner ${String.fromCharCode(65 + (ownerCounter++ % 26))}`);
     }
     return ownerLabels.get(owner)!;
   }
