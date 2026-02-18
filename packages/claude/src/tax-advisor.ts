@@ -21,7 +21,7 @@ export async function getTaxStrategyAdvice(
   try {
     raw = await client.sendMessage(system, user);
     console.info('[FinPlanner] Tax advice LLM request completed. Anonymized context size:', user.length, 'chars');
-  } catch (error) {
+  } catch {
     return getTaxFallbackAdvice(request);
   }
 

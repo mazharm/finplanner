@@ -230,7 +230,8 @@ export function AccountsPage() {
           <DialogBody>
             <DialogTitle>Delete Account</DialogTitle>
             <DialogContent>
-              Are you sure you want to delete account &quot;{deleteAccount?.name}&quot;? This cannot be undone.
+              Are you sure you want to delete account &quot;{deleteAccount?.name}&quot;
+              {deleteAccount ? ` (${formatCurrency(deleteAccount.currentBalance)})` : ''}? This cannot be undone.
             </DialogContent>
             <DialogActions>
               <DialogTrigger disableButtonEnhancement>

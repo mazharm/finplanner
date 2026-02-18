@@ -1,4 +1,4 @@
-import type { TaxYearRecord, TaxDocument, Anomaly, AnomalySeverity } from '@finplanner/domain';
+import type { TaxYearRecord, TaxDocument, Anomaly } from '@finplanner/domain';
 
 export interface AnomalyDetectionRequest {
   currentYear: number;

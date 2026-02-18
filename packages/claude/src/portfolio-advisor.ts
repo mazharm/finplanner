@@ -20,7 +20,7 @@ export async function getPortfolioAdvice(
   try {
     raw = await client.sendMessage(system, user);
     console.info('[FinPlanner] Portfolio advice LLM request completed. Anonymized context size:', user.length, 'chars');
-  } catch (error) {
+  } catch {
     return getPortfolioFallbackAdvice(request);
   }
 

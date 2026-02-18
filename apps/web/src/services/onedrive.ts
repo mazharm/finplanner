@@ -118,6 +118,20 @@ export function validateOneDrivePath(path: string): void {
   if (!path || path.trim().length === 0) {
     throw new Error('OneDrive path must not be empty');
   }
+  for (let i = 0; i < path.length; i++) {
+    if (path.charCodeAt(i) < 32) {
+      throw new Error('OneDrive path contains invalid control characters');
+    }
+  }
+  if (path.includes('\0')) {
+    throw new Error('OneDrive path contains invalid control characters');
+  }
+  if (path.includes('\\')) {
+    throw new Error('OneDrive path must use "/" separators');
+  }
+  if (path.includes('//')) {
+    throw new Error('OneDrive path must not contain empty path segments');
+  }
   if (path.startsWith('/') || path.startsWith('\\')) {
     throw new Error('OneDrive path must be relative, not absolute');
   }

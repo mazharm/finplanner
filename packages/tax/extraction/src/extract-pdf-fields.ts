@@ -1,4 +1,3 @@
-import type { TaxDocument } from '@finplanner/domain';
 import { DEFAULT_CONFIDENCE_THRESHOLD } from '@finplanner/domain';
 import type { PdfTextExtractor, PdfExtractionResult } from './types.js';
 import { identifyFormType } from './identify-form.js';

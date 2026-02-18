@@ -39,6 +39,9 @@ export function SettingsPage() {
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [isSavingKey, setIsSavingKey] = useState(false);
+  const [isClearingKey, setIsClearingKey] = useState(false);
+  const [isClearingAll, setIsClearingAll] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
   const [clearAllConfirmText, setClearAllConfirmText] = useState('');
@@ -52,6 +55,7 @@ export function SettingsPage() {
 
   const handleSaveKey = useCallback(async () => {
     if (apiKeyInput.trim()) {
+      setIsSavingKey(true);
       try {
         setSaveError('');
         await setClaudeApiKey(apiKeyInput.trim());
@@ -61,27 +65,37 @@ export function SettingsPage() {
         savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
       } catch (err) {
         setSaveError(err instanceof Error ? err.message : 'Failed to save API key. Please try again.');
+      } finally {
+        setIsSavingKey(false);
       }
     }
   }, [apiKeyInput, setClaudeApiKey]);
 
   const handleClearKey = useCallback(async () => {
+    setIsClearingKey(true);
     try {
       await clearClaudeApiKey();
       setSaved(false);
+      setSaveError('');
       setConfirmClear(false);
-    } catch {
-      // Error already logged in the store action
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to clear API key');
+    } finally {
+      setIsClearingKey(false);
     }
   }, [clearClaudeApiKey]);
 
   const handleClearAll = useCallback(async () => {
+    setIsClearingAll(true);
     try {
       await clearAllData();
       setConfirmClearAll(false);
       setSaved(false);
-    } catch {
-      // Error already logged in the store action
+      setSaveError('');
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to clear all data');
+    } finally {
+      setIsClearingAll(false);
     }
   }, [clearAllData]);
 
@@ -126,8 +140,8 @@ export function SettingsPage() {
                 onChange={(_, data) => setApiKeyInput(data.value)}
               />
             </Field>
-            <Button appearance="primary" icon={<KeyRegular />} onClick={handleSaveKey} disabled={!apiKeyInput.trim()}>
-              Save
+            <Button appearance="primary" icon={<KeyRegular />} onClick={handleSaveKey} disabled={!apiKeyInput.trim() || isSavingKey}>
+              {isSavingKey ? 'Saving...' : 'Save'}
             </Button>
           </div>
           {hasApiKey && (
@@ -192,8 +206,8 @@ export function SettingsPage() {
               <DialogTrigger disableButtonEnhancement>
                 <Button appearance="secondary">Cancel</Button>
               </DialogTrigger>
-              <Button appearance="primary" onClick={handleClearAll} disabled={clearAllConfirmText !== 'DELETE'}>
-                Clear Everything
+               <Button appearance="primary" onClick={handleClearAll} disabled={clearAllConfirmText !== 'DELETE' || isClearingAll}>
+                {isClearingAll ? 'Clearing...' : 'Clear Everything'}
               </Button>
             </DialogActions>
           </DialogBody>
@@ -211,9 +225,9 @@ export function SettingsPage() {
               <DialogTrigger disableButtonEnhancement>
                 <Button appearance="secondary">Cancel</Button>
               </DialogTrigger>
-              <Button appearance="primary" onClick={handleClearKey}>
-                Clear
-              </Button>
+               <Button appearance="primary" onClick={handleClearKey} disabled={isClearingKey}>
+                 {isClearingKey ? 'Clearing...' : 'Clear'}
+               </Button>
             </DialogActions>
           </DialogBody>
         </DialogSurface>

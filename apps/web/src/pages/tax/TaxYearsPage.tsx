@@ -22,7 +22,6 @@ import {
   DialogTrigger,
   Field,
   Input,
-  Select,
 } from '@fluentui/react-components';
 import { CalendarRegular, AddRegular, DeleteRegular, OpenRegular } from '@fluentui/react-icons';
 import { useState, useCallback } from 'react';

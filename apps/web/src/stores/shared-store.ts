@@ -66,7 +66,7 @@ function isValidHousehold(h: unknown): h is HouseholdProfile {
   return h !== null && typeof h === 'object' && 'primary' in h && 'stateOfResidence' in h;
 }
 
-export const useSharedStore = create<SharedState>((set, get) => {
+export const useSharedStore = create<SharedState>((set, _get) => {
   _setShared = set;
   return {
   household: defaultHousehold,

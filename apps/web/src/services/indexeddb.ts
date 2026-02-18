@@ -87,9 +87,11 @@ function txGet<T>(db: IDBDatabase, store: string, key: IDBValidKey): Promise<T |
 function txPut(db: IDBDatabase, store: string, value: unknown, key?: IDBValidKey): Promise<void> {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(store, 'readwrite');
-    key !== undefined
-      ? tx.objectStore(store).put(value, key)
-      : tx.objectStore(store).put(value);
+    if (key !== undefined) {
+      tx.objectStore(store).put(value, key);
+    } else {
+      tx.objectStore(store).put(value);
+    }
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
     tx.onabort = () => reject(tx.error);

@@ -221,7 +221,7 @@ describe('Agent Template Generation', () => {
 
     it('all files are non-empty strings', () => {
       const docs = generateStaticAgentDocs();
-      for (const [path, content] of Object.entries(docs)) {
+      for (const [, content] of Object.entries(docs)) {
         expect(typeof content).toBe('string');
         expect(content.length).toBeGreaterThan(100);
       }

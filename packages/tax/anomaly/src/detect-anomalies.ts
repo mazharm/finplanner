@@ -1,4 +1,4 @@
-import type { Anomaly, AnomalySeverity, TaxYearRecord, TaxYearIncome, TaxDocument } from '@finplanner/domain';
+import type { Anomaly, AnomalySeverity, TaxYearRecord, TaxYearIncome } from '@finplanner/domain';
 import { DEFAULT_ANOMALY_THRESHOLD_PCT, DEFAULT_ANOMALY_THRESHOLD_ABSOLUTE, issuerNamesMatch } from '@finplanner/domain';
 import type { AnomalyDetectionRequest, AnomalyDetectionResult } from './types.js';
 

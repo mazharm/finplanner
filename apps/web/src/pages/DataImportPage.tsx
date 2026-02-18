@@ -166,7 +166,7 @@ export function DataImportPage() {
         result.types[parsed.type] = (result.types[parsed.type] ?? 0) + 1;
 
         try {
-          const { _type, ...data } = parsed.data;
+          const data = Object.fromEntries(Object.entries(parsed.data).filter(([k]) => k !== '_type'));
           switch (parsed.type) {
             case 'household': {
               const validated = householdProfileSchema.safeParse(data);
@@ -339,12 +339,12 @@ export function DataImportPage() {
           onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
           onDragLeave={() => setDragActive(false)}
           onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
+          onClick={() => { if (!importing) fileInputRef.current?.click(); }}
+          onKeyDown={(e) => { if (!importing && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); fileInputRef.current?.click(); } }}
         >
           <DocumentRegular fontSize={48} />
           <Text>{dragActive ? 'Drop files here...' : 'Drag and drop NDJSON files here, or click to browse.'}</Text>
-          <Button appearance="primary" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}>
+          <Button appearance="primary" disabled={importing} onClick={(e) => { e.stopPropagation(); if (!importing) fileInputRef.current?.click(); }}>
             Browse Files
           </Button>
           <input
@@ -352,6 +352,7 @@ export function DataImportPage() {
             type="file"
             accept=".ndjson,.jsonl"
             multiple
+            disabled={importing}
             aria-label="Upload NDJSON backup files"
             style={{ display: 'none' }}
             onChange={(e) => { if (e.target.files) handleFiles(e.target.files); }}

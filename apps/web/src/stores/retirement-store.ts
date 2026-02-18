@@ -89,7 +89,7 @@ function isValidObject(v: unknown): v is Record<string, unknown> {
   return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
 
-export const useRetirementStore = create<RetirementState>((set, get) => {
+export const useRetirementStore = create<RetirementState>((set, _get) => {
   _setRetirement = set;
   return {
   spending: defaultSpending,

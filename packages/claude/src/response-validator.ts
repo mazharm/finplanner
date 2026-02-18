@@ -5,6 +5,7 @@ import type { PortfolioAdviceResponse, TaxStrategyAdviceResponse } from '@finpla
 export type ValidationSuccess<T> = { success: true; data: T };
 export type ValidationFailure = { success: false; error: string };
 export type ValidationResult<T> = ValidationSuccess<T> | ValidationFailure;
+const MAX_LLM_RESPONSE_CHARS = 1_000_000;
 
 /**
  * Strip markdown code fences that LLMs sometimes wrap around JSON responses.
@@ -20,6 +21,9 @@ function stripMarkdownFences(text: string): string {
 }
 
 function validateLlmResponse<T>(raw: string, schema: ZodType<T>): ValidationResult<T> {
+  if (raw.length > MAX_LLM_RESPONSE_CHARS) {
+    return { success: false, error: `LLM response too large (${raw.length} chars)` };
+  }
   let parsed: unknown;
   try {
     parsed = JSON.parse(stripMarkdownFences(raw));

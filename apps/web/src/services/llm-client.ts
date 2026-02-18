@@ -22,6 +22,8 @@ const REQUEST_TIMEOUT_MS = 90_000;
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 529]);
 const MIN_REQUEST_INTERVAL_MS = 5_000;
 const MAX_REQUESTS_PER_HOUR = 50;
+const ALLOW_DIRECT_BROWSER_ACCESS =
+  import.meta.env.DEV || import.meta.env.VITE_ALLOW_DIRECT_BROWSER_ANTHROPIC_ACCESS === 'true';
 
 let lastRequestTime = 0;
 let requestCountThisHour = 0;
@@ -85,6 +87,11 @@ function parseRetryAfterHeader(header: string | null): number | null {
  * @param externalSignal - Optional AbortSignal for caller-initiated cancellation
  */
 export function createLlmClient(apiKey: string, modelId?: string, externalSignal?: AbortSignal): LlmClient {
+  if (!ALLOW_DIRECT_BROWSER_ACCESS) {
+    throw new Error(
+      'Direct browser Anthropic access is disabled. Configure a backend proxy or set VITE_ALLOW_DIRECT_BROWSER_ANTHROPIC_ACCESS=true.',
+    );
+  }
   if (!apiKey || apiKey.trim().length === 0) {
     throw new Error('API key is required');
   }

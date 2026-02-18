@@ -21,8 +21,24 @@ export interface FolderReader {
 export class LocalFolderReader implements FolderReader {
   constructor(private root: FileSystemDirectoryHandle) {}
 
+  private static hasControlChars(value: string): boolean {
+    for (let i = 0; i < value.length; i++) {
+      if (value.charCodeAt(i) < 32) return true;
+    }
+    return false;
+  }
+
   private async navigateTo(path: string): Promise<FileSystemDirectoryHandle | FileSystemFileHandle | null> {
+    if (path.startsWith('/') || path.startsWith('\\')) return null;
     const segments = path.split('/').filter(Boolean);
+    if (segments.some((segment) =>
+      segment === '.'
+      || segment === '..'
+      || segment.includes('\\')
+      || LocalFolderReader.hasControlChars(segment)
+    )) {
+      return null;
+    }
     if (segments.length === 0) return this.root;
 
     let current: FileSystemDirectoryHandle = this.root;

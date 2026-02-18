@@ -18,7 +18,7 @@ export function computeRmds(
   priorYearEndBalances: Map<string, number>
 ): RmdResult {
   const { accounts, plan } = state;
-  const { agePrimary, ageSpouse, primaryAlive, spouseAlive, isSurvivorPhase, survivorId } = yearContext;
+  const { agePrimary, ageSpouse, isSurvivorPhase, survivorId } = yearContext;
   const { household } = plan;
 
   let rmdTotal = 0;

@@ -7,7 +7,7 @@
 export function normalizeIssuerName(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[.,\-]/g, ' ')       // punctuation to spaces
+    .replace(/[.,-]/g, ' ')        // punctuation to spaces
     .replace(/\b(inc|llc|corp|ltd|co|the)\b/gi, '') // remove common suffixes
     .replace(/\s+/g, ' ')          // collapse whitespace
     .trim();
