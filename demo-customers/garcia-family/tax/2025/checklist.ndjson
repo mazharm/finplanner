@@ -1,0 +1,3 @@
+{"_type":"header","schemaVersion":"3.0.0","savedAt":"2026-01-15T00:00:00.000Z","modules":["tax"]}
+{"_type":"checklistItem","id":"33576bb6-7af3-4e57-aca4-e4a606890239","taxYear":2025,"category":"document","description":"Collect W-2 from Lone Star Energy Corp","status":"received","sourceReasoning":"Miguel's primary employer","linkedDocumentId":"0a1c9f43-e267-40d2-8050-1fa59e146bbf"}
+{"_type":"checklistItem","id":"33270933-c143-4fb1-959c-415c583ae02a","taxYear":2025,"category":"document","description":"Collect W-2 from Austin ISD","status":"received","sourceReasoning":"Elena's primary employer","linkedDocumentId":"4ac43a87-ee03-4338-bec4-4c9a8eb6b644"}

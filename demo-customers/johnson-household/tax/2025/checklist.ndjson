@@ -1,0 +1,4 @@
+{"_type":"header","schemaVersion":"3.0.0","savedAt":"2026-01-15T00:00:00.000Z","modules":["tax"]}
+{"_type":"checklistItem","id":"2324c58b-eeeb-4fa6-aa49-a08f44400fb0","taxYear":2025,"category":"document","description":"Collect W-2 from Megacorp Technologies","status":"received","sourceReasoning":"Primary employer wages","linkedDocumentId":"58218408-7de4-4052-aa99-810658597d35"}
+{"_type":"checklistItem","id":"f3dd9f6c-8544-413f-8e32-b1bd9667dd6a","taxYear":2025,"category":"document","description":"Collect 1099-INT from Ally Bank","status":"received","sourceReasoning":"High-yield savings interest","linkedDocumentId":"bf4bcffe-5181-448e-abca-7cbb21fbfe04"}
+{"_type":"checklistItem","id":"d12f59c9-470d-4a9e-b78b-7c8b120d877a","taxYear":2025,"category":"deduction","description":"Max out 401(k) contributions ($23,000)","status":"pending","sourceReasoning":"Reduces taxable income at high marginal rate"}

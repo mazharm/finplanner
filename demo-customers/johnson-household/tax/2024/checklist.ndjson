@@ -1,0 +1,4 @@
+{"_type":"header","schemaVersion":"3.0.0","savedAt":"2026-01-15T00:00:00.000Z","modules":["tax"]}
+{"_type":"checklistItem","id":"8a535e4e-edcf-4971-a1e7-9120cf983d63","taxYear":2024,"category":"document","description":"Collect W-2 from Megacorp Technologies","status":"received","sourceReasoning":"Primary employer wages","linkedDocumentId":"d73de087-294b-4f96-870e-c1c6899c0ef1"}
+{"_type":"checklistItem","id":"b9818c9a-e81a-45c9-bf4e-d9c55ebbd6cb","taxYear":2024,"category":"document","description":"Collect 1099-B from Charles Schwab","status":"received","sourceReasoning":"Stock sales in taxable brokerage","linkedDocumentId":"4d947138-c697-474b-bc75-01b412f71d99"}
+{"_type":"checklistItem","id":"8cc69b0d-bbe4-4224-b060-b4b5b8f71151","taxYear":2024,"category":"income","description":"Report rental income from Brooklyn studio","status":"received","sourceReasoning":"Rental property owned since 2024"}

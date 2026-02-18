@@ -31,6 +31,7 @@ import {
   WeatherMoonRegular,
   CloudRegular,
   DismissRegular,
+  FolderOpenRegular,
 } from '@fluentui/react-icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
@@ -104,6 +105,7 @@ interface AppShellProps {
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: <HomeRegular /> },
+  { path: '/customer', label: 'Open Customer', icon: <FolderOpenRegular /> },
   { path: '/household', label: 'Household', icon: <PeopleRegular /> },
   { path: '/accounts', label: 'Accounts', icon: <WalletRegular /> },
   { path: '/import', label: 'Data Import', icon: <ArrowImportRegular /> },

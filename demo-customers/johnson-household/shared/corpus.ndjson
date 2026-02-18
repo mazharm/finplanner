@@ -1,0 +1,6 @@
+{"_type":"header","schemaVersion":"3.0.0","savedAt":"2026-01-15T00:00:00.000Z","modules":["tax","retirement"]}
+{"_type":"household","maritalStatus":"single","filingStatus":"single","stateOfResidence":"NY","primary":{"id":"primary","birthYear":1991,"currentAge":35,"retirementAge":60,"lifeExpectancy":90,"socialSecurity":{"claimAge":67,"estimatedMonthlyBenefitAtClaim":3800,"colaPct":2.5}}}
+{"_type":"account","id":"7ec46abd-3fe7-4e8c-ae9f-228e63e04193","name":"Megacorp 401(k)","type":"taxDeferred","owner":"primary","currentBalance":185000,"expectedReturnPct":7.5,"feePct":0.12,"targetAllocationPct":50}
+{"_type":"account","id":"cca6d9d8-6dc3-4e44-bd15-38cb0abb38ce","name":"Vanguard Roth IRA","type":"roth","owner":"primary","currentBalance":62000,"expectedReturnPct":7.5,"feePct":0.04,"targetAllocationPct":20}
+{"_type":"account","id":"405f33c9-5b7c-4477-9e9c-33af197f4f4c","name":"Schwab Taxable Brokerage","type":"taxable","owner":"primary","currentBalance":95000,"costBasis":78000,"expectedReturnPct":7,"feePct":0.03,"targetAllocationPct":30}
+{"_type":"incomeStream","id":"2ea742a1-7aca-4aae-9f54-c5b5fdbfd169","name":"Rental Income (Brooklyn studio)","owner":"primary","startYear":2024,"annualAmount":24000,"colaPct":3,"taxable":true,"survivorContinues":false}

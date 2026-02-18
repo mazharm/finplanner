@@ -1,0 +1,2 @@
+{"_type":"header","schemaVersion":"3.0.0","savedAt":"2026-01-15T00:00:00.000Z","modules":["tax"]}
+{"_type":"anomaly","id":"c5041154-298f-4226-8182-4b622c4127b8","taxYear":2025,"comparisonYear":2024,"category":"anomaly","severity":"info","field":"wages","description":"Wages increased 7.7% ($195K to $210K)","priorValue":195000,"currentValue":210000,"percentChange":7.7,"suggestedAction":"Verify promotion/raise reflected correctly on W-2"}

@@ -1,0 +1,5 @@
+{"_type":"header","schemaVersion":"3.0.0","savedAt":"2026-01-15T00:00:00.000Z","modules":["tax"]}
+{"_type":"checklistItem","id":"1c904662-3bc8-4049-8a5d-6d53e7dba9c0","taxYear":2023,"category":"document","description":"Collect W-2 from Acme Technology Corp","status":"received","sourceReasoning":"Prior year wages reported","linkedDocumentId":"3f583023-9112-482c-943a-cd4078317201"}
+{"_type":"checklistItem","id":"58e79d63-d999-4433-8434-7cfa54fef85e","taxYear":2023,"category":"document","description":"Collect 1099-DIV from Vanguard Group","status":"received","sourceReasoning":"Taxable brokerage account generates dividends","linkedDocumentId":"5864d74f-7674-44c6-b794-22bd1ca47058"}
+{"_type":"checklistItem","id":"5372d2d7-0dc4-4e95-8efd-f1ea787c52c7","taxYear":2023,"category":"income","description":"Report rental income from investment property","status":"received","sourceReasoning":"Rental income stream exists"}
+{"_type":"checklistItem","id":"551bd75c-5f1f-4c6e-b836-fe0ca8486031","taxYear":2023,"category":"deduction","description":"Gather mortgage interest statement (1098)","status":"received","sourceReasoning":"Itemized deductions include mortgage interest"}

@@ -1,0 +1,4 @@
+{"_type":"header","schemaVersion":"3.0.0","savedAt":"2026-01-15T00:00:00.000Z","modules":["tax"]}
+{"_type":"checklistItem","id":"7225187f-1317-4642-b330-e93478cf610b","taxYear":2023,"category":"document","description":"Collect W-2 from Lone Star Energy Corp","status":"received","sourceReasoning":"Miguel's primary employer","linkedDocumentId":"aec94b96-ad12-41e2-a204-fd7e3ea345e5"}
+{"_type":"checklistItem","id":"2ae8ad76-d546-4ff5-abf6-8fbb3e158677","taxYear":2023,"category":"document","description":"Collect W-2 from Austin ISD","status":"received","sourceReasoning":"Elena's primary employer","linkedDocumentId":"bfcb2bef-aab3-4700-b448-03238c2a47a0"}
+{"_type":"checklistItem","id":"dd59ad00-c779-4718-9a75-4edefafafe16","taxYear":2023,"category":"income","description":"Report rental income from Austin duplex","status":"received","sourceReasoning":"Joint rental property owned since 2021"}

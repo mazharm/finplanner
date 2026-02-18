@@ -1,0 +1,2 @@
+{"_type":"header","schemaVersion":"3.0.0","savedAt":"2026-01-15T00:00:00.000Z","modules":["tax"]}
+{"_type":"anomaly","id":"88fe3855-a806-45bc-8c6a-84d06948dda4","taxYear":2025,"comparisonYear":2024,"category":"anomaly","severity":"info","field":"wages","description":"Combined wages increased 5.8% ($260K to $275K)","priorValue":260000,"currentValue":275000,"percentChange":5.8,"suggestedAction":"Confirm raises match expectations; both still employed"}

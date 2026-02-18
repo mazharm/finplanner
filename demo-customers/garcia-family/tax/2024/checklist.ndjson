@@ -1,0 +1,4 @@
+{"_type":"header","schemaVersion":"3.0.0","savedAt":"2026-01-15T00:00:00.000Z","modules":["tax"]}
+{"_type":"checklistItem","id":"ceb0d1d2-13f7-4bd3-95a8-ea0cd782a932","taxYear":2024,"category":"document","description":"Collect W-2 from Lone Star Energy Corp","status":"received","sourceReasoning":"Miguel's primary employer","linkedDocumentId":"4e5a1ab2-bb48-45c1-98ad-169d27b206b3"}
+{"_type":"checklistItem","id":"6853f098-0424-4744-9461-2c3b83d2d7b3","taxYear":2024,"category":"document","description":"Collect W-2 from Austin ISD","status":"received","sourceReasoning":"Elena's primary employer","linkedDocumentId":"f6a807c8-4c93-44c8-8a73-76daccafaacc"}
+{"_type":"checklistItem","id":"b0d60d24-7039-41a5-b642-1b4333e165b9","taxYear":2024,"category":"deduction","description":"Verify 401(k) and 403(b) contribution limits","status":"received","sourceReasoning":"Both spouses have employer retirement plans"}

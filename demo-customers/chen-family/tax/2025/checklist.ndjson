@@ -1,0 +1,5 @@
+{"_type":"header","schemaVersion":"3.0.0","savedAt":"2026-01-15T00:00:00.000Z","modules":["tax"]}
+{"_type":"checklistItem","id":"2ea7ad45-fae4-4dac-9669-140405bc14c7","taxYear":2025,"category":"document","description":"Collect 1099-INT from Pacific Credit Union","status":"received","sourceReasoning":"Interest income expected","linkedDocumentId":"05e261bd-cbb5-4135-a52c-ff4769529a91"}
+{"_type":"checklistItem","id":"a302f449-9e4f-45e2-8ebd-798128f19305","taxYear":2025,"category":"document","description":"Collect 1098 from First National Mortgage","status":"received","sourceReasoning":"Mortgage interest deduction","linkedDocumentId":"9f0ea6e6-d9ac-4cdc-a091-e4a1a5dbb89c"}
+{"_type":"checklistItem","id":"210abfa4-3615-4032-889f-665ec6e76e0f","taxYear":2025,"category":"document","description":"Collect 1099-R for retirement distributions","status":"pending","sourceReasoning":"Continued retirement distributions in full retirement year"}
+{"_type":"checklistItem","id":"a2b64e6a-8148-4e96-b2d0-9ed50a4c8675","taxYear":2025,"category":"income","description":"Report Social Security income (SSA-1099)","status":"pending","sourceReasoning":"SS benefits began in 2025"}

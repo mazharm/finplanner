@@ -25,6 +25,7 @@ import { AssumptionsPage } from './pages/retirement/AssumptionsPage.js';
 import { ScenariosPage } from './pages/retirement/ScenariosPage.js';
 import { ResultsDashboardPage } from './pages/retirement/ResultsDashboardPage.js';
 import { RetirementAdvicePage } from './pages/retirement/RetirementAdvicePage.js';
+import { CustomerFolderPage } from './pages/CustomerFolderPage.js';
 import { processSyncQueue } from './services/sync.js';
 import { createStubOneDriveClient } from './services/onedrive.js';
 
@@ -100,6 +101,7 @@ export function App() {
         <AppShell theme={theme} onToggleTheme={toggleTheme}>
           <Routes>
             <Route path="/" element={<DashboardPage />} />
+            <Route path="/customer" element={<CustomerFolderPage />} />
             <Route path="/household" element={<HouseholdPage />} />
             <Route path="/accounts" element={<AccountsPage />} />
             <Route path="/import" element={<DataImportPage />} />
