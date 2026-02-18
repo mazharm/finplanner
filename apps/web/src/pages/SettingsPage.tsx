@@ -22,6 +22,7 @@ import {
 import { SettingsRegular, KeyRegular, CloudRegular, DeleteRegular } from '@fluentui/react-icons';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useSettingsStore } from '../stores/settings-store.js';
+import { useSharedStore } from '../stores/shared-store.js';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
@@ -34,10 +35,13 @@ const useStyles = makeStyles({
 export function SettingsPage() {
   const styles = useStyles();
   const { hasApiKey, syncStatus, setClaudeApiKey, clearClaudeApiKey, clearAllData } = useSettingsStore();
+  const sharedPersistError = useSharedStore((s) => s.persistError);
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
+  const [clearAllConfirmText, setClearAllConfirmText] = useState('');
   const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
@@ -52,10 +56,11 @@ export function SettingsPage() {
         await setClaudeApiKey(apiKeyInput.trim());
         setApiKeyInput('');
         setSaved(true);
+        setSaveError('');
         clearTimeout(savedTimerRef.current);
         savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
-      } catch {
-        // Error already logged in the store action
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : 'Failed to save API key');
       }
     }
   }, [apiKeyInput, setClaudeApiKey]);
@@ -88,6 +93,16 @@ export function SettingsPage() {
       {saved && (
         <MessageBar intent="success">
           <MessageBarBody>API key saved to IndexedDB.</MessageBarBody>
+        </MessageBar>
+      )}
+      {saveError && (
+        <MessageBar intent="error">
+          <MessageBarBody>{saveError}</MessageBarBody>
+        </MessageBar>
+      )}
+      {sharedPersistError && (
+        <MessageBar intent="error">
+          <MessageBarBody>{sharedPersistError}</MessageBarBody>
         </MessageBar>
       )}
       <Card>
@@ -163,18 +178,21 @@ export function SettingsPage() {
         </div>
       </Card>
 
-      <Dialog open={confirmClearAll} onOpenChange={(_, data) => { if (!data.open) setConfirmClearAll(false); }}>
+      <Dialog open={confirmClearAll} onOpenChange={(_, data) => { if (!data.open) { setConfirmClearAll(false); setClearAllConfirmText(''); } }}>
         <DialogSurface>
           <DialogBody>
             <DialogTitle>Clear All Data</DialogTitle>
             <DialogContent>
-              This will permanently delete all locally stored data, including your API key, cached files, tax records, and household information. This cannot be undone.
+              <Text>This will permanently delete all locally stored data, including your API key, cached files, tax records, and household information. This cannot be undone.</Text>
+              <Field label='Type "DELETE" to confirm' style={{ marginTop: '12px' }}>
+                <Input value={clearAllConfirmText} onChange={(_, data) => setClearAllConfirmText(data.value)} placeholder="DELETE" />
+              </Field>
             </DialogContent>
             <DialogActions>
               <DialogTrigger disableButtonEnhancement>
                 <Button appearance="secondary">Cancel</Button>
               </DialogTrigger>
-              <Button appearance="primary" onClick={handleClearAll}>
+              <Button appearance="primary" onClick={handleClearAll} disabled={clearAllConfirmText !== 'DELETE'}>
                 Clear Everything
               </Button>
             </DialogActions>

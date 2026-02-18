@@ -322,6 +322,7 @@ export function DataImportPage() {
           />
         </div>
         {importing && <ProgressBar value={progress} />}
+        {importing && <Text size={200}>Importing files... Do not close this page.</Text>}
       </Card>
       <Card>
         <CardHeader
@@ -340,6 +341,11 @@ export function DataImportPage() {
       {results.length > 0 && (
         <Card>
           <CardHeader header={<Text weight="semibold">Import Results</Text>} />
+          {results.every(r => r.errors.length === 0) && results.some(r => r.recordCount > 0) && (
+            <MessageBar intent="success">
+              <MessageBarBody>Import completed successfully.</MessageBarBody>
+            </MessageBar>
+          )}
           <div className={styles.results}>
             {results.map((r, i) => (
               <div key={i}>

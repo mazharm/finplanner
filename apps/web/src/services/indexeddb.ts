@@ -6,6 +6,10 @@
  * - files: Cached OneDrive file content with ETags
  * - syncQueue: Pending writes during offline mode
  * - appState: Persisted store state (shared, tax, retirement)
+ *
+ * SECURITY NOTE: Data is stored in plaintext. For production use with
+ * highly sensitive data, consider encrypting values using the Web Crypto
+ * API before storing, and decrypting on retrieval.
  */
 
 const DB_NAME = 'finplanner';

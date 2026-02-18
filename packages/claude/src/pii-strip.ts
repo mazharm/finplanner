@@ -3,14 +3,12 @@ import type { AnonymizedPortfolioContext, AnonymizedTaxContext } from './types.j
 
 /**
  * Sanitize a string value for LLM consumption by redacting PII patterns:
- *  - SSNs (XXX-XX-XXXX or XXX XX XXXX formatted patterns)
+ *  - SSNs (XXX-XX-XXXX, XXX XX XXXX, or unformatted 9-digit patterns)
  *  - EINs (XX-XXXXXXX)
  *  - Bank/routing account numbers (sequences of 10+ digits)
  *
- * Note: Unformatted 9-digit SSNs (e.g., "123456789") are NOT redacted here
- * to avoid false positives with ZIP+4 codes and financial amounts. Use
- * sanitizeExtractedFields() for tax document fields where 9-digit sequences
- * are more likely to be SSNs.
+ * Note: Unformatted 9-digit SSN redaction may produce false positives with
+ * ZIP+4 codes and financial amounts, but privacy is prioritized.
  */
 export function sanitizeForLlm(text: string): string {
   let result = text;
@@ -19,6 +17,8 @@ export function sanitizeForLlm(text: string): string {
   result = result.replace(/\b\d{3}\s\d{2}\s\d{4}\b/g, '[SSN_REDACTED]');
   // EIN patterns: 12-3456789
   result = result.replace(/\b\d{2}-\d{7}\b/g, '[EIN_REDACTED]');
+  // Unformatted 9-digit SSNs/TINs
+  result = result.replace(/\b\d{9}\b/g, '[SSN_REDACTED]');
   // Email addresses
   result = result.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, '[EMAIL_REDACTED]');
   // US phone numbers: (123) 456-7890, 123-456-7890, 123.456.7890, +1-123-456-7890

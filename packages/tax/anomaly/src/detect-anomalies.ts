@@ -1,37 +1,6 @@
 import type { Anomaly, AnomalySeverity, TaxYearRecord, TaxYearIncome, TaxDocument } from '@finplanner/domain';
-import { DEFAULT_ANOMALY_THRESHOLD_PCT, DEFAULT_ANOMALY_THRESHOLD_ABSOLUTE } from '@finplanner/domain';
+import { DEFAULT_ANOMALY_THRESHOLD_PCT, DEFAULT_ANOMALY_THRESHOLD_ABSOLUTE, issuerNamesMatch } from '@finplanner/domain';
 import type { AnomalyDetectionRequest, AnomalyDetectionResult } from './types.js';
-
-// NOTE: normalizeIssuerName, tokenJaccardSimilarity, and issuerNamesMatch are
-// also used in packages/tax/checklist/src/generate-checklist.ts. Keep in sync.
-function normalizeIssuerName(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[.,\-]/g, ' ')       // punctuation to spaces
-    .replace(/\b(inc|llc|corp|ltd|co|the)\b/gi, '') // remove common suffixes
-    .replace(/\s+/g, ' ')          // collapse whitespace
-    .trim();
-}
-
-function tokenJaccardSimilarity(a: string, b: string): number {
-  const tokensA = new Set(normalizeIssuerName(a).split(' ').filter(t => t.length > 0));
-  const tokensB = new Set(normalizeIssuerName(b).split(' ').filter(t => t.length > 0));
-  if (tokensA.size === 0 && tokensB.size === 0) return 1;
-  if (tokensA.size === 0 || tokensB.size === 0) return 0;
-  let intersection = 0;
-  for (const t of tokensA) {
-    if (tokensB.has(t)) intersection++;
-  }
-  const union = tokensA.size + tokensB.size - intersection;
-  return union > 0 ? intersection / union : 0;
-}
-
-function issuerNamesMatch(a: string, b: string): boolean {
-  // Primary check: exact match after normalization
-  if (normalizeIssuerName(a) === normalizeIssuerName(b)) return true;
-  // Fallback: token-overlap Jaccard similarity >= 0.5
-  return tokenJaccardSimilarity(a, b) >= 0.5;
-}
 
 const INCOME_FIELDS: Array<{ key: keyof TaxYearIncome; label: string }> = [
   { key: 'wages', label: 'Wages' },

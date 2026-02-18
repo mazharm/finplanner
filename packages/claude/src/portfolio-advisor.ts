@@ -19,8 +19,8 @@ export async function getPortfolioAdvice(
   let raw: string;
   try {
     raw = await client.sendMessage(system, user);
+    console.info('[FinPlanner] Portfolio advice LLM request completed. Anonymized context size:', user.length, 'chars');
   } catch (error) {
-    console.warn('[FinPlanner] Portfolio advice LLM call failed:', error instanceof Error ? error.message : String(error));
     return getPortfolioFallbackAdvice(request);
   }
 

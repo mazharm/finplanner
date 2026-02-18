@@ -1,4 +1,4 @@
-import { Spinner, MessageBar, MessageBarBody, makeStyles, tokens } from '@fluentui/react-components';
+import { Spinner, MessageBar, MessageBarBody, Button, makeStyles, tokens } from '@fluentui/react-components';
 import { useSettingsStore } from '../stores/settings-store.js';
 import { useSharedStore } from '../stores/shared-store.js';
 import { useTaxStore } from '../stores/tax-store.js';
@@ -42,6 +42,9 @@ export function StoreLoadingGate({ children }: { children: ReactNode }) {
           <MessageBar intent="warning">
             <MessageBarBody>Loading is taking longer than expected. Try refreshing the page.</MessageBarBody>
           </MessageBar>
+          <Button appearance="primary" onClick={() => window.location.reload()}>
+            Reload Page
+          </Button>
         </div>
       );
     }

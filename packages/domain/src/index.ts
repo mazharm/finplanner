@@ -15,6 +15,9 @@ export type { AppErrorCode, AppError } from './types/errors.js';
 export type { HistoricalScenario, StateEntry, RmdEntry, RmdTable, StandardDeductions } from './types/data-assets.js';
 export type { NdjsonHeader, NdjsonRecord } from './ndjson/types.js';
 
+// Issuer matching utilities
+export { normalizeIssuerName, tokenJaccardSimilarity, issuerNamesMatch } from './issuer-matching.js';
+
 // Constants
 export { SCHEMA_VERSION } from './constants/index.js';
 export { STATE_TAX_DATA, VALID_STATE_CODES, lookupState } from './constants/state-tax-data.js';

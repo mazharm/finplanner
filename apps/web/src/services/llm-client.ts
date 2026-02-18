@@ -4,6 +4,10 @@
  * Implements the LlmClient interface using direct fetch to the Anthropic API
  * with the `anthropic-dangerous-direct-browser-access` header.
  * The API key is retrieved from IndexedDB (never stored in localStorage or URLs).
+ *
+ * SECURITY WARNING: The API key is sent directly from the browser. This exposes
+ * it in browser DevTools and network logs. For production deployments, route
+ * LLM calls through a backend API proxy that holds the key server-side.
  */
 import type { LlmClient } from '@finplanner/claude';
 
@@ -105,7 +109,8 @@ export function createLlmClient(apiKey: string, modelId?: string, externalSignal
       }
       requestCountThisHour++;
       if (requestCountThisHour > MAX_REQUESTS_PER_HOUR) {
-        throw new Error(`Hourly API request limit (${MAX_REQUESTS_PER_HOUR}) exceeded. Please wait before making more requests.`);
+        const minutesRemaining = Math.ceil((3_600_000 - (Date.now() - hourWindowStart)) / 60_000);
+        throw new Error(`Hourly API request limit (${MAX_REQUESTS_PER_HOUR}) exceeded. Window resets in ~${minutesRemaining} minute(s). ${MAX_REQUESTS_PER_HOUR - requestCountThisHour + 1} requests remaining.`);
       }
 
       const requestBody = JSON.stringify({

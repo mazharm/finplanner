@@ -8,6 +8,10 @@
  *
  * Write flow: Store -> IndexedDB (immediate) -> OneDrive (async background)
  * Read flow: IndexedDB cache -> fallback to OneDrive -> update cache
+ *
+ * PRIVACY NOTE: Financial records synced to OneDrive include full account
+ * balances, tax records, and income information. Data is transmitted over
+ * HTTPS but is not additionally encrypted or PII-stripped before sync.
  */
 
 import type { OneDriveClient } from './onedrive.js';

@@ -2,6 +2,7 @@ import { makeStyles, tokens, Card, CardHeader, Text, Title3, Badge } from '@flue
 import { ChartMultipleRegular } from '@fluentui/react-icons';
 import { useRetirementStore } from '../../stores/retirement-store.js';
 import { formatCurrency } from '../../utils/format.js';
+import { Link } from 'react-router-dom';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
@@ -42,7 +43,7 @@ export function ResultsDashboardPage() {
       {!result ? (
         <Card>
           <CardHeader header={<Text weight="semibold">No Results Yet</Text>} />
-          <Text>Run a simulation from the Scenarios page to see detailed results here.</Text>
+          <Text>Run a simulation from the <Link to="/retirement/scenarios">Scenarios page</Link> to see detailed results here.</Text>
         </Card>
       ) : (
         <>

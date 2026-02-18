@@ -20,8 +20,8 @@ export async function getTaxStrategyAdvice(
   let raw: string;
   try {
     raw = await client.sendMessage(system, user);
+    console.info('[FinPlanner] Tax advice LLM request completed. Anonymized context size:', user.length, 'chars');
   } catch (error) {
-    console.warn('[FinPlanner] Tax advice LLM call failed:', error instanceof Error ? error.message : String(error));
     return getTaxFallbackAdvice(request);
   }
 

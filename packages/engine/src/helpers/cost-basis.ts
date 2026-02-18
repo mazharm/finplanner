@@ -19,5 +19,5 @@ export function computeTaxableGain(withdrawalAmount: number, gainFraction: numbe
  * The cost basis portion of the withdrawal is (1 - gainFraction) * withdrawalAmount.
  */
 export function reduceBasis(costBasis: number, withdrawalAmount: number, gainFraction: number): number {
-  return Math.max(0, Math.round((costBasis - withdrawalAmount * (1 - gainFraction)) * 100) / 100);
+  return Math.max(0, Math.floor((costBasis - withdrawalAmount * (1 - gainFraction)) * 100) / 100);
 }

@@ -22,6 +22,8 @@ import {
   Field,
   Input,
   Select,
+  MessageBar,
+  MessageBarBody,
 } from '@fluentui/react-components';
 import { WalletRegular, AddRegular, DeleteRegular } from '@fluentui/react-icons';
 import { useState, useCallback } from 'react';
@@ -30,6 +32,7 @@ import { safeParseNumber } from '../utils/parse-number.js';
 import { formatCurrency } from '../utils/format.js';
 import { generateId } from '../utils/id.js';
 import type { Account, AccountType } from '@finplanner/domain';
+import { Link } from 'react-router-dom';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
@@ -53,16 +56,25 @@ export function AccountsPage() {
   const accounts = useSharedStore((s) => s.accounts);
   const addAccount = useSharedStore((s) => s.addAccount);
   const removeAccount = useSharedStore((s) => s.removeAccount);
+  const persistError = useSharedStore((s) => s.persistError);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [draft, setDraft] = useState<Omit<Account, 'id'>>(emptyAccount);
   const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
   const deleteAccount = accounts.find((a) => a.id === deleteAccountId);
 
   const handleAdd = useCallback(() => {
     addAccount({ ...draft, name: draft.name.trim(), id: generateId('acct') });
     setDraft(emptyAccount);
     setDialogOpen(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
   }, [draft, addAccount]);
+
+  const handleOpenDialog = useCallback(() => {
+    setDraft(emptyAccount);
+    setDialogOpen(true);
+  }, []);
 
   const totalBalance = accounts.reduce((sum, a) => sum + a.currentBalance, 0);
 
@@ -72,10 +84,20 @@ export function AccountsPage() {
         <Title3>
           <WalletRegular /> Accounts
         </Title3>
-        <Button appearance="primary" icon={<AddRegular />} onClick={() => setDialogOpen(true)}>
+        <Button appearance="primary" icon={<AddRegular />} onClick={handleOpenDialog}>
           Add Account
         </Button>
       </div>
+      {saved && (
+        <MessageBar intent="success">
+          <MessageBarBody>Account added successfully.</MessageBarBody>
+        </MessageBar>
+      )}
+      {persistError && (
+        <MessageBar intent="error">
+          <MessageBarBody>{persistError}</MessageBarBody>
+        </MessageBar>
+      )}
       <Card>
         <CardHeader
           header={<Text weight="semibold">Investment Accounts</Text>}
@@ -97,7 +119,8 @@ export function AccountsPage() {
             {accounts.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7}>
-                  <Text italic>No accounts added yet. Click &quot;Add Account&quot; to get started.</Text>
+                  <Text italic>No accounts added yet. </Text>
+                  <Link to="#" onClick={(e) => { e.preventDefault(); handleOpenDialog(); }}>Add your first account</Link>
                 </TableCell>
               </TableRow>
             ) : (
@@ -131,7 +154,7 @@ export function AccountsPage() {
             <DialogTitle>Add Account</DialogTitle>
             <DialogContent>
               <div className={styles.form}>
-                <Field label="Account Name" required>
+                <Field label="Account Name" required validationMessage={!draft.name.trim() ? 'Account name is required' : undefined} validationState={!draft.name.trim() ? 'error' : 'none'}>
                   <Input
                     value={draft.name}
                     onChange={(_, data) => setDraft((d) => ({ ...d, name: data.value }))}
