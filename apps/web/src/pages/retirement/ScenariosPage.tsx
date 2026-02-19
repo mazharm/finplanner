@@ -22,10 +22,16 @@ import {
   DialogTrigger,
   Field,
   Input,
+  MessageBar,
+  MessageBarBody,
+  Spinner,
 } from '@fluentui/react-components';
-import { PlayRegular, AddRegular, DeleteRegular } from '@fluentui/react-icons';
+import { PlayRegular, AddRegular, DeleteRegular, ArrowSyncRegular } from '@fluentui/react-icons';
 import { useState, useCallback } from 'react';
 import { useRetirementStore } from '../../stores/retirement-store.js';
+import { useSharedStore } from '../../stores/shared-store.js';
+import { simulate } from '@finplanner/engine';
+import type { PlanInput } from '@finplanner/domain';
 import { formatCurrency } from '../../utils/format.js';
 import { generateId } from '../../utils/id.js';
 
@@ -37,10 +43,13 @@ const useStyles = makeStyles({
 
 export function ScenariosPage() {
   const styles = useStyles();
-  const { spending, taxes, market, strategy, scenarios, addScenario, removeScenario, setActiveScenario } = useRetirementStore();
+  const { spending, taxes, market, strategy, scenarios, addScenario, removeScenario, setActiveScenario, updateScenario, setLatestResult } = useRetirementStore();
+  const { household, accounts, incomeStreams, adjustments } = useSharedStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [scenarioName, setScenarioName] = useState('');
   const [deleteScenarioId, setDeleteScenarioId] = useState<string | null>(null);
+  const [runningId, setRunningId] = useState<string | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
   const deleteScenario = scenarios.find((s) => s.id === deleteScenarioId);
 
   const handleCreate = useCallback(() => {
@@ -56,6 +65,33 @@ export function ScenariosPage() {
     setDialogOpen(false);
   }, [scenarioName, spending, taxes, market, strategy, scenarios.length, addScenario]);
 
+  const handleRun = useCallback((scenarioId: string) => {
+    const scen = scenarios.find((s) => s.id === scenarioId);
+    if (!scen) return;
+    setRunError(null);
+    setRunningId(scenarioId);
+    try {
+      const planInput: PlanInput = {
+        schemaVersion: '3.0.0',
+        household,
+        accounts,
+        otherIncome: incomeStreams,
+        adjustments,
+        spending: scen.spending,
+        taxes: scen.taxes,
+        market: scen.market,
+        strategy: scen.strategy,
+      };
+      const result = simulate(planInput);
+      updateScenario(scenarioId, { result, runAt: new Date().toISOString() });
+      setLatestResult(result);
+    } catch (err) {
+      setRunError(err instanceof Error ? err.message : 'Simulation failed');
+    } finally {
+      setRunningId(null);
+    }
+  }, [scenarios, household, accounts, incomeStreams, adjustments, updateScenario, setLatestResult]);
+
   return (
     <div className={styles.root}>
       <div className={styles.header}>
@@ -70,6 +106,11 @@ export function ScenariosPage() {
         Create what-if scenarios to compare different retirement strategies.
         Each scenario captures a snapshot of your current plan setup, assumptions, and strategy.
       </Text>
+      {runError && (
+        <MessageBar intent="error">
+          <MessageBarBody>{runError}</MessageBarBody>
+        </MessageBar>
+      )}
       <Card>
         <CardHeader header={<Text weight="semibold">Scenario Comparison</Text>} />
         <Table>
@@ -113,6 +154,15 @@ export function ScenariosPage() {
                       : '—'}
                   </TableCell>
                   <TableCell>
+                    <Button
+                      appearance="primary"
+                      icon={runningId === scen.id ? <Spinner size="tiny" /> : <ArrowSyncRegular />}
+                      size="small"
+                      disabled={runningId !== null}
+                      onClick={() => handleRun(scen.id)}
+                    >
+                      Run
+                    </Button>
                     <Button
                       appearance="subtle"
                       size="small"
