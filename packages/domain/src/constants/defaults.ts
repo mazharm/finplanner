@@ -7,6 +7,7 @@ export const STANDARD_DEDUCTIONS = {
   mfs: 15_000,
   hoh: 22_500,
   survivor: 30_000,
+  hoh: 22_500,
 } as const;
 
 export const EXTRA_DEDUCTION_SINGLE_65_PLUS = 1_550;

@@ -50,13 +50,18 @@ const defaultHousehold: HouseholdProfile = {
 // Module-level reference to store setter, populated on store creation
 let _setShared: ((partial: Partial<SharedState>) => void) | null = null;
 
+// Serialize IndexedDB writes to prevent race conditions from rapid successive mutations
+let _persistChain: Promise<void> = Promise.resolve();
+
 function persistShared(state: Pick<SharedState, 'household' | 'accounts' | 'incomeStreams' | 'adjustments'>) {
-  setAppState('shared', {
-    household: state.household,
-    accounts: state.accounts,
-    incomeStreams: state.incomeStreams,
-    adjustments: state.adjustments,
-  }).catch((err) => {
+  _persistChain = _persistChain.then(() =>
+    setAppState('shared', {
+      household: state.household,
+      accounts: state.accounts,
+      incomeStreams: state.incomeStreams,
+      adjustments: state.adjustments,
+    })
+  ).catch((err) => {
     console.error('[FinPlanner] IndexedDB operation failed:', err instanceof Error ? err.message : 'Unknown error');
     _setShared?.({ persistError: 'Failed to save data. Changes may be lost on page refresh.' });
   });
@@ -97,8 +102,12 @@ export const useSharedStore = create<SharedState>((set, _get) => {
       } else {
         set({ initialized: true });
       }
-    } catch {
-      set({ initialized: true });
+    } catch (err) {
+      console.error('[FinPlanner] Failed to load shared data from IndexedDB:', err instanceof Error ? err.message : 'Unknown error');
+      set({
+        initialized: true,
+        persistError: 'Failed to load saved data. Your previously saved data may not be available.',
+      });
     }
   },
 

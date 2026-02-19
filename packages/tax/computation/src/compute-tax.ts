@@ -24,6 +24,8 @@ export function computeTaxYearTaxes(
   const ordinary = computeOrdinaryIncome(record.income, record.filingStatus);
   const deduction = computeDeduction(record.deductions, totalGross);
 
+  const taxableOrdinary = Math.max(0, ordinary - deduction);
+
   // Capital gains/losses: net cap gains are taxed at preferential rates.
   // Per IRS rules, up to $3,000 ($1,500 MFS) of net capital losses can offset ordinary income.
   const netCapGains = Math.max(0, record.income.capitalGains - record.income.capitalLosses);
@@ -32,18 +34,19 @@ export function computeTaxYearTaxes(
   const capitalLossDeduction = Math.min(grossCapitalLossExcess, capitalLossDeductionCap);
   const excessCapitalLosses = Math.max(0, grossCapitalLossExcess - capitalLossDeduction);
 
-  const taxableOrdinary = Math.max(0, ordinary - deduction - capitalLossDeduction);
-
   const preferentialIncome = netCapGains + record.income.qualifiedDividends;
 
   const totalCredits = record.credits.childTaxCredit + record.credits.educationCredits +
     record.credits.foreignTaxCredit + record.credits.otherCredits;
 
+  // Apply capital loss deduction to reduce taxable ordinary income (IRS $3K rule)
+  const taxableOrdinaryAfterLoss = Math.max(0, taxableOrdinary - capitalLossDeduction);
+
   // Per spec §19.1 item 3: AMT / NIIT / phase-outs are not modeled.
   // Federal tax uses effective rates only (no SE tax, NIIT, or additional Medicare).
   const federalTax = Math.max(
     0,
-    (taxableOrdinary * config.federalEffectiveRatePct / 100) +
+    (taxableOrdinaryAfterLoss * config.federalEffectiveRatePct / 100) +
     (preferentialIncome * config.capGainsRatePct / 100) -
     totalCredits
   );

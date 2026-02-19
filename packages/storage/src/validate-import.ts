@@ -25,6 +25,7 @@ function compareVersions(v1: string, v2: string): number {
 
 const MAX_IMPORT_SIZE = 50 * 1024 * 1024; // 50 MB
 const MAX_RAW_PREVIEW_LENGTH = 200;
+const MAX_LINE_COUNT = 500_000;
 
 export function validateImport(ndjsonContent: string): ImportValidationResult {
   if (ndjsonContent.length > MAX_IMPORT_SIZE) {
@@ -35,6 +36,13 @@ export function validateImport(ndjsonContent: string): ImportValidationResult {
     };
   }
   const rawLines = ndjsonContent.split('\n');
+  if (rawLines.length > MAX_LINE_COUNT) {
+    return {
+      valid: false,
+      errors: [{ line: 0, message: `Import file has too many lines (${rawLines.length}, max ${MAX_LINE_COUNT})` }],
+      recordCounts: {},
+    };
+  }
   // Build a mapping from filtered index to original line number
   const lineMap: number[] = [];
   const lines: string[] = [];
@@ -102,20 +110,13 @@ export function validateImport(ndjsonContent: string): ImportValidationResult {
 
     const schema = getSchemaForType(type as import('@finplanner/domain').NdjsonRecordType);
     if (!schema) {
-      // Unknown record types are preserved by generateBackup for forward
-      // compatibility.  Rejecting them here would break round-trip fidelity,
-      // so we skip validation but enforce basic safety constraints.
-      const lineLength = lines[i].length;
-      if (lineLength > 100_000) {
-        errors.push({ line: lineNum, message: `Unknown record type "${type}" exceeds 100KB size limit (${lineLength} bytes)` });
-        continue;
-      }
-      recordCounts[type] = (recordCounts[type] ?? 0) + 1;
+      // Reject unknown record types to prevent injection of arbitrary unvalidated payloads
+      errors.push({ line: lineNum, message: `Unknown record type "${type}". Only known FinPlanner record types are accepted.` });
       continue;
     }
 
-    // Strip _type before validating against the schema (schemas don't include _type)
-    const data = Object.fromEntries(Object.entries(rec).filter(([k]) => k !== '_type'));
+    // Strip _type and __proto__ before validating against the schema
+    const { _type, __proto__: _proto, ...data } = rec;
     const result = schema.safeParse(data);
     if (!result.success) {
       errors.push({ line: lineNum, message: `Validation error for ${type}: ${result.error.message}` });

@@ -5,8 +5,8 @@ export const marketConfigSchema = z.object({
   simulationMode: simulationModeSchema,
   deterministicReturnPct: z.number().min(-100).max(100).optional(),
   deterministicInflationPct: z.number().min(-100).max(100).optional(),
-  historicalScenarioIds: z.array(z.string()).optional(),
-  stressScenarioIds: z.array(z.string()).optional(),
+  historicalScenarioIds: z.array(z.string()).max(100).optional(),
+  stressScenarioIds: z.array(z.string()).max(100).optional(),
   monteCarloRuns: z.number().int().min(1).max(10000).optional(),
 }).refine(
   (data) => data.simulationMode !== 'monteCarlo' || data.monteCarloRuns !== undefined,

@@ -10,9 +10,9 @@ import { strategyConfigSchema } from './strategy.js';
 export const planInputSchema = z.object({
   schemaVersion: z.string().regex(/^\d+\.\d+\.\d+(-[a-zA-Z0-9.]+)?$/, 'Must be valid semver'),
   household: householdProfileSchema,
-  accounts: z.array(accountSchema).min(1, 'At least one account is required'),
-  otherIncome: z.array(incomeStreamSchema),
-  adjustments: z.array(adjustmentSchema),
+  accounts: z.array(accountSchema).min(1, 'At least one account is required').max(200),
+  otherIncome: z.array(incomeStreamSchema).max(200),
+  adjustments: z.array(adjustmentSchema).max(200),
   spending: spendingPlanSchema,
   taxes: taxConfigSchema,
   market: marketConfigSchema,

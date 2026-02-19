@@ -28,7 +28,7 @@ export function sanitizeForLlm(text: string): string {
   // while avoiding collisions with 8-9 digit dollar amounts and ZIP+4 codes)
   result = result.replace(/\b\d{10,17}\b/g, '[ACCOUNT_REDACTED]');
   // US street addresses: number + street name + suffix (e.g., "123 Main St", "456 Oak Avenue Apt 7")
-  result = result.replace(/\b\d{1,6}\s+[A-Za-z][A-Za-z\s]{2,30}\b\s*(?:St(?:reet)?|Ave(?:nue)?|Blvd|Boulevard|Dr(?:ive)?|Ln|Lane|Rd|Road|Ct|Court|Pl|Place|Way|Cir(?:cle)?|Pkwy|Parkway|Ter(?:race)?)\b[^.\n]{0,30}/gi, '[ADDRESS_REDACTED]');
+  result = result.replace(/\b\d{1,6}\s+[A-Za-z][A-Za-z\s]{1,40}\b(?:St(?:reet)?|Ave(?:nue)?|Blvd|Boulevard|Dr(?:ive)?|Ln|Lane|Rd|Road|Ct|Court|Pl|Place|Way|Cir(?:cle)?|Pkwy|Parkway|Ter(?:race)?)\b[^,\n]{0,30}/gi, '[ADDRESS_REDACTED]');
   // ZIP codes with optional +4 (standalone, must appear with 5 digits, optional dash, 4 digits, and boundaries)
   // Tightened to require word boundaries and avoid replacing parts of other numbers.
   // Note: Simple 5-digit regex \b\d{5}\b matches 2024 (year) and 12345 (balance).
@@ -47,12 +47,24 @@ const NAME_FIELD_KEYS = /\b(name|employee|employer|payer|payee|recipient|taxpaye
  * Applies stricter redaction than sanitizeForLlm() — also catches unformatted 9-digit
  * SSN sequences and personal names in name-like field keys.
  */
+/** Field keys that contain PII and should be redacted entirely from extracted fields. */
+const PII_FIELD_KEYS = new Set([
+  'employeename', 'employername', 'payername', 'recipientname',
+  'name', 'address', 'employeeaddress', 'employeraddress',
+  'payeraddress', 'recipientaddress', 'city', 'state', 'zip',
+  'employernameline1', 'employernameline2', 'recipientnameline1',
+]);
 
 function sanitizeExtractedFields(
   fields: Record<string, number | string>,
 ): Record<string, number | string> {
   const sanitized: Record<string, number | string> = {};
   for (const [key, value] of Object.entries(fields)) {
+    // Skip fields whose keys indicate PII content (names, addresses)
+    if (PII_FIELD_KEYS.has(key.toLowerCase())) {
+      sanitized[key] = '[PII_REDACTED]';
+      continue;
+    }
     if (typeof value === 'string') {
       let result = sanitizeForLlm(value);
       // In tax document fields, unformatted 9-digit sequences are likely SSNs/TINs

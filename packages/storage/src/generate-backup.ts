@@ -25,7 +25,11 @@ function isSensitiveField(key: string): boolean {
     lower.includes('secret') || lower.includes('token') ||
     lower.includes('password') || lower.includes('credential') ||
     lower.includes('accesstoken') || lower.includes('access_token') ||
-    lower.includes('authkey') || lower.includes('auth_key');
+    lower.includes('authkey') || lower.includes('auth_key') ||
+    lower.includes('ssn') || lower.includes('socialsecuritynumber') ||
+    lower.includes('social_security_number') ||
+    lower.includes('private_key') || lower.includes('privatekey') ||
+    lower.includes('pin') || lower.includes('passcode');
 }
 
 /** Recursively strip fields that look like secrets/credentials from any depth */
@@ -87,7 +91,7 @@ export function generateBackup(files: OneDriveFile[]): BackupResult {
       } else {
         const recordId = record.id as string | undefined;
         if (recordId) {
-          dedupKey = `id:${recordId}`;
+          dedupKey = `id:${type}:${recordId}`;
         }
       }
 

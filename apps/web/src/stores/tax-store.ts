@@ -35,13 +35,18 @@ interface TaxState {
 
 let _setTax: ((partial: Partial<TaxState>) => void) | null = null;
 
+// Serialize IndexedDB writes to prevent race conditions from rapid successive mutations
+let _persistChain: Promise<void> = Promise.resolve();
+
 function persistTax(state: Pick<TaxState, 'taxYears' | 'documents' | 'checklistItems' | 'anomalies'>) {
-  setAppState('tax', {
-    taxYears: state.taxYears,
-    documents: state.documents,
-    checklistItems: state.checklistItems,
-    anomalies: state.anomalies,
-  }).catch((err) => {
+  _persistChain = _persistChain.then(() =>
+    setAppState('tax', {
+      taxYears: state.taxYears,
+      documents: state.documents,
+      checklistItems: state.checklistItems,
+      anomalies: state.anomalies,
+    })
+  ).catch((err) => {
     console.error('[FinPlanner] IndexedDB operation failed:', err instanceof Error ? err.message : 'Unknown error');
     _setTax?.({ persistError: 'Failed to save tax data. Changes may be lost on page refresh.' });
   });
@@ -78,8 +83,12 @@ export const useTaxStore = create<TaxState>((set, _get) => {
       } else {
         set({ initialized: true });
       }
-    } catch {
-      set({ initialized: true });
+    } catch (err) {
+      console.error('[FinPlanner] Failed to load tax data from IndexedDB:', err instanceof Error ? err.message : 'Unknown error');
+      set({
+        initialized: true,
+        persistError: 'Failed to load saved tax data. Your previously saved data may not be available.',
+      });
     }
   },
 

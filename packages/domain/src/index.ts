@@ -20,7 +20,7 @@ export { normalizeIssuerName, tokenJaccardSimilarity, issuerNamesMatch } from '.
 
 // Constants
 export { SCHEMA_VERSION } from './constants/index.js';
-export { STATE_TAX_DATA, VALID_STATE_CODES, lookupState } from './constants/state-tax-data.js';
+export { STATE_TAX_DATA, VALID_STATE_CODES, lookupState, computeStateBracketTax } from './constants/state-tax-data.js';
 export {
   DEFAULT_FEDERAL_EFFECTIVE_RATE_PCT,
   DEFAULT_CAP_GAINS_RATE_PCT,

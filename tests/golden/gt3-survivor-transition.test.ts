@@ -151,15 +151,17 @@ describe('GT3: Survivor Transition Case', () => {
       }
     });
 
-    it('should have filingStatus = survivor for years 21-22', () => {
-      // survivorYearCount 1 and 2 -> 'survivor'
+    it('should have filingStatus = survivor for years 21-23', () => {
+      // IRS rules: year of death + 2 following years = 3 years of survivor status
+      // survivorYearCount 1, 2, and 3 -> 'survivor'
       expect(result.yearly[20].filingStatus).toBe('survivor');
       expect(result.yearly[21].filingStatus).toBe('survivor');
+      expect(result.yearly[22].filingStatus).toBe('survivor');
     });
 
-    it('should have filingStatus = single for years 23+', () => {
-      // survivorYearCount >= 3 -> 'single'
-      for (let i = 22; i < result.yearly.length; i++) {
+    it('should have filingStatus = single for years 24+', () => {
+      // survivorYearCount >= 4 -> 'single'
+      for (let i = 23; i < result.yearly.length; i++) {
         expect(result.yearly[i].filingStatus).toBe('single');
       }
     });

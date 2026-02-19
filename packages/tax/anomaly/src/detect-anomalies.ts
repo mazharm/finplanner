@@ -203,7 +203,14 @@ export function detectAnomalies(request: AnomalyDetectionRequest): AnomalyDetect
       totalIncomeChange: totalIncomeCurrent - totalIncomePrior,
       totalDeductionChange: totalDeductionsCurrent - totalDeductionsPrior,
       effectiveRateChange: (() => {
-        // Compute effective rates from available data instead of using potentially-zero stored rates
+        // Skip rate computation for records that haven't had taxes computed yet
+        // (draft/ready records often have zero tax, producing misleading rate changes)
+        const currentHasTax = currentRecord.status === 'filed' || currentRecord.status === 'amended' ||
+          currentRecord.computedFederalTax !== 0 || currentRecord.computedStateTax !== 0;
+        const priorHasTax = priorRecord.status === 'filed' || priorRecord.status === 'amended' ||
+          priorRecord.computedFederalTax !== 0 || priorRecord.computedStateTax !== 0;
+        if (!currentHasTax || !priorHasTax) return 0;
+
         const currentTotalIncome = computeTotalIncome(currentRecord.income);
         const priorTotalIncome = computeTotalIncome(priorRecord.income);
         const currentEffRate = currentTotalIncome > 0

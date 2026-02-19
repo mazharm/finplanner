@@ -1,11 +1,14 @@
 import { z } from 'zod';
 import { accountTypeSchema, ownerSchema } from './common.js';
 
+/** Upper bound for financial amounts: just below Number.MAX_SAFE_INTEGER */
+const MAX_FINANCIAL_AMOUNT = 1e15; // $1 quadrillion — well within safe integer range
+
 export const deferredCompScheduleSchema = z.object({
   startYear: z.number().int().min(1900).max(2200),
   endYear: z.number().int().min(1900).max(2200),
   frequency: z.enum(['annual', 'monthly']),
-  amount: z.number().min(0),
+  amount: z.number().finite().min(0).max(MAX_FINANCIAL_AMOUNT),
   inflationAdjusted: z.boolean(),
 }).refine(
   (data) => data.startYear <= data.endYear,
@@ -17,12 +20,12 @@ export const accountSchema = z.object({
   name: z.string().min(1).max(200),
   type: accountTypeSchema,
   owner: ownerSchema,
-  currentBalance: z.number().min(0),
-  costBasis: z.number().min(0).optional(),
-  expectedReturnPct: z.number().min(-100).max(100),
-  volatilityPct: z.number().min(0).max(100).optional(),
-  feePct: z.number().min(0).max(10),
-  targetAllocationPct: z.number().min(0).max(100).optional(),
+  currentBalance: z.number().finite().min(0).max(MAX_FINANCIAL_AMOUNT),
+  costBasis: z.number().finite().min(0).max(MAX_FINANCIAL_AMOUNT).optional(),
+  expectedReturnPct: z.number().finite().min(-100).max(100),
+  volatilityPct: z.number().finite().min(0).max(100).optional(),
+  feePct: z.number().finite().min(0).max(10),
+  targetAllocationPct: z.number().finite().min(0).max(100).optional(),
   deferredCompSchedule: deferredCompScheduleSchema.optional(),
 }).refine(
   (data) => data.owner !== 'joint' || data.type === 'taxable',

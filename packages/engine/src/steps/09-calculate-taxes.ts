@@ -2,6 +2,7 @@ import type { PlanInput, FilingStatus } from '@finplanner/domain';
 import {
   DEFAULT_FEDERAL_EFFECTIVE_RATE_PCT,
   DEFAULT_CAP_GAINS_RATE_PCT,
+  computeStateBracketTax,
 } from '@finplanner/domain';
 import type { TaxResult, MandatoryIncome } from '../types.js';
 import { computeTaxableSS } from '../helpers/ss-taxation.js';
@@ -143,7 +144,13 @@ function computeStateTax(
   }
   const stateTaxableOrdinary = Math.max(0, stateOrdinaryIncome - stateDeduction);
 
-  const stateOrdinaryTax = stateTaxableOrdinary * (stateIncomeRate / 100);
+  // Use progressive brackets when available and no explicit rate override
+  let stateOrdinaryTax: number;
+  if (stateEffectiveRateOverride === undefined && stateInfo?.brackets) {
+    stateOrdinaryTax = computeStateBracketTax(stateTaxableOrdinary, stateInfo);
+  } else {
+    stateOrdinaryTax = stateTaxableOrdinary * (stateIncomeRate / 100);
+  }
 
   // Apply state-specific capital gains adjustments (e.g., WA has $270K threshold
   // and excludes qualified dividends from its 7% cap gains tax).
