@@ -1,4 +1,3 @@
-import { SCHEMA_VERSION } from '@finplanner/domain';
 import { ndjsonHeaderSchema } from '@finplanner/validation';
 import type { ImportValidationResult, ImportLineError } from './types.js';
 import { getSchemaForType } from './ndjson-schemas.js';
@@ -55,7 +54,6 @@ export function validateImport(ndjsonContent: string): ImportValidationResult {
   }
   const errors: ImportLineError[] = [];
   const recordCounts: Record<string, number> = {};
-  let schemaVersion: string | undefined;
 
   if (lines.length === 0) {
     return { valid: false, errors: [{ line: 1, message: 'Empty file' }], recordCounts };
@@ -76,7 +74,7 @@ export function validateImport(ndjsonContent: string): ImportValidationResult {
     return { valid: false, errors, recordCounts };
   }
 
-  schemaVersion = headerResult.data.schemaVersion;
+  const schemaVersion = headerResult.data.schemaVersion;
 
   // Version check
   if (compareVersions(schemaVersion, '2.0.0') < 0) {

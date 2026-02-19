@@ -24,7 +24,7 @@ export const accountSchema = z.object({
   costBasis: z.number().finite().min(0).max(MAX_FINANCIAL_AMOUNT).optional(),
   expectedReturnPct: z.number().finite().min(-100).max(100),
   volatilityPct: z.number().finite().min(0).max(100).optional(),
-  feePct: z.number().finite().min(0).max(100),
+  feePct: z.number().finite().min(0).max(10),
   targetAllocationPct: z.number().finite().min(0).max(100).optional(),
   deferredCompSchedule: deferredCompScheduleSchema.optional(),
 }).refine(

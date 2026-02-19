@@ -120,7 +120,16 @@ export function TaxAdvicePage() {
     } catch (err) {
       if (abortController.signal.aborted) return;
       console.error('[FinPlanner] Tax advice error:', err instanceof Error ? err.message : 'Unknown error');
-      setError('Unable to get tax advice. Please check your API key and try again.');
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      if (message.includes('API key')) {
+        setError('Invalid API key. Please check your API key in Settings.');
+      } else if (message.includes('Hourly API request limit')) {
+        setError(message);
+      } else if (message.includes('timed out')) {
+        setError('Request timed out. Please try again.');
+      } else {
+        setError('Unable to get tax advice. Please check your network connection and API key.');
+      }
     } finally {
       if (!abortController.signal.aborted) {
         setLoading(false);

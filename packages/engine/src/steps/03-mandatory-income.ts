@@ -1,5 +1,5 @@
 import type { PlanInput, PersonProfile } from '@finplanner/domain';
-import type { SimulationState, AccountState, YearContext, MandatoryIncome } from '../types.js';
+import type { SimulationState, YearContext, MandatoryIncome } from '../types.js';
 // Note: getInflationRate is not directly called; pre-simulation inflation
 // uses plan.spending.inflationPct, and in-simulation uses cumulative prefix products.
 
@@ -17,14 +17,13 @@ export function computeMandatoryIncome(
   yearContext: YearContext
 ): MandatoryIncome {
   const { plan, yearIndex, scenarioInflation } = state;
-  const { calendarYear, primaryAlive, spouseAlive, isSurvivorPhase } = yearContext;
 
   let socialSecurityIncome = 0;
   let nqdcDistributions = 0;
   let pensionAndOtherIncome = 0;
   let adjustmentIncome = 0;
   let totalMandatoryTaxableOrdinary = 0;
-  let totalMandatoryTaxableCapGains = 0;
+  const totalMandatoryTaxableCapGains = 0;
 
   const cumulativeInflation = state.cumulativeInflationByYear;
 
@@ -106,8 +105,6 @@ function computeSocialSecurity(
   // In survivor phase: survivor gets max(own benefit, deceased's benefit)
   if (isSurvivorPhase && survivorId) {
     const deceasedProfile = survivorId === 'primary' ? household.spouse : household.primary;
-    const survivorProfile = survivorId === 'primary' ? household.primary : household.spouse;
-
     const survivorOwnBenefit = survivorId === 'primary' ? primarySS : spouseSS;
 
     if (deceasedProfile?.socialSecurity) {
@@ -295,7 +292,7 @@ function computeIncomeStreams(
   scenarioInflation?: number[],
   cumulativeInflation?: number[]
 ): { totalIncome: number; taxableOrdinary: number } {
-  const { calendarYear, primaryAlive, spouseAlive, isSurvivorPhase, survivorId } = yearContext;
+  const { calendarYear, primaryAlive, spouseAlive, isSurvivorPhase } = yearContext;
 
   let totalIncome = 0;
   let taxableOrdinary = 0;

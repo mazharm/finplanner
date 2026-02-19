@@ -7,5 +7,5 @@ export const spendingPlanSchema = z.object({
   inflationPct: z.number().finite().min(-100).max(100),
   floorAnnualSpend: z.number().finite().min(0).max(MAX_FINANCIAL_AMOUNT).optional(),
   ceilingAnnualSpend: z.number().finite().min(0).max(MAX_FINANCIAL_AMOUNT).optional(),
-  survivorSpendingAdjustmentPct: z.number().finite().min(0).max(100),
+  survivorSpendingAdjustmentPct: z.number().finite().min(10).max(100),
 });

@@ -29,7 +29,6 @@ function has1098Variant(text: string): boolean {
 }
 
 export function identifyFormType(text: string): FormIdentificationResult | null {
-  const upperText = text.toUpperCase();
   let bestMatch: FormIdentificationResult | null = null;
   let bestScore = 0;
 

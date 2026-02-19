@@ -15,6 +15,7 @@ import { ArrowImportRegular, DocumentRegular, ArrowExportRegular } from '@fluent
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useSharedStore } from '../stores/shared-store.js';
 import { useTaxStore } from '../stores/tax-store.js';
+import { useRetirementStore } from '../stores/retirement-store.js';
 import {
   householdProfileSchema,
   accountSchema,
@@ -22,6 +23,10 @@ import {
   adjustmentSchema,
   taxYearRecordSchema,
   taxDocumentSchema,
+  spendingPlanSchema,
+  taxConfigSchema,
+  marketConfigSchema,
+  strategyConfigSchema,
 } from '@finplanner/validation';
 import { generateBackup } from '@finplanner/storage';
 import type { OneDriveFile } from '@finplanner/storage';
@@ -89,10 +94,12 @@ export function DataImportPage() {
 
   const { setHousehold, addAccount, addIncomeStream, addAdjustment } = useSharedStore();
   const { addTaxYear, addDocument } = useTaxStore();
+  const { setSpending, setTaxes: setRetirementTaxes, setMarket, setStrategy } = useRetirementStore();
 
   const handleExport = useCallback(() => {
     const sharedState = useSharedStore.getState();
     const taxState = useTaxStore.getState();
+    const retirementState = useRetirementStore.getState();
 
     // Build NDJSON lines from current state
     const lines: string[] = [];
@@ -114,6 +121,11 @@ export function DataImportPage() {
     for (const doc of taxState.documents) {
       lines.push(JSON.stringify({ _type: 'taxDocument', ...doc }));
     }
+    // Retirement configuration
+    lines.push(JSON.stringify({ _type: 'retirementSpending', ...retirementState.spending }));
+    lines.push(JSON.stringify({ _type: 'retirementTaxes', ...retirementState.taxes }));
+    lines.push(JSON.stringify({ _type: 'retirementMarket', ...retirementState.market }));
+    lines.push(JSON.stringify({ _type: 'retirementStrategy', ...retirementState.strategy }));
 
     const file: OneDriveFile = { name: 'state.ndjson', content: lines.join('\n') };
     const { content } = generateBackup([file]);
@@ -154,7 +166,7 @@ export function DataImportPage() {
         result.types[parsed.type] = (result.types[parsed.type] ?? 0) + 1;
 
         try {
-          const { _type, ...data } = parsed.data;
+          const data = Object.fromEntries(Object.entries(parsed.data).filter(([k]) => k !== '_type'));
           switch (parsed.type) {
             case 'household': {
               const validated = householdProfileSchema.safeParse(data);
@@ -213,6 +225,30 @@ export function DataImportPage() {
               addDocument(validated.data);
               break;
             }
+            case 'retirementSpending': {
+              const validated = spendingPlanSchema.safeParse(data);
+              if (!validated.success) { result.errors.push(`Invalid retirementSpending: ${validated.error.message}`); break; }
+              setSpending(validated.data);
+              break;
+            }
+            case 'retirementTaxes': {
+              const validated = taxConfigSchema.safeParse(data);
+              if (!validated.success) { result.errors.push(`Invalid retirementTaxes: ${validated.error.message}`); break; }
+              setRetirementTaxes(validated.data);
+              break;
+            }
+            case 'retirementMarket': {
+              const validated = marketConfigSchema.safeParse(data);
+              if (!validated.success) { result.errors.push(`Invalid retirementMarket: ${validated.error.message}`); break; }
+              setMarket(validated.data);
+              break;
+            }
+            case 'retirementStrategy': {
+              const validated = strategyConfigSchema.safeParse(data);
+              if (!validated.success) { result.errors.push(`Invalid retirementStrategy: ${validated.error.message}`); break; }
+              setStrategy(validated.data);
+              break;
+            }
             case 'header':
               break;
             default:
@@ -225,7 +261,7 @@ export function DataImportPage() {
 
       return result;
     },
-    [setHousehold, addAccount, addIncomeStream, addAdjustment, addTaxYear, addDocument],
+    [setHousehold, addAccount, addIncomeStream, addAdjustment, addTaxYear, addDocument, setSpending, setRetirementTaxes, setMarket, setStrategy],
   );
 
   const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
@@ -303,12 +339,12 @@ export function DataImportPage() {
           onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
           onDragLeave={() => setDragActive(false)}
           onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
+          onClick={() => { if (!importing) fileInputRef.current?.click(); }}
+          onKeyDown={(e) => { if (!importing && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); fileInputRef.current?.click(); } }}
         >
           <DocumentRegular fontSize={48} />
           <Text>{dragActive ? 'Drop files here...' : 'Drag and drop NDJSON files here, or click to browse.'}</Text>
-          <Button appearance="primary" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}>
+          <Button appearance="primary" disabled={importing} onClick={(e) => { e.stopPropagation(); if (!importing) fileInputRef.current?.click(); }}>
             Browse Files
           </Button>
           <input
@@ -316,12 +352,14 @@ export function DataImportPage() {
             type="file"
             accept=".ndjson,.jsonl"
             multiple
+            disabled={importing}
             aria-label="Upload NDJSON backup files"
             style={{ display: 'none' }}
             onChange={(e) => { if (e.target.files) handleFiles(e.target.files); }}
           />
         </div>
         {importing && <ProgressBar value={progress} />}
+        {importing && <Text size={200}>Importing files... Do not close this page.</Text>}
       </Card>
       <Card>
         <CardHeader
@@ -340,6 +378,11 @@ export function DataImportPage() {
       {results.length > 0 && (
         <Card>
           <CardHeader header={<Text weight="semibold">Import Results</Text>} />
+          {results.every(r => r.errors.length === 0) && results.some(r => r.recordCount > 0) && (
+            <MessageBar intent="success">
+              <MessageBarBody>Import completed successfully.</MessageBarBody>
+            </MessageBar>
+          )}
           <div className={styles.results}>
             {results.map((r, i) => (
               <div key={i}>

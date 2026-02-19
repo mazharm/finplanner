@@ -22,6 +22,7 @@ import {
 import { SettingsRegular, KeyRegular, CloudRegular, DeleteRegular } from '@fluentui/react-icons';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useSettingsStore } from '../stores/settings-store.js';
+import { useSharedStore } from '../stores/shared-store.js';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
@@ -34,10 +35,16 @@ const useStyles = makeStyles({
 export function SettingsPage() {
   const styles = useStyles();
   const { hasApiKey, syncStatus, setClaudeApiKey, clearClaudeApiKey, clearAllData } = useSettingsStore();
+  const sharedPersistError = useSharedStore((s) => s.persistError);
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [isSavingKey, setIsSavingKey] = useState(false);
+  const [isClearingKey, setIsClearingKey] = useState(false);
+  const [isClearingAll, setIsClearingAll] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
+  const [clearAllConfirmText, setClearAllConfirmText] = useState('');
   const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
@@ -48,35 +55,47 @@ export function SettingsPage() {
 
   const handleSaveKey = useCallback(async () => {
     if (apiKeyInput.trim()) {
+      setIsSavingKey(true);
       try {
+        setSaveError('');
         await setClaudeApiKey(apiKeyInput.trim());
         setApiKeyInput('');
         setSaved(true);
         clearTimeout(savedTimerRef.current);
         savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
-      } catch {
-        // Error already logged in the store action
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : 'Failed to save API key. Please try again.');
+      } finally {
+        setIsSavingKey(false);
       }
     }
   }, [apiKeyInput, setClaudeApiKey]);
 
   const handleClearKey = useCallback(async () => {
+    setIsClearingKey(true);
     try {
       await clearClaudeApiKey();
       setSaved(false);
+      setSaveError('');
       setConfirmClear(false);
-    } catch {
-      // Error already logged in the store action
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to clear API key');
+    } finally {
+      setIsClearingKey(false);
     }
   }, [clearClaudeApiKey]);
 
   const handleClearAll = useCallback(async () => {
+    setIsClearingAll(true);
     try {
       await clearAllData();
       setConfirmClearAll(false);
       setSaved(false);
-    } catch {
-      // Error already logged in the store action
+      setSaveError('');
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to clear all data');
+    } finally {
+      setIsClearingAll(false);
     }
   }, [clearAllData]);
 
@@ -88,6 +107,16 @@ export function SettingsPage() {
       {saved && (
         <MessageBar intent="success">
           <MessageBarBody>API key saved to IndexedDB.</MessageBarBody>
+        </MessageBar>
+      )}
+      {saveError && (
+        <MessageBar intent="error">
+          <MessageBarBody>{saveError}</MessageBarBody>
+        </MessageBar>
+      )}
+      {sharedPersistError && (
+        <MessageBar intent="error">
+          <MessageBarBody>{sharedPersistError}</MessageBarBody>
         </MessageBar>
       )}
       <Card>
@@ -111,8 +140,8 @@ export function SettingsPage() {
                 onChange={(_, data) => setApiKeyInput(data.value)}
               />
             </Field>
-            <Button appearance="primary" icon={<KeyRegular />} onClick={handleSaveKey} disabled={!apiKeyInput.trim()}>
-              Save
+            <Button appearance="primary" icon={<KeyRegular />} onClick={handleSaveKey} disabled={!apiKeyInput.trim() || isSavingKey}>
+              {isSavingKey ? 'Saving...' : 'Save'}
             </Button>
           </div>
           {hasApiKey && (
@@ -163,19 +192,22 @@ export function SettingsPage() {
         </div>
       </Card>
 
-      <Dialog open={confirmClearAll} onOpenChange={(_, data) => { if (!data.open) setConfirmClearAll(false); }}>
+      <Dialog open={confirmClearAll} onOpenChange={(_, data) => { if (!data.open) { setConfirmClearAll(false); setClearAllConfirmText(''); } }}>
         <DialogSurface>
           <DialogBody>
             <DialogTitle>Clear All Data</DialogTitle>
             <DialogContent>
-              This will permanently delete all locally stored data, including your API key, cached files, tax records, and household information. This cannot be undone.
+              <Text>This will permanently delete all locally stored data, including your API key, cached files, tax records, and household information. This cannot be undone.</Text>
+              <Field label='Type "DELETE" to confirm' style={{ marginTop: '12px' }}>
+                <Input value={clearAllConfirmText} onChange={(_, data) => setClearAllConfirmText(data.value)} placeholder="DELETE" />
+              </Field>
             </DialogContent>
             <DialogActions>
               <DialogTrigger disableButtonEnhancement>
                 <Button appearance="secondary">Cancel</Button>
               </DialogTrigger>
-              <Button appearance="primary" onClick={handleClearAll}>
-                Clear Everything
+               <Button appearance="primary" onClick={handleClearAll} disabled={clearAllConfirmText !== 'DELETE' || isClearingAll}>
+                {isClearingAll ? 'Clearing...' : 'Clear Everything'}
               </Button>
             </DialogActions>
           </DialogBody>
@@ -193,9 +225,9 @@ export function SettingsPage() {
               <DialogTrigger disableButtonEnhancement>
                 <Button appearance="secondary">Cancel</Button>
               </DialogTrigger>
-              <Button appearance="primary" onClick={handleClearKey}>
-                Clear
-              </Button>
+               <Button appearance="primary" onClick={handleClearKey} disabled={isClearingKey}>
+                 {isClearingKey ? 'Clearing...' : 'Clear'}
+               </Button>
             </DialogActions>
           </DialogBody>
         </DialogSurface>

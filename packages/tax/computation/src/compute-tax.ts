@@ -26,11 +26,13 @@ export function computeTaxYearTaxes(
 
   const taxableOrdinary = Math.max(0, ordinary - deduction);
 
-  // IRS rules: excess capital losses can offset up to $3,000 of ordinary income per year.
-  // (Filing status 'mfj' also uses $3,000; $1,500 for married filing separately is not modeled.)
+  // Capital gains/losses: net cap gains are taxed at preferential rates.
+  // Per IRS rules, up to $3,000 ($1,500 MFS) of net capital losses can offset ordinary income.
   const netCapGains = Math.max(0, record.income.capitalGains - record.income.capitalLosses);
-  const excessCapitalLosses = Math.max(0, record.income.capitalLosses - record.income.capitalGains);
-  const capitalLossDeduction = Math.min(excessCapitalLosses, 3_000);
+  const grossCapitalLossExcess = Math.max(0, record.income.capitalLosses - record.income.capitalGains);
+  const capitalLossDeductionCap = record.filingStatus === 'mfs' ? 1_500 : 3_000;
+  const capitalLossDeduction = Math.min(grossCapitalLossExcess, capitalLossDeductionCap);
+  const excessCapitalLosses = Math.max(0, grossCapitalLossExcess - capitalLossDeduction);
 
   const preferentialIncome = netCapGains + record.income.qualifiedDividends;
 

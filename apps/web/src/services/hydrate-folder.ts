@@ -50,9 +50,15 @@ interface Scenario {
   runAt?: string;
 }
 
-function parseNdjsonLines(content: string): Array<{ type: string; data: Record<string, unknown> }> {
+function parseNdjsonLines(
+  content: string,
+  sourcePath: string,
+  warnings: string[],
+): Array<{ type: string; data: Record<string, unknown> }> {
   const records: Array<{ type: string; data: Record<string, unknown> }> = [];
+  let lineNumber = 0;
   for (const line of content.split('\n')) {
+    lineNumber++;
     const trimmed = line.trim();
     if (!trimmed) continue;
     try {
@@ -60,7 +66,7 @@ function parseNdjsonLines(content: string): Array<{ type: string; data: Record<s
       const type = (parsed._type as string) ?? 'unknown';
       records.push({ type, data: parsed });
     } catch {
-      // Skip unparseable lines — will be reported as warnings
+      warnings.push(`Skipped malformed JSON line ${lineNumber} in ${sourcePath}`);
     }
   }
   return records;
@@ -69,7 +75,7 @@ function parseNdjsonLines(content: string): Array<{ type: string; data: Record<s
 function validateRecord(type: string, data: Record<string, unknown>): { valid: boolean; parsed: unknown } {
   const schema = getSchemaForType(type as NdjsonRecordType);
   if (!schema) return { valid: false, parsed: null };
-  const { _type, ...rest } = data;
+  const rest = Object.fromEntries(Object.entries(data).filter(([k]) => k !== '_type'));
   const result = schema.safeParse(rest);
   return { valid: result.success, parsed: result.success ? result.data : null };
 }
@@ -89,7 +95,7 @@ export async function hydrateFromFolder(reader: FolderReader): Promise<Hydration
 
   const corpusContent = await reader.readFile('shared/corpus.ndjson');
   if (corpusContent) {
-    for (const { type, data } of parseNdjsonLines(corpusContent)) {
+    for (const { type, data } of parseNdjsonLines(corpusContent, 'shared/corpus.ndjson', warnings)) {
       if (type === 'header') continue;
       const { valid, parsed } = validateRecord(type, data);
       if (!valid) {
@@ -125,7 +131,7 @@ export async function hydrateFromFolder(reader: FolderReader): Promise<Hydration
       // record.ndjson → taxYear + taxDocument
       const recordContent = await reader.readFile(`${yearPath}/record.ndjson`);
       if (recordContent) {
-        for (const { type, data } of parseNdjsonLines(recordContent)) {
+        for (const { type, data } of parseNdjsonLines(recordContent, `tax/${yearName}/record.ndjson`, warnings)) {
           if (type === 'header') continue;
           const { valid, parsed } = validateRecord(type, data);
           if (!valid) {
@@ -140,7 +146,7 @@ export async function hydrateFromFolder(reader: FolderReader): Promise<Hydration
       // checklist.ndjson
       const checklistContent = await reader.readFile(`${yearPath}/checklist.ndjson`);
       if (checklistContent) {
-        for (const { type, data } of parseNdjsonLines(checklistContent)) {
+        for (const { type, data } of parseNdjsonLines(checklistContent, `tax/${yearName}/checklist.ndjson`, warnings)) {
           if (type === 'header') continue;
           const { valid, parsed } = validateRecord(type, data);
           if (!valid) { warnings.push(`Skipped invalid checklistItem in tax/${yearName}/checklist.ndjson`); continue; }
@@ -151,7 +157,7 @@ export async function hydrateFromFolder(reader: FolderReader): Promise<Hydration
       // anomalies.ndjson
       const anomaliesContent = await reader.readFile(`${yearPath}/anomalies.ndjson`);
       if (anomaliesContent) {
-        for (const { type, data } of parseNdjsonLines(anomaliesContent)) {
+        for (const { type, data } of parseNdjsonLines(anomaliesContent, `tax/${yearName}/anomalies.ndjson`, warnings)) {
           if (type === 'header') continue;
           const { valid, parsed } = validateRecord(type, data);
           if (!valid) { warnings.push(`Skipped invalid anomaly in tax/${yearName}/anomalies.ndjson`); continue; }
@@ -169,7 +175,7 @@ export async function hydrateFromFolder(reader: FolderReader): Promise<Hydration
 
   const planContent = await reader.readFile('retirement/plan.ndjson');
   if (planContent) {
-    for (const { type, data } of parseNdjsonLines(planContent)) {
+    for (const { type, data } of parseNdjsonLines(planContent, 'retirement/plan.ndjson', warnings)) {
       if (type === 'header') continue;
       if (type === 'retirementPlan') {
         const { valid, parsed } = validateRecord(type, data);
@@ -199,7 +205,7 @@ export async function hydrateFromFolder(reader: FolderReader): Promise<Hydration
       const resultContent = await reader.readFile(`retirement/results/${fileName}`);
       if (!resultContent) continue;
 
-      for (const { type, data } of parseNdjsonLines(resultContent)) {
+      for (const { type, data } of parseNdjsonLines(resultContent, `retirement/results/${fileName}`, warnings)) {
         if (type === 'header') continue;
         if (type === 'simulationResult') {
           const { valid, parsed } = validateRecord(type, data);

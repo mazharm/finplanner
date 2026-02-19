@@ -3,14 +3,12 @@ import type { AnonymizedPortfolioContext, AnonymizedTaxContext } from './types.j
 
 /**
  * Sanitize a string value for LLM consumption by redacting PII patterns:
- *  - SSNs (XXX-XX-XXXX or XXX XX XXXX formatted patterns)
+ *  - SSNs (XXX-XX-XXXX, XXX XX XXXX, or unformatted 9-digit patterns)
  *  - EINs (XX-XXXXXXX)
  *  - Bank/routing account numbers (sequences of 10+ digits)
  *
- * Note: Unformatted 9-digit SSNs (e.g., "123456789") are NOT redacted here
- * to avoid false positives with ZIP+4 codes and financial amounts. Use
- * sanitizeExtractedFields() for tax document fields where 9-digit sequences
- * are more likely to be SSNs.
+ * Note: Unformatted 9-digit SSN redaction may produce false positives with
+ * ZIP+4 codes and financial amounts, but privacy is prioritized.
  */
 export function sanitizeForLlm(text: string): string {
   let result = text;
@@ -19,6 +17,8 @@ export function sanitizeForLlm(text: string): string {
   result = result.replace(/\b\d{3}\s\d{2}\s\d{4}\b/g, '[SSN_REDACTED]');
   // EIN patterns: 12-3456789
   result = result.replace(/\b\d{2}-\d{7}\b/g, '[EIN_REDACTED]');
+  // Unformatted 9-digit SSNs/TINs
+  result = result.replace(/\b\d{9}\b/g, '[SSN_REDACTED]');
   // Email addresses
   result = result.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, '[EMAIL_REDACTED]');
   // US phone numbers: (123) 456-7890, 123-456-7890, 123.456.7890, +1-123-456-7890
@@ -28,16 +28,24 @@ export function sanitizeForLlm(text: string): string {
   // while avoiding collisions with 8-9 digit dollar amounts and ZIP+4 codes)
   result = result.replace(/\b\d{10,17}\b/g, '[ACCOUNT_REDACTED]');
   // US street addresses: number + street name + suffix (e.g., "123 Main St", "456 Oak Avenue Apt 7")
-  result = result.replace(/\b\d{1,6}\s+[A-Za-z][A-Za-z\s]{1,40}\b(?:St(?:reet)?|Ave(?:nue)?|Blvd|Boulevard|Dr(?:ive)?|Ln|Lane|Rd|Road|Ct|Court|Pl|Place|Way|Cir(?:cle)?|Pkwy|Parkway)\b[^,\n]{0,30}/gi, '[ADDRESS_REDACTED]');
-  // US ZIP codes (standalone 5-digit or ZIP+4)
-  result = result.replace(/\b\d{5}(?:-\d{4})?\b/g, '[ZIP_REDACTED]');
+  result = result.replace(/\b\d{1,6}\s+[A-Za-z][A-Za-z\s]{1,40}\b(?:St(?:reet)?|Ave(?:nue)?|Blvd|Boulevard|Dr(?:ive)?|Ln|Lane|Rd|Road|Ct|Court|Pl|Place|Way|Cir(?:cle)?|Pkwy|Parkway|Ter(?:race)?)\b[^,\n]{0,30}/gi, '[ADDRESS_REDACTED]');
+  // ZIP codes with optional +4 (standalone, must appear with 5 digits, optional dash, 4 digits, and boundaries)
+  // Tightened to require word boundaries and avoid replacing parts of other numbers.
+  // Note: Simple 5-digit regex \b\d{5}\b matches 2024 (year) and 12345 (balance).
+  // We only redact ZIPs if they look strictly like ZIP+4 or are identified in a context
+  // (but context is hard here). For now, we only redact ZIP+4 to avoid year/balance false positives.
+  // Standard 5-digit ZIPs without context are indistinguishable from years/amounts.
+  result = result.replace(/\b\d{5}-\d{4}\b/g, '[ZIP_REDACTED]');
   return result;
 }
+
+/** Keys in extracted fields that typically contain personal names. */
+const NAME_FIELD_KEYS = /\b(name|employee|employer|payer|payee|recipient|taxpayer|spouse|beneficiary|owner)\b/i;
 
 /**
  * Sanitize extractedFields record: redact PII from string values, pass numbers through.
  * Applies stricter redaction than sanitizeForLlm() — also catches unformatted 9-digit
- * SSN sequences, which are common in tax document extracted fields.
+ * SSN sequences and personal names in name-like field keys.
  */
 /** Field keys that contain PII and should be redacted entirely from extracted fields. */
 const PII_FIELD_KEYS = new Set([
@@ -61,6 +69,10 @@ function sanitizeExtractedFields(
       let result = sanitizeForLlm(value);
       // In tax document fields, unformatted 9-digit sequences are likely SSNs/TINs
       result = result.replace(/\b\d{9}\b/g, '[SSN_REDACTED]');
+      // Redact values in fields whose key suggests a personal name
+      if (NAME_FIELD_KEYS.test(key)) {
+        result = '[NAME_REDACTED]';
+      }
       sanitized[key] = result;
     } else {
       sanitized[key] = value;
@@ -94,7 +106,7 @@ export function stripPortfolioPii(request: PortfolioAdviceRequest): AnonymizedPo
   let ownerCounter = 0;
   function anonymizeOwner(owner: string): string {
     if (!ownerLabels.has(owner)) {
-      ownerLabels.set(owner, `Owner ${String.fromCharCode(65 + ownerCounter++)}`);
+      ownerLabels.set(owner, `Owner ${String.fromCharCode(65 + (ownerCounter++ % 26))}`);
     }
     return ownerLabels.get(owner)!;
   }

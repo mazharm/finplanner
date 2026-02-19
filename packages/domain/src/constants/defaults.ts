@@ -4,6 +4,8 @@ export const DEFAULT_CAP_GAINS_RATE_PCT = 15;
 export const STANDARD_DEDUCTIONS = {
   single: 15_000,
   mfj: 30_000,
+  mfs: 15_000,
+  hoh: 22_500,
   survivor: 30_000,
   hoh: 22_500,
 } as const;
@@ -16,6 +18,7 @@ export const SS_PROVISIONAL_INCOME_THRESHOLDS = {
   survivor: { lower: 32_000, upper: 44_000, midBandCap: 6_000 },
   single: { lower: 25_000, upper: 34_000, midBandCap: 4_500 },
   hoh: { lower: 25_000, upper: 34_000, midBandCap: 4_500 },
+  mfs: { lower: 0, upper: 0, midBandCap: 0 },
 } as const;
 
 export const WITHDRAWAL_CONVERGENCE_THRESHOLD = 100;

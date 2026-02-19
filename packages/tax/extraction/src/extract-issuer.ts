@@ -11,7 +11,7 @@ function cleanIssuerName(raw: string): string {
   return name.trim();
 }
 
-export function extractIssuerName(text: string, formType?: string): string {
+export function extractIssuerName(text: string, _formType?: string): string {
   // Common labels for issuer/payer/employer name
   const labels = [
     /(?:employer'?s?\s+name|employer\s+information)[:\s]*([^\n]+)/i,

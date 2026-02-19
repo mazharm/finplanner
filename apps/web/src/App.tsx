@@ -100,24 +100,24 @@ export function App() {
       <BrowserRouter>
         <AppShell theme={theme} onToggleTheme={toggleTheme}>
           <Routes>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/customer" element={<CustomerFolderPage />} />
-            <Route path="/household" element={<HouseholdPage />} />
-            <Route path="/accounts" element={<AccountsPage />} />
-            <Route path="/import" element={<DataImportPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/tax" element={<TaxYearsPage />} />
-            <Route path="/tax/:year" element={<TaxYearDetailPage />} />
-            <Route path="/tax/import" element={<DocumentImportPage />} />
-            <Route path="/tax/checklist" element={<TaxChecklistPage />} />
-            <Route path="/tax/analysis" element={<YearOverYearPage />} />
-            <Route path="/tax/advice" element={<TaxAdvicePage />} />
-            <Route path="/retirement/setup" element={<PlanSetupPage />} />
-            <Route path="/retirement/income" element={<IncomeSocialSecurityPage />} />
-            <Route path="/retirement/assumptions" element={<AssumptionsPage />} />
-            <Route path="/retirement/scenarios" element={<ScenariosPage />} />
-            <Route path="/retirement/results" element={<ResultsDashboardPage />} />
-            <Route path="/retirement/advice" element={<RetirementAdvicePage />} />
+            <Route path="/" element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
+            <Route path="/customer" element={<ErrorBoundary><CustomerFolderPage /></ErrorBoundary>} />
+            <Route path="/household" element={<ErrorBoundary><HouseholdPage /></ErrorBoundary>} />
+            <Route path="/accounts" element={<ErrorBoundary><AccountsPage /></ErrorBoundary>} />
+            <Route path="/import" element={<ErrorBoundary><DataImportPage /></ErrorBoundary>} />
+            <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
+            <Route path="/tax" element={<ErrorBoundary><TaxYearsPage /></ErrorBoundary>} />
+            <Route path="/tax/:year" element={<ErrorBoundary><TaxYearDetailPage /></ErrorBoundary>} />
+            <Route path="/tax/import" element={<ErrorBoundary><DocumentImportPage /></ErrorBoundary>} />
+            <Route path="/tax/checklist" element={<ErrorBoundary><TaxChecklistPage /></ErrorBoundary>} />
+            <Route path="/tax/analysis" element={<ErrorBoundary><YearOverYearPage /></ErrorBoundary>} />
+            <Route path="/tax/advice" element={<ErrorBoundary><TaxAdvicePage /></ErrorBoundary>} />
+            <Route path="/retirement/setup" element={<ErrorBoundary><PlanSetupPage /></ErrorBoundary>} />
+            <Route path="/retirement/income" element={<ErrorBoundary><IncomeSocialSecurityPage /></ErrorBoundary>} />
+            <Route path="/retirement/assumptions" element={<ErrorBoundary><AssumptionsPage /></ErrorBoundary>} />
+            <Route path="/retirement/scenarios" element={<ErrorBoundary><ScenariosPage /></ErrorBoundary>} />
+            <Route path="/retirement/results" element={<ErrorBoundary><ResultsDashboardPage /></ErrorBoundary>} />
+            <Route path="/retirement/advice" element={<ErrorBoundary><RetirementAdvicePage /></ErrorBoundary>} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </AppShell>

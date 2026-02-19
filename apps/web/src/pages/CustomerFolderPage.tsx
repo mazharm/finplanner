@@ -23,6 +23,8 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LocalFolderReader } from '../services/folder-reader.js';
 import { hydrateFromFolder, type HydrationResult } from '../services/hydrate-folder.js';
+import { useSharedStore } from '../stores/shared-store.js';
+import { useTaxStore } from '../stores/tax-store.js';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
@@ -42,6 +44,9 @@ const supportsDirectoryPicker = typeof window !== 'undefined' && 'showDirectoryP
 export function CustomerFolderPage() {
   const styles = useStyles();
   const navigate = useNavigate();
+  const accountCount = useSharedStore((s) => s.accounts.length);
+  const taxYearCount = useTaxStore((s) => s.taxYears.length);
+  const incomeStreamCount = useSharedStore((s) => s.incomeStreams.length);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<HydrationResult | null>(null);
@@ -194,7 +199,14 @@ export function CustomerFolderPage() {
           <DialogBody>
             <DialogTitle>Load Customer Data</DialogTitle>
             <DialogContent>
-              This will replace all existing data (household, accounts, tax years, and retirement plans) with data from the selected folder. Any current data will be overwritten.
+              <Text>This will replace all existing data with data from the selected folder.</Text>
+              {(accountCount > 0 || taxYearCount > 0 || incomeStreamCount > 0) && (
+                <MessageBar intent="warning" style={{ marginTop: '8px' }}>
+                  <MessageBarBody>
+                    Current data that will be overwritten: {accountCount} account(s), {taxYearCount} tax year(s), {incomeStreamCount} income stream(s).
+                  </MessageBarBody>
+                </MessageBar>
+              )}
             </DialogContent>
             <DialogActions>
               <DialogTrigger disableButtonEnhancement>

@@ -17,6 +17,7 @@ import {
   TableCell,
   MessageBar,
   MessageBarBody,
+  Spinner,
 } from '@fluentui/react-components';
 import { DocumentRegular, ArrowImportRegular, CheckmarkRegular } from '@fluentui/react-icons';
 import { useRef, useCallback, useState, useEffect } from 'react';
@@ -59,6 +60,7 @@ export function DocumentImportPage() {
   const [dragActive, setDragActive] = useState(false);
   const { documents, addDocument, updateDocument } = useTaxStore();
   const [importMessage, setImportMessage] = useState('');
+  const [importing, setImporting] = useState(false);
   const [importTaxYear, setImportTaxYear] = useState(new Date().getFullYear() - 1);
 
   // Cleanup: abort any in-flight PDF imports on unmount
@@ -90,6 +92,7 @@ export function DocumentImportPage() {
       }
 
       const extractor = createPdfTextExtractor();
+      setImporting(true);
 
       for (const file of fileArray) {
         if (abortController.signal.aborted) return;
@@ -135,6 +138,7 @@ export function DocumentImportPage() {
         }
       }
 
+      setImporting(false);
       // Reset file input so re-selecting the same file triggers onChange
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -188,8 +192,8 @@ export function DocumentImportPage() {
           onClick={() => fileInputRef.current?.click()}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
         >
-          <ArrowImportRegular fontSize={48} />
-          <Text>{dragActive ? 'Drop PDF files here...' : 'Drag and drop PDF tax documents here, or click to browse.'}</Text>
+          {importing ? <Spinner size="medium" label="Extracting PDF data..." /> : <ArrowImportRegular fontSize={48} />}
+          <Text>{importing ? 'Processing PDF...' : dragActive ? 'Drop PDF files here...' : 'Drag and drop PDF tax documents here, or click to browse.'}</Text>
           <Text size={200}>Supported: W-2, 1099-INT, 1099-DIV, 1099-B, 1099-R, 1098</Text>
           <Button appearance="primary" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}>
             Browse PDFs

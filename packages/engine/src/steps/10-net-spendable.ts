@@ -68,7 +68,9 @@ export function computeNetSpendable(
 function depositSurplus(accounts: AccountState[], surplus: number): void {
   const taxableAccounts = accounts.filter(a => a.type === 'taxable');
   if (taxableAccounts.length === 0) {
-    // If no taxable account exists, the surplus is "spent" (consumed but not invested)
+    // No taxable account exists — surplus cannot be reinvested.
+    // This is logged as a warning so callers are aware.
+    console.warn('[FinPlanner] Surplus of', surplus, 'has no taxable account to deposit into and will not be reinvested.');
     return;
   }
   // Pick the taxable account with the largest balance

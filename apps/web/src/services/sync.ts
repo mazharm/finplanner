@@ -8,6 +8,10 @@
  *
  * Write flow: Store -> IndexedDB (immediate) -> OneDrive (async background)
  * Read flow: IndexedDB cache -> fallback to OneDrive -> update cache
+ *
+ * PRIVACY NOTE: Financial records synced to OneDrive include full account
+ * balances, tax records, and income information. Data is transmitted over
+ * HTTPS but is not additionally encrypted or PII-stripped before sync.
  */
 
 import type { OneDriveClient } from './onedrive.js';
@@ -242,10 +246,11 @@ export async function processSyncQueue(
       await removeFromSyncQueue(entry.id);
 
       if (entry.retries < MAX_RETRIES) {
-        // Re-queue with incremented retry count and fresh timestamp for backoff
+        // Re-queue with deterministic ID so a newer write to the same path
+        // will correctly replace this retry entry via IndexedDB put().
         await addToSyncQueue({
           ...entry,
-          id: `sync_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          id: `sync_write_${entry.path}`,
           retries: entry.retries + 1,
           queuedAt: new Date().toISOString(),
         });

@@ -4,6 +4,10 @@
  * Implements the LlmClient interface using direct fetch to the Anthropic API
  * with the `anthropic-dangerous-direct-browser-access` header.
  * The API key is retrieved from IndexedDB (never stored in localStorage or URLs).
+ *
+ * SECURITY WARNING: The API key is sent directly from the browser. This exposes
+ * it in browser DevTools and network logs. For production deployments, route
+ * LLM calls through a backend API proxy that holds the key server-side.
  */
 import type { LlmClient } from '@finplanner/claude';
 
@@ -18,6 +22,8 @@ const REQUEST_TIMEOUT_MS = 90_000;
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 529]);
 const MIN_REQUEST_INTERVAL_MS = 5_000;
 const MAX_REQUESTS_PER_HOUR = 50;
+const ALLOW_DIRECT_BROWSER_ACCESS =
+  import.meta.env.DEV || import.meta.env.VITE_ALLOW_DIRECT_BROWSER_ANTHROPIC_ACCESS === 'true';
 
 let lastRequestTime = 0;
 let requestCountThisHour = 0;
@@ -83,6 +89,11 @@ function parseRetryAfterHeader(header: string | null): number | null {
  * @param externalSignal - Optional AbortSignal for caller-initiated cancellation
  */
 export function createLlmClient(apiKey: string, modelId?: string, externalSignal?: AbortSignal): LlmClient {
+  if (!ALLOW_DIRECT_BROWSER_ACCESS) {
+    throw new Error(
+      'Direct browser Anthropic access is disabled. Configure a backend proxy or set VITE_ALLOW_DIRECT_BROWSER_ANTHROPIC_ACCESS=true.',
+    );
+  }
   if (!apiKey || apiKey.trim().length === 0) {
     throw new Error('API key is required');
   }
@@ -107,7 +118,8 @@ export function createLlmClient(apiKey: string, modelId?: string, externalSignal
       }
       requestCountThisHour++;
       if (requestCountThisHour > MAX_REQUESTS_PER_HOUR) {
-        throw new Error(`Hourly API request limit (${MAX_REQUESTS_PER_HOUR}) exceeded. Please wait before making more requests.`);
+        const minutesRemaining = Math.ceil((3_600_000 - (Date.now() - hourWindowStart)) / 60_000);
+        throw new Error(`Hourly API request limit (${MAX_REQUESTS_PER_HOUR}) exceeded. Window resets in ~${minutesRemaining} minute(s). ${MAX_REQUESTS_PER_HOUR - requestCountThisHour + 1} requests remaining.`);
       }
 
       const requestBody = JSON.stringify({

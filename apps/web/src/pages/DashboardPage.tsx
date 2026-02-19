@@ -5,6 +5,7 @@ import { useTaxStore } from '../stores/tax-store.js';
 import { useRetirementStore } from '../stores/retirement-store.js';
 import { formatCurrency } from '../utils/format.js';
 import { useSettingsStore } from '../stores/settings-store.js';
+import { Link } from 'react-router-dom';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
@@ -88,7 +89,7 @@ export function DashboardPage() {
               <div className={styles.statLabel}>{taxYears.length} tax year{taxYears.length !== 1 ? 's' : ''}</div>
             </>
           ) : (
-            <Text>No tax years configured yet.</Text>
+            <Text>No tax years configured yet. <Link to="/tax/years">Add a tax year</Link></Text>
           )}
         </Card>
         <Card>

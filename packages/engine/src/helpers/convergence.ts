@@ -40,7 +40,7 @@ export function iterateUntilConverged<T>(
 
     // Detect oscillation: if delta flips sign, increase damping
     const oscillating = i > 0 && Math.sign(delta) !== Math.sign(prevDelta) && Math.sign(prevDelta) !== 0;
-    const dampingFactor = oscillating ? 0.5 : 0.7;
+    const dampingFactor = oscillating ? 0.85 : 0.7;
     prevDelta = delta;
 
     taxEstimate = dampingFactor * actualTaxes + (1 - dampingFactor) * taxEstimate;

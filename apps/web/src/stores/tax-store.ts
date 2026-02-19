@@ -52,7 +52,7 @@ function persistTax(state: Pick<TaxState, 'taxYears' | 'documents' | 'checklistI
   });
 }
 
-export const useTaxStore = create<TaxState>((set, get) => {
+export const useTaxStore = create<TaxState>((set, _get) => {
   _setTax = set;
   return {
   taxYears: [],
